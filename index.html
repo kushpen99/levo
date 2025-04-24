@@ -136,6 +136,9 @@
     }
 	
 	console.log("Fetching scenarios…");
+	
+	let story = 'mssa-mayhem';
+	let storyPath = '/stories/' + story +'.json';
 	fetch('/stories/scenarios.json')
 	  .then(response => {
 		console.log("Fetch response:", response.status, response);
