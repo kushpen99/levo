@@ -136,7 +136,7 @@
     }
 	
 	console.log("Fetching scenarios…");
-	fetch('/scenarios.json')
+	fetch('/stories/scenarios.json')
 	  .then(response => {
 		console.log("Fetch response:", response.status, response);
 		if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -151,7 +151,7 @@
 		console.error("Failed to load scenarios.json:", err);
 		// Optionally: show a user‐friendly error on the page
 		document.getElementById('app').innerHTML =
-		  `<div class="text-red-600 p-4">Error loading story data. Check console for details.</div>`;
+		  `<div class="text-red-600 p-4">Error loading story data. Please try again.</div>`;
 	  });
 
   </script>
