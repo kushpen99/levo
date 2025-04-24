@@ -26,8 +26,9 @@
     const params = new URLSearchParams(window.location.search);
     const storyId = params.get('story') || 'mssa-mayhem';
     let scenarios;
+    let drugInfo;
 
-    // Modal helpers
+    // SVG helper
     function createSVG(html) {
       const tpl = document.createElement('template');
       tpl.innerHTML = html.trim();
@@ -36,11 +37,11 @@
     const InfoIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-blue-600 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2.25c5.385 0 9.75 4.365 9.75 9.75S17.385 21.75 12 21.75 2.25 17.385 2.25 12 6.615 2.25 12 2.25z" /></svg>`;
     const ShieldIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m1-2a9 9 0 11-8 0v5a2 2 0 002 2h4a2 2 0 010 0V6z" /></svg>`;
 
+    // Modal logic
     const modal = document.getElementById('modal');
     const modalTitle = document.getElementById('modal-title');
     const modalContent = document.getElementById('modal-content');
     document.getElementById('modal-close').addEventListener('click', () => modal.classList.add('hidden'));
-
     function showModal(title, html) {
       modalTitle.textContent = '';
       modalTitle.append(createSVG(ShieldIconSVG), document.createTextNode(' ' + title + ' Info'));
@@ -48,14 +49,15 @@
       modal.classList.remove('hidden');
     }
 
-    // Load the scenarios JSON
+    // Load story JSON (with scenarios + drugInfo)
     fetch(`stories/${storyId}.json`)
       .then(res => {
         if (!res.ok) throw new Error(`Story not found (${res.status})`);
         return res.json();
       })
       .then(data => {
-        scenarios = data;
+        scenarios = data.scenarios;
+        drugInfo = data.drugInfo;
         render();
       })
       .catch(err => {
@@ -69,16 +71,16 @@
       app.innerHTML = '';
       const sc = scenarios[currentScene];
 
-      // Story text
+      // Story text with inline drug links
       const card = document.createElement('div');
       card.className = 'bg-white rounded-lg shadow p-6 text-lg whitespace-pre-wrap';
       sc.text.split(/(Vancomycin|Cefazolin|Nafcillin|Daptomycin|Ceftriaxone)/g).forEach((seg, i) => {
-        if (scenarios.hasOwnProperty(seg)) {
+        if (drugInfo[seg]) {
           const btn = document.createElement('button');
           btn.className = 'inline-flex items-center text-blue-600 hover:text-blue-800 underline';
           btn.textContent = seg;
           btn.append(createSVG(InfoIconSVG));
-          btn.addEventListener('click', () => showModal(seg, scenarios[seg].infoHtml));
+          btn.addEventListener('click', () => showModal(seg, drugInfo[seg]));
           card.append(btn);
         } else {
           card.append(document.createTextNode(seg));
@@ -86,7 +88,7 @@
       });
       app.append(card);
 
-      // Options
+      // Options + pop-up buttons
       const opts = document.createElement('div');
       opts.className = 'flex flex-col space-y-2';
       sc.options.forEach(opt => {
@@ -98,11 +100,11 @@
         btn.textContent = opt==='start'?'Next':clean;
         btn.addEventListener('click', () => { currentScene = opt==='Restart'?'intro':opt; render(); });
         row.append(btn);
-        if (scenarios[clean] && scenarios[clean].infoHtml) {
+        if (drugInfo[clean]) {
           const ib = document.createElement('button');
           ib.className = 'inline-flex items-center border border-blue-500 hover:bg-blue-50 px-3 py-1 rounded';
           ib.innerHTML = ShieldIconSVG + 'Info';
-          ib.addEventListener('click', () => showModal(clean, scenarios[clean].infoHtml));
+          ib.addEventListener('click', () => showModal(clean, drugInfo[clean]));
           row.append(ib);
         }
         opts.append(row);

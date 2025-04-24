@@ -1,46 +1,55 @@
 {
-  "intro": {
-    "text": "On a chilly evening, while sipping your chamomile tea with honey in the internal medicine staff room where you work as a physician assistant,\nsuddenly the phone rings. After confirming (damn it) that there’s no one else around to answer, you pick up the receiver:\n\"Hello, this is the microbiology lab. Mr. Nehmadi Nehmad has Staphylococcus aureus in his blood culture. Sensitivities will be ready tomorrow. Got it?\"\n\"Got it.\"\n\nWhat treatment would you recommend the on-call resident start for the nice gentleman?",
-    "options": ["empiric"]
-  },
-  "empiric": {
-    "text": "You consider empiric treatment options. It’s nighttime, sensitivities aren’t back yet, and all eyes are on you.\nWhat do you start for now?",
-    "options": ["VancomycinEmp", "CefazolinEmp", "NafcillinEmp", "Ceftriaxone"]
-  },
-  "VancomycinEmp": {
-    "text": "You start Vancomycin. It covers both MRSA (methicillin-resistant Staphylococcus aureus) and MSSA (methicillin-sensitive Staphylococcus aureus), and is a reasonable empiric choice in settings with high MRSA prevalence.\n\nHowever, Vancomycin is less effective than beta-lactams for treating MSSA. Studies have shown worse outcomes in patients treated with Vancomycin when the pathogen was actually sensitive.\n\nThe next day, sensitivities return: the bug is MSSA.",
-    "options": ["start"]
-  },
-  "CefazolinEmp": {
-    "text": "You start Cefazolin. It is the drug of choice for MSSA (methicillin-sensitive Staphylococcus aureus), but it does not cover MRSA (methicillin-resistant Staphylococcus aureus).\n\nIt’s a great option for empiric treatment in patients without risk factors for MRSA and in areas where MRSA prevalence is low.\n\nThe next day, sensitivities return: the bug is MSSA.",
-    "options": ["start"]
-  },
-  "NafcillinEmp": {
-    "text": "You start Nafcillin. This beta-lactam is highly effective against MSSA (methicillin-sensitive Staphylococcus aureus), but it does not cover MRSA (methicillin-resistant Staphylococcus aureus).\n\nThe next day, sensitivities return: the bug is MSSA.",
-    "options": ["start"]
-  },
-  "start": {
-    "text": "Your senior looks at you. “Your call. What’s the best antibiotic?”",
-    "options": ["Vancomycin", "Cefazolin", "Nafcillin", "Daptomycin"]
-  },
-  "Vancomycin": {
-    "text": "You boldly choose Vancomycin. After all, it worked for MRSA once, right?\nThree days later: The cultures are still positive. The creatinine creeps up.\n❌ MSSA + Vancomycin = not your best combo.",
-    "options": ["Restart"]
-  },
-  "Cefazolin": {
-    "text": "A golden choice! You switch to Cefazolin, and your patient is afebrile in 48 hours.\n🎉 You win! Stewardship hero, kidney saver.",
-    "options": ["Restart"]
-  },
-  "Nafcillin": {
-    "text": "Ah, the OG anti-staph agent. It works fast — the patient improves.\n✅ Good choice medically — just don’t forget the toxicity price tag.",
-    "options": ["Restart"]
-  },
-  "Daptomycin": {
-    "text": "You opt for the Bugatti of antibiotics: Daptomycin.\n❌ Next time, save Daptomycin for when it’s actually needed.",
-    "options": ["Restart"]
-  },
-  "Ceftriaxone": {
-    "text": "You go with Ceftriaxone — a noble empiric bet, broad yet elegant.\n❌ Nice try, but let’s tighten that spectrum.",
-    "options": ["Restart"]
-  }
+	"scenarios": {
+	  "intro": {
+		"text": "On a chilly evening, while sipping your chamomile tea with honey in the internal medicine staff room where you work as a physician assistant,\nsuddenly the phone rings. After confirming (damn it) that there’s no one else around to answer, you pick up the receiver:\n\"Hello, this is the microbiology lab. Mr. Nehmadi Nehmad has Staphylococcus aureus in his blood culture. Sensitivities will be ready tomorrow. Got it?\"\n\"Got it.\"\n\nWhat treatment would you recommend the on-call resident start for the nice gentleman?",
+		"options": ["empiric"]
+	  },
+	  "empiric": {
+		"text": "You consider empiric treatment options. It’s nighttime, sensitivities aren’t back yet, and all eyes are on you.\nWhat do you start for now?",
+		"options": ["VancomycinEmp", "CefazolinEmp", "NafcillinEmp", "Ceftriaxone"]
+	  },
+	  "VancomycinEmp": {
+		"text": "You start Vancomycin. It covers both MRSA (methicillin-resistant Staphylococcus aureus) and MSSA (methicillin-sensitive Staphylococcus aureus), and is a reasonable empiric choice in settings with high MRSA prevalence.\n\nHowever, Vancomycin is less effective than beta-lactams for treating MSSA. Studies have shown worse outcomes in patients treated with Vancomycin when the pathogen was actually sensitive.\n\nThe next day, sensitivities return: the bug is MSSA.",
+		"options": ["start"]
+	  },
+	  "CefazolinEmp": {
+		"text": "You start Cefazolin. It is the drug of choice for MSSA (methicillin-sensitive Staphylococcus aureus), but it does not cover MRSA (methicillin-resistant Staphylococcus aureus).\n\nIt’s a great option for empiric treatment in patients without risk factors for MRSA and in areas where MRSA prevalence is low.\n\nThe next day, sensitivities return: the bug is MSSA.",
+		"options": ["start"]
+	  },
+	  "NafcillinEmp": {
+		"text": "You start Nafcillin. This beta-lactam is highly effective against MSSA (methicillin-sensitive Staphylococcus aureus), but it does not cover MRSA (methicillin-resistant Staphylococcus aureus).\n\nThe next day, sensitivities return: the bug is MSSA.",
+		"options": ["start"]
+	  },
+	  "start": {
+		"text": "Your senior looks at you. “Your call. What’s the best antibiotic?”",
+		"options": ["Vancomycin", "Cefazolin", "Nafcillin", "Daptomycin"]
+	  },
+	  "Vancomycin": {
+		"text": "You boldly choose Vancomycin. After all, it worked for MRSA once, right?\nThree days later: The cultures are still positive. The creatinine creeps up.\n❌ MSSA + Vancomycin = not your best combo.",
+		"options": ["Restart"]
+	  },
+	  "Cefazolin": {
+		"text": "A golden choice! You switch to Cefazolin, and your patient is afebrile in 48 hours.\n🎉 You win! Stewardship hero, kidney saver.",
+		"options": ["Restart"]
+	  },
+	  "Nafcillin": {
+		"text": "Ah, the OG anti-staph agent. It works fast — the patient improves.\n✅ Good choice medically — just don’t forget the toxicity price tag.",
+		"options": ["Restart"]
+	  },
+	  "Daptomycin": {
+		"text": "You opt for the Bugatti of antibiotics: Daptomycin.\n❌ Next time, save Daptomycin for when it’s actually needed.",
+		"options": ["Restart"]
+	  },
+	  "Ceftriaxone": {
+		"text": "You go with Ceftriaxone — a noble empiric bet, broad yet elegant.\n❌ Nice try, but let’s tighten that spectrum.",
+		"options": ["Restart"]
+	  }
+	},
+	"drugInfo": {
+	  "Vancomycin": "**Vancomycin**\\n- Spectrum: Gram-positive, including MRSA\\n- PK: Time-dependent killing, IV only, renal clearance\\n- Toxicities: Nephrotoxicity, red man syndrome",
+	  "Cefazolin": "**Cefazolin**\\n- Spectrum: MSSA, Streptococci\\n- PK: Time-dependent killing, IV, renally cleared\\n- Toxicities: Rare hypersensitivity, generally well tolerated",
+	  "Nafcillin": "**Nafcillin**\\n- Spectrum: MSSA only\\n- PK: IV, hepatic metabolism\\n- Toxicities: Interstitial nephritis, phlebitis, liver enzyme elevations",
+	  "Daptomycin": "**Daptomycin**\\n- Spectrum: MRSA, VRE\\n- PK: Concentration-dependent killing, inactivated by lung surfactant\\n- Toxicities: Myopathy, requires CK monitoring",
+	  "Ceftriaxone": "**Ceftriaxone**\\n- Spectrum: Broad Gram-negative and some Gram-positive\\n- PK: Time-dependent killing, IV/IM, hepatic and renal elimination\\n- Toxicities: Biliary sludging, GI upset, rash"
+	}
 }
