@@ -42,7 +42,17 @@
     const modalTitle = document.getElementById('modal-title');
     const modalContent = document.getElementById('modal-content');
     document.getElementById('modal-close').addEventListener('click', () => modal.classList.add('hidden'));
-    function showModal(title, html) {
+    function showModal(title) {
+      const info = drugInfo[title];
+      // build HTML from subfields
+      const html = `
+        <strong>${title}</strong>
+        <ul class="list-disc ml-5">
+          <li>Spectrum: ${info.Spectrum}</li>
+          <li>PK: ${info.PK}</li>
+          <li>Toxicities: ${info.Toxicities}</li>
+        </ul>
+      `;
       modalTitle.textContent = '';
       modalTitle.append(createSVG(ShieldIconSVG), document.createTextNode(' ' + title + ' Info'));
       modalContent.innerHTML = html;
@@ -80,7 +90,7 @@
           btn.className = 'inline-flex items-center text-blue-600 hover:text-blue-800 underline';
           btn.textContent = seg;
           btn.append(createSVG(InfoIconSVG));
-          btn.addEventListener('click', () => showModal(seg, drugInfo[seg]));
+          btn.addEventListener('click', () => showModal(seg));
           card.append(btn);
         } else {
           card.append(document.createTextNode(seg));
@@ -104,7 +114,7 @@
           const ib = document.createElement('button');
           ib.className = 'inline-flex items-center border border-blue-500 hover:bg-blue-50 px-3 py-1 rounded';
           ib.innerHTML = ShieldIconSVG + 'Info';
-          ib.addEventListener('click', () => showModal(clean, drugInfo[clean]));
+          ib.addEventListener('click', () => showModal(clean));
           row.append(ib);
         }
         opts.append(row);

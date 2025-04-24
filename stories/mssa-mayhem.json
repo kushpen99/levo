@@ -46,10 +46,32 @@
 	  }
 	},
 	"drugInfo": {
-	  "Vancomycin": "**Vancomycin**\\n- Spectrum: Gram-positive, including MRSA\\n- PK: Time-dependent killing, IV only, renal clearance\\n- Toxicities: Nephrotoxicity, red man syndrome",
-	  "Cefazolin": "**Cefazolin**\\n- Spectrum: MSSA, Streptococci\\n- PK: Time-dependent killing, IV, renally cleared\\n- Toxicities: Rare hypersensitivity, generally well tolerated",
-	  "Nafcillin": "**Nafcillin**\\n- Spectrum: MSSA only\\n- PK: IV, hepatic metabolism\\n- Toxicities: Interstitial nephritis, phlebitis, liver enzyme elevations",
-	  "Daptomycin": "**Daptomycin**\\n- Spectrum: MRSA, VRE\\n- PK: Concentration-dependent killing, inactivated by lung surfactant\\n- Toxicities: Myopathy, requires CK monitoring",
-	  "Ceftriaxone": "**Ceftriaxone**\\n- Spectrum: Broad Gram-negative and some Gram-positive\\n- PK: Time-dependent killing, IV/IM, hepatic and renal elimination\\n- Toxicities: Biliary sludging, GI upset, rash"
+	  "Vancomycin": {
+		"Spectrum": "Gram-positive, including MRSA",
+		"PK": "Time-dependent killing, IV only, renal clearance",
+		"Toxicities": "Nephrotoxicity, red man syndrome"
+	  },
+	  "Cefazolin": {
+		"Spectrum": "MSSA, Streptococci",
+		"PK": "Time-dependent killing, IV, renally cleared",
+		"Toxicities": "Rare hypersensitivity, generally well tolerated"
+	  },
+	  "Nafcillin": {
+		"Spectrum": "MSSA only",
+		"PK": "IV, hepatic metabolism",
+		"Toxicities": "Interstitial nephritis, phlebitis, liver enzyme elevations"
+	  },
+	  "Daptomycin": {
+		"Spectrum": "MRSA, VRE",
+		"PK": "Concentration-dependent killing, inactivated by lung surfactant",
+		"Toxicities": "Myopathy, requires CK monitoring"
+	  },
+	  "Ceftriaxone": {
+		"Spectrum": "Broad Gram-negative and some Gram-positive",
+		"PK": "Time-dependent killing, IV/IM, hepatic and renal elimination",
+		"Toxicities": "Biliary sludging, GI upset, rash"
+	  }
 	}
+}
+
 }
