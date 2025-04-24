@@ -25,15 +25,26 @@
     // Get story ID from URL
     const params = new URLSearchParams(window.location.search);
     const storyId = params.get('story') || '';
-    let scenarios = {}, drugInfo = {};
+    let scenarios = {};
+    let drugInfo = {};
 
     // SVG helper
     function createSVG(html) {
-      const tpl = document.createElement('template'); tpl.innerHTML = html.trim();
+      const tpl = document.createElement('template');
+      tpl.innerHTML = html.trim();
       return tpl.content.firstChild;
     }
-    const InfoIconSVG   = `<svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-blue-600 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2.25c5.385 0 9.75 4.365 9.75 9.75S17.385 21.75 12 21.75 2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/></svg>`;
-    const ShieldIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m1-2a9 9 0 11-8 0v5a2 2 0 002 2h4a2 2 0 010 0V6z"/></svg>`;
+    const InfoIconSVG = `
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-blue-600 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M13 16h-1v-4h-1m1-4h.01M12 2.25c5.385 0 9.75 4.365 9.75 9.75
+             S17.385 21.75 12 21.75 2.25 17.385 2.25 12 6.615 2.25 12 2.25z" />
+      </svg>`;
+    const ShieldIconSVG = `
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M9 12l2 2 4-4m1-2a9 9 0 11-8 0v5a2 2 0 002 2h4a2 2 0 010 0V6z" />
+      </svg>`;
 
     // Modal logic
     const modal = document.getElementById('modal');
@@ -52,15 +63,23 @@
           <li><strong>Toxicities:</strong> ${info.Toxicities}</li>
         </ul>
       `;
-      modalTitle.textContent = ''; modalTitle.append(createSVG(ShieldIconSVG), document.createTextNode(' ' + name + ' Info'));
+      modalTitle.textContent = '';
+      modalTitle.append(createSVG(ShieldIconSVG), document.createTextNode(' ' + name + ' Info'));
       modalContent.innerHTML = html;
       modal.classList.remove('hidden');
     }
 
     // Load story JSON (scenarios + drugInfo)
     fetch(`stories/${storyId}.json`)
-      .then(r => { if (!r.ok) throw new Error('Story not found'); return r.json(); })
-      .then(data => { scenarios = data.scenarios; drugInfo = data.drugInfo; render(); })
+      .then(response => {
+        if (!response.ok) throw new Error('Story not found');
+        return response.json();
+      })
+      .then(data => {
+        scenarios = data.scenarios;
+        drugInfo = data.drugInfo;
+        render();
+      })
       .catch(err => {
         console.error(err);
         document.getElementById('app').innerHTML = `<div class="p-4 text-red-600">Could not load story '${storyId}'.</div>`;
@@ -68,20 +87,23 @@
 
     let current = 'intro';
     function render() {
-      const app = document.getElementById('app'); app.innerHTML = '';
+      const app = document.getElementById('app');
+      app.innerHTML = '';
       const sc = scenarios[current] || { text: 'Unknown scene', options: [] };
 
       // Build regex from drugInfo keys
       const keys = Object.keys(drugInfo).map(k => k.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'));
-      const regex = new RegExp(`\b(${keys.join('|')})\b`, 'g');
+      const regex = new RegExp(`\\b(${keys.join('|')})\\b`, 'g');
 
       // Story text
-      const card = document.createElement('div'); card.className = 'bg-white shadow rounded p-6 text-lg whitespace-pre-wrap';
+      const card = document.createElement('div');
+      card.className = 'bg-white shadow rounded p-6 text-lg whitespace-pre-wrap';
       sc.text.split(regex).forEach(part => {
         if (drugInfo[part]) {
           const btn = document.createElement('button');
           btn.className = 'inline-flex items-center text-blue-600 hover:text-blue-800 underline';
-          btn.textContent = part; btn.append(createSVG(InfoIconSVG));
+          btn.textContent = part;
+          btn.append(createSVG(InfoIconSVG));
           btn.addEventListener('click', () => showModal(part));
           card.append(btn);
         } else {
@@ -91,10 +113,12 @@
       app.append(card);
 
       // Options
-      const opts = document.createElement('div'); opts.className = 'flex flex-col space-y-2 mt-4';
+      const opts = document.createElement('div');
+      opts.className = 'flex flex-col space-y-2 mt-4';
       sc.options.forEach(opt => {
         const clean = opt.replace(/Emp$/, '');
-        const row = document.createElement('div'); row.className = 'flex items-center space-x-2';
+        const row = document.createElement('div');
+        row.className = 'flex items-center space-x-2';
         const b = document.createElement('button');
         b.className = 'flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded';
         b.textContent = opt === 'start' ? 'Next' : clean;
