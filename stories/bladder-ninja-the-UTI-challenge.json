@@ -1,0 +1,76 @@
+{
+  "scenarios": {
+    "intro": {
+      "text": "🏃‍♀️ It’s Monday morning in the urgent-care clinic. A 28-year-old marathon runner limps in, grimacing: “I feel like I’m peeing tiny daggers! 🔪💧” Vital signs are stable, no fever. Urinalysis shows 3+ leukocyte esterase and nitrites. 😂\n\nWhat empiric antibiotic do you start while cultures are pending?",
+      "options": [
+        "NitrofurantoinEmp",
+        "TMPSMXEmp",
+        "CiprofloxacinEmp",
+        "CephalexinEmp"
+      ]
+    },
+    "NitrofurantoinEmp": {
+      "text": "You start Nitrofurantoin – the UTI ninja. 🥷 It hits E. coli right where it hurts and concentrates in the bladder.\n\nCulture pending: E. coli, sensitive to everything except penicillin.",
+      "options": ["start"]
+    },
+    "TMPSMXEmp": {
+      "text": "You pick Trimethoprim-Sulfamethoxazole (TMP-SMX). 📜➕💊 Sure, it’s effective… unless local resistance is high. Fingers crossed! 🤞\n\nCulture pending: E. coli, sensitive to everything except penicillin.",
+      "options": ["start"]
+    },
+    "CiprofloxacinEmp": {
+      "text": "You go bold with Ciprofloxacin – the fluoroquinolone flamboyance. 💃 Broad coverage, but FDA frowns at overuse. 🧐\n\nCulture pending: E. coli, sensitive to everything except penicillin.",
+      "options": ["start"]
+    },
+    "CephalexinEmp": {
+      "text": "You grab Cephalexin – the trusty cephalosporin. 🛡️ Good against E. coli, but might not concentrate as well in urine.\n\nCulture pending: E. coli, sensitive to everything except penicillin.",
+      "options": ["start"]
+    },
+    "start": {
+      "text": "🧫 Lab calls: “It’s uropathogenic E. coli, nitro-sensitive, TMP-SMX sensitive, cipro sensitive, cephalexin sensitive.”\n“Your move, doc. What’s the best narrow-spectrum choice?”",
+      "options": [
+        "Nitrofurantoin",
+        "TMPSMX",
+        "Ciprofloxacin",
+        "Cephalexin"
+      ]
+    },
+    "Nitrofurantoin": {
+      "text": "🎉 Perfect! Nitrofurantoin remains first-line for uncomplicated UTI. Bladder-only ninja strike. Patient pees happy by tomorrow. 🥳🚽",
+      "options": ["Restart"]
+    },
+    "TMPSMX": {
+      "text": "👍 TMP-SMX works, but it has more systemic effects and potential rash. Not wrong, just not the bladder-specialist. 🤷‍♀️",
+      "options": ["Restart"]
+    },
+    "Ciprofloxacin": {
+      "text": "❌ Too broad! Save fluoroquinolones for pyelonephritis or resistant bugs. Plus Achilles tendon risk for our marathoner. 🦶⚠️",
+      "options": ["Restart"]
+    },
+    "Cephalexin": {
+      "text": "❌ Cephalexin is okay, but nitrofurantoin beats it in bladder concentration. Better luck next time. 😉",
+      "options": ["Restart"]
+    }
+  },
+  "drugInfo": {
+    "Nitrofurantoin": {
+      "Spectrum": "Uncomplicated UTI pathogens (E. coli, Enterococcus)",
+      "PK": "Concentrates in urine; bacteriostatic/bactericidal depending on concentration",
+      "Toxicities": "GI upset, pulmonary fibrosis (rare), brown urine"
+    },
+    "TMPSMX": {
+      "Spectrum": "Gram-negative (E. coli), some Staph, PCP prophylaxis",
+      "PK": "Good oral bioavailability; hepatic metabolism; excreted in urine",
+      "Toxicities": "Rash, hyperkalemia, bone marrow suppression"
+    },
+    "Ciprofloxacin": {
+      "Spectrum": "Broad Gram-negative including Pseudomonas; some Gram-positive",
+      "PK": "Excellent oral absorption; wide tissue distribution; renal & hepatic clearance",
+      "Toxicities": "Tendon rupture, QT prolongation, C. difficile risk"
+    },
+    "Cephalexin": {
+      "Spectrum": "Gram-positive cocci & some Gram-negative (E. coli, Klebsiella)",
+      "PK": "Oral; hepatic metabolism; renal excretion",
+      "Toxicities": "GI upset, rash, rare seizures in renal failure"
+    }
+  }
+}
