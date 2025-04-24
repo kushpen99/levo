@@ -1,162 +1,20 @@
+<!-- index.html (Portal Page) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>MSSA Mayhem App</title>
+  <title>Stories Portal</n  >
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
-  <div id="app" class="max-w-xl mx-auto mt-10 space-y-6"></div>
-
-  <!-- Modal -->
-  <div id="modal" class="fixed inset-0 hidden bg-black bg-opacity-50 flex items-center justify-center">
-    <div class="bg-white border-2 border-blue-200 shadow-xl rounded-lg p-4 w-11/12 max-w-md">
-      <div class="flex items-center gap-2 text-blue-800 mb-2">
-        <span id="modal-title" class="flex items-center gap-2 text-lg font-semibold"></span>
-        <button id="modal-close" class="ml-auto text-gray-500 hover:text-gray-800">✕</button>
-      </div>
-      <div id="modal-content" class="whitespace-pre-wrap text-sm text-gray-800"></div>
-    </div>
+  <div class="max-w-xl mx-auto mt-10">
+    <h1 class="text-2xl font-bold mb-4">📖 Story Portal</h1>
+    <ul class="list-disc pl-5 space-y-2">
+      <li><a href="story.html?story=mssa-mayhem" class="text-blue-600 hover:underline">MSSA Mayhem</a></li>
+      <!-- Add more stories here -->
+      <!-- <li><a href="story.html?story=another-story" class="text-blue-600 hover:underline">Another Story</a></li> -->
+    </ul>
   </div>
-
-  <script>
-    // Data
-    const drugInfoHtml = {
-      Vancomycin: `<strong>Vancomycin</strong>
-        <ul class="list-disc ml-5">
-          <li>Spectrum: Gram-positive, including MRSA</li>
-          <li>PK: Time-dependent killing, IV only, renal clearance</li>
-          <li>Toxicities: Nephrotoxicity, red man syndrome</li>
-        </ul>`,
-      Cefazolin: `<strong>Cefazolin</strong>
-        <ul class="list-disc ml-5">
-          <li>Spectrum: MSSA, Streptococci</li>
-          <li>PK: Time-dependent killing, IV, renally cleared</li>
-          <li>Toxicities: Rare hypersensitivity, generally well tolerated</li>
-        </ul>`,
-      Nafcillin: `<strong>Nafcillin</strong>
-        <ul class="list-disc ml-5">
-          <li>Spectrum: MSSA only</li>
-          <li>PK: IV, hepatic metabolism</li>
-          <li>Toxicities: Interstitial nephritis, phlebitis, liver enzyme elevations</li>
-        </ul>`,
-      Daptomycin: `<strong>Daptomycin</strong>
-        <ul class="list-disc ml-5">
-          <li>Spectrum: MRSA, VRE</li>
-          <li>PK: Concentration-dependent killing, inactivated by lung surfactant</li>
-          <li>Toxicities: Myopathy, requires CK monitoring</li>
-        </ul>`,
-      Ceftriaxone: `<strong>Ceftriaxone</strong>
-        <ul class="list-disc ml-5">
-          <li>Spectrum: Broad Gram-negative and some Gram-positive</li>
-          <li>PK: Time-dependent killing, IV/IM, hepatic and renal elimination</li>
-          <li>Toxicities: Biliary sludging, GI upset, rash</li>
-        </ul>`
-    };
-    
-	let scenarios = {};
-	
-    // SVG icons
-    function createSVG(html) {
-      const template = document.createElement('template');
-      template.innerHTML = html.trim();
-      return template.content.firstChild;
-    }
-    const InfoIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-blue-600 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-        d="M13 16h-1v-4h-1m1-4h.01M12 2.25c5.385 0 
-           9.75 4.365 9.75 9.75S17.385 21.75 12 21.75 
-           2.25 17.385 2.25 12 6.615 2.25 12 2.25z" />
-    </svg>`;
-    const ShieldIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-        d="M9 12l2 2 4-4m1-2a9 9 0 
-           11-8 0v5a2 2 0 002 2h4a2 2 0 010 0V6z" />
-    </svg>`;
-
-    // Modal logic
-    const modal = document.getElementById('modal');
-    const modalTitle = document.getElementById('modal-title');
-    const modalContent = document.getElementById('modal-content');
-    document.getElementById('modal-close').addEventListener('click', () => modal.classList.add('hidden'));
-    function showModal(title, html) {
-      modalTitle.textContent = '';
-      modalTitle.append(createSVG(ShieldIconSVG), document.createTextNode(' ' + title + ' Info'));
-      modalContent.innerHTML = html;
-      modal.classList.remove('hidden');
-    }
-
-    // Render
-    const app = document.getElementById('app');
-    let current = 'intro';
-    function render() {
-      app.innerHTML = '';
-      const sc = scenarios[current];
-
-      // Story card
-      const card = document.createElement('div');
-      card.className = 'bg-white rounded-lg shadow p-6 text-lg whitespace-pre-wrap';
-      sc.text.split(/(Vancomycin|Cefazolin|Nafcillin|Daptomycin|Ceftriaxone)/g).forEach((segment, i) => {
-        if (drugInfoHtml[segment]) {
-          const btn = document.createElement('button');
-          btn.className = 'inline-flex items-center text-blue-600 hover:text-blue-800 underline';
-          btn.textContent = segment;
-          btn.append(createSVG(InfoIconSVG));
-          btn.addEventListener('click', () => showModal(segment, drugInfoHtml[segment]));
-          card.append(btn);
-        } else {
-          card.append(document.createTextNode(segment));
-        }
-      });
-      app.append(card);
-
-      // Options
-      const opts = document.createElement('div');
-      opts.className = 'flex flex-col space-y-2';
-      sc.options.forEach(opt => {
-        const clean = opt.replace('Emp','');
-        const row = document.createElement('div');
-        row.className = 'flex items-center space-x-2';
-        const btn = document.createElement('button');
-        btn.className = 'flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded';
-        btn.textContent = opt==='start'?'Next':clean;
-        btn.addEventListener('click', () => { current = opt==='Restart'?'intro':opt; render(); });
-        row.append(btn);
-        if (drugInfoHtml[clean]) {
-          const ibtn = document.createElement('button');
-          ibtn.className = 'inline-flex items-center border border-blue-500 hover:bg-blue-50 px-3 py-1 rounded';
-          ibtn.innerHTML = ShieldIconSVG + 'Info';
-          ibtn.addEventListener('click', () => showModal(clean, drugInfoHtml[clean]));
-          row.append(ibtn);
-        }
-        opts.append(row);
-      });
-      app.append(opts);
-    }
-	
-	console.log("Fetching scenarios…");
-	
-	let story = 'mssa-mayhem';
-	let storyPath = '/stories/' + story +'.json';
-	fetch(storyPath)
-	  .then(response => {
-		console.log("Fetch response:", response.status, response);
-		if (!response.ok) throw new Error(`HTTP ${response.status}`);
-		return response.json();
-	  })
-	  .then(json => {
-		console.log("Loaded scenarios:", json);
-		scenarios = json;
-		render();
-	  })
-	  .catch(err => {
-		console.error("Failed to load scenarios.json:", err);
-		// Optionally: show a user‐friendly error on the page
-		document.getElementById('app').innerHTML =
-		  `<div class="text-red-600 p-4">Error loading story data. Please try again.</div>`;
-	  });
-
-  </script>
 </body>
 </html>
