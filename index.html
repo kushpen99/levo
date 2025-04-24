@@ -1,19 +1,39 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Stories Portal</title>
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
   <div class="max-w-xl mx-auto mt-10">
     <h1 class="text-2xl font-bold mb-4">📖 Story Portal</h1>
-    <ul class="list-disc pl-5 space-y-2">
-      <li><a href="story.html?story=mssa-mayhem" class="text-blue-600 hover:underline">MSSA Mayhem</a></li>
-	  <li><a href="story.html?story=bladder-ninja-the-UTI-challenge" class="text-blue-600 hover:underline">Bladder Ninja: The UTI Challenge</a></li>
-	  <!-- Add more stories here -->
-      <!-- <li><a href="story.html?story=another-story" class="text-blue-600 hover:underline">Another Story</a></li> -->
+    <ul id="story-list" class="list-disc pl-5 space-y-2">
+      <!-- entries will be injected here -->
     </ul>
   </div>
+
+  <script>
+    fetch('stories/manifest.json')
+      .then(r => r.json())
+      .then(list => {
+        const ul = document.getElementById('story-list');
+        list.forEach(story => {
+          const li = document.createElement('li');
+          const a  = document.createElement('a');
+          a.href           = `story.html?story=${story.id}`;
+          a.textContent    = story.title;
+          a.className      = 'text-blue-600 hover:underline';
+          li.append(a);
+          ul.append(li);
+        });
+      })
+      .catch(err => {
+        console.error('Failed to load stories manifest:', err);
+        document.getElementById('story-list').innerHTML =
+          '<li class="text-red-600">Could not load stories.</li>';
+      });
+  </script>
 </body>
+</html>
