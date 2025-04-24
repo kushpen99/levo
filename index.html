@@ -1,39 +1,42 @@
-<!-- index.html -->
+<!-- index.html (Portal Page) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Stories Portal</title>
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Optional custom styles -->
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-gray-100">
-  <div class="max-w-xl mx-auto mt-10">
-    <h1 class="text-2xl font-bold mb-4">📖 Story Portal</h1>
-    <ul id="story-list" class="list-disc pl-5 space-y-2">
-      <!-- entries will be injected here -->
+  <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-3xl sm:text-4xl font-bold mb-6 text-center">📖 Story Portal</h1>
+    <ul id="story-list" class="space-y-4">
+      <!-- story links injected here -->
     </ul>
   </div>
-
   <script>
     fetch('stories/manifest.json')
-      .then(r => r.json())
+      .then(response => response.json())
       .then(list => {
         const ul = document.getElementById('story-list');
-        list.forEach(story => {
+        list.forEach(({id, title}) => {
           const li = document.createElement('li');
-          const a  = document.createElement('a');
-          a.href           = `story.html?story=${story.id}`;
-          a.textContent    = story.title;
-          a.className      = 'text-blue-600 hover:underline';
+          const a = document.createElement('a');
+          a.href = `story.html?story=${encodeURIComponent(id)}`;
+          a.textContent = title;
+          a.className = 'block bg-white shadow hover:shadow-md rounded-lg px-5 py-4 text-lg sm:text-xl text-blue-600 hover:text-blue-700 transition';
           li.append(a);
           ul.append(li);
         });
       })
       .catch(err => {
-        console.error('Failed to load stories manifest:', err);
-        document.getElementById('story-list').innerHTML =
-          '<li class="text-red-600">Could not load stories.</li>';
+        console.error('Failed to load manifest:', err);
+        document.getElementById('story-list').innerHTML = '<li class="text-red-600">Could not load stories.</li>';
       });
   </script>
 </body>
 </html>
+

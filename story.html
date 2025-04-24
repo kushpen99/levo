@@ -3,25 +3,27 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Story Engine</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Optional custom styles -->
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-gray-100">
-  <!-- Back to portal button -->
-  <div class="max-w-xl mx-auto mt-6">
-    <a href="index.html" class="inline-block mb-4 text-blue-600 hover:underline">← Back to Stories</a>
+  <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <a href="index.html" class="inline-block mb-6 text-blue-600 hover:underline">← Back to Stories</a>
+    <div id="app" class="space-y-6"></div>
   </div>
-  <div id="app" class="max-w-xl mx-auto mt-2 space-y-6"></div>
 
   <!-- Modal -->
-  <div id="modal" class="fixed inset-0 hidden bg-black bg-opacity-50 flex items-center justify-center">
-    <div class="bg-white border-2 border-blue-200 shadow-xl rounded-lg p-4 w-11/12 max-w-md">
-      <div class="flex items-center gap-2 text-blue-800 mb-2">
-        <span id="modal-title" class="flex items-center gap-2 text-lg font-semibold"></span>
+  <div id="modal" class="fixed inset-0 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white border-2 border-blue-200 shadow-xl rounded-lg w-full max-w-lg overflow-auto">
+      <div class="flex items-center gap-2 text-blue-800 p-4 border-b">
+        <span id="modal-title" class="flex items-center gap-2 text-xl font-semibold"></span>
         <button id="modal-close" class="ml-auto text-gray-500 hover:text-gray-800">✕</button>
       </div>
-      <div id="modal-content" class="whitespace-pre-wrap text-sm text-gray-800"></div>
+      <div id="modal-content" class="p-4 text-sm text-gray-800"></div>
     </div>
   </div>
 
@@ -34,110 +36,56 @@
 
     // SVG helper
     function createSVG(html) {
-      const tpl = document.createElement('template');
-      tpl.innerHTML = html.trim();
+      const tpl = document.createElement('template'); tpl.innerHTML = html.trim();
       return tpl.content.firstChild;
     }
-    const InfoIconSVG = `
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-blue-600 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M13 16h-1v-4h-1m1-4h.01M12 2.25c5.385 0 9.75 4.365 9.75 9.75
-             S17.385 21.75 12 21.75 2.25 17.385 2.25 12 6.615 2.25 12 2.25z" />
-      </svg>`;
-    const ShieldIconSVG = `
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M9 12l2 2 4-4m1-2a9 9 0 11-8 0v5a2 2 0 002 2h4a2 2 0 010 0V6z" />
-      </svg>`;
+    const InfoIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2.25c5.385 0 9.75 4.365 9.75 9.75S17.385 21.75 12 21.75 2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/></svg>`;
+    const ShieldIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m1-2a9 9 0 11-8 0v5a2 2 0 002 2h4a2 2 0 010 0V6z"/></svg>`;
 
     // Modal logic
     const modal = document.getElementById('modal');
     const modalTitle = document.getElementById('modal-title');
     const modalContent = document.getElementById('modal-content');
     document.getElementById('modal-close').addEventListener('click', () => modal.classList.add('hidden'));
-
     function showModal(name) {
-      const info = drugInfo[name];
-      if (!info) return;
-      const html = `
-        <strong>${name}</strong>
-        <ul class="list-disc ml-5">
-          <li><strong>Spectrum:</strong> ${info.Spectrum}</li>
-          <li><strong>PK:</strong> ${info.PK}</li>
-          <li><strong>Toxicities:</strong> ${info.Toxicities}</li>
-        </ul>
-      `;
-      modalTitle.textContent = '';
-      modalTitle.append(createSVG(ShieldIconSVG), document.createTextNode(' ' + name + ' Info'));
-      modalContent.innerHTML = html;
-      modal.classList.remove('hidden');
+      const info = drugInfo[name]; if (!info) return;
+      const html = `<strong class="text-lg">${name}</strong><ul class="list-disc ml-5 mt-2"><li><strong>Spectrum:</strong> ${info.Spectrum}</li><li><strong>PK:</strong> ${info.PK}</li><li><strong>Toxicities:</strong> ${info.Toxicities}</li></ul>`;
+      modalTitle.textContent = ''; modalTitle.append(createSVG(ShieldIconSVG), document.createTextNode(' ' + name + ' Info'));
+      modalContent.innerHTML = html; modal.classList.remove('hidden');
     }
 
-    // Load story JSON (scenarios + drugInfo)
-    fetch(`stories/${storyId}.json`)
-      .then(response => {
-        if (!response.ok) throw new Error('Story not found');
-        return response.json();
-      })
-      .then(data => {
-        scenarios = data.scenarios;
-        drugInfo = data.drugInfo;
-        render();
-      })
-      .catch(err => {
-        console.error(err);
-        document.getElementById('app').innerHTML = `<div class="p-4 text-red-600">Could not load story '${storyId}'.</div>`;
-      });
+    // Load story
+    fetch(`stories/${storyId}.json`).then(r => r.ok ? r.json() : Promise.reject('Story not found')).then(data => {
+      scenarios = data.scenarios; drugInfo = data.drugInfo; render();
+    }).catch(err => {
+      console.error(err); document.getElementById('app').innerHTML = `<div class="text-red-600 p-4">Could not load '${storyId}'.</div>`;
+    });
 
     let current = 'intro';
     function render() {
-      const app = document.getElementById('app');
-      app.innerHTML = '';
+      const app = document.getElementById('app'); app.innerHTML = '';
       const sc = scenarios[current] || { text: 'Unknown scene', options: [] };
-
-      // Build regex from drugInfo keys
+      // Highlight drugs dynamically
       const keys = Object.keys(drugInfo).map(k => k.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'));
       const regex = new RegExp(`\\b(${keys.join('|')})\\b`, 'g');
-
-      // Story text
-      const card = document.createElement('div');
-      card.className = 'bg-white shadow rounded p-6 text-lg whitespace-pre-wrap';
+      const card = document.createElement('div'); card.className = 'bg-white shadow rounded p-6 text-base sm:text-lg whitespace-pre-wrap';
       sc.text.split(regex).forEach(part => {
         if (drugInfo[part]) {
-          const btn = document.createElement('button');
-          btn.className = 'inline-flex items-center text-blue-600 hover:text-blue-800 underline';
-          btn.textContent = part;
-          btn.append(createSVG(InfoIconSVG));
-          btn.addEventListener('click', () => showModal(part));
-          card.append(btn);
-        } else {
-          card.append(document.createTextNode(part));
-        }
-      });
-      app.append(card);
-
+          const btn = document.createElement('button'); btn.className = 'inline-flex items-center text-blue-600 hover:text-blue-800 underline';
+          btn.textContent = part; btn.append(createSVG(InfoIconSVG)); btn.addEventListener('click', () => showModal(part)); card.append(btn);
+        } else card.append(document.createTextNode(part));
+      }); app.append(card);
       // Options
-      const opts = document.createElement('div');
-      opts.className = 'flex flex-col space-y-2 mt-4';
+      const opts = document.createElement('div'); opts.className = 'flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0 mt-4';
       sc.options.forEach(opt => {
         const clean = opt.replace(/Emp$/, '');
-        const row = document.createElement('div');
-        row.className = 'flex items-center space-x-2';
-        const b = document.createElement('button');
-        b.className = 'flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded';
-        b.textContent = opt === 'start' ? 'Next' : clean;
-        b.addEventListener('click', () => { current = opt === 'Restart' ? 'intro' : opt; render(); });
-        row.append(b);
+        const b = document.createElement('button'); b.className = 'flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded text-center';
+        b.textContent = opt==='start'?'Next':clean; b.addEventListener('click', () => { current = opt==='Restart'?'intro':opt; render(); }); opts.append(b);
         if (drugInfo[clean]) {
-          const ib = document.createElement('button');
-          ib.className = 'inline-flex items-center border border-blue-500 hover:bg-blue-50 px-3 py-1 rounded';
-          ib.innerHTML = ShieldIconSVG + 'Info';
-          ib.addEventListener('click', () => showModal(clean));
-          row.append(ib);
+          const ib = document.createElement('button'); ib.className = 'inline-flex items-center border border-blue-500 hover:bg-blue-50 px-3 py-1 rounded';
+          ib.innerHTML = ShieldIconSVG + 'Info'; ib.addEventListener('click', () => showModal(clean)); opts.append(ib);
         }
-        opts.append(row);
-      });
-      app.append(opts);
+      }); app.append(opts);
     }
   </script>
 </body>
