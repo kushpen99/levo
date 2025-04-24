@@ -139,7 +139,7 @@
 	
 	let story = 'mssa-mayhem';
 	let storyPath = '/stories/' + story +'.json';
-	fetch('/stories/scenarios.json')
+	fetch(storyPath)
 	  .then(response => {
 		console.log("Fetch response:", response.status, response);
 		if (!response.ok) throw new Error(`HTTP ${response.status}`);
