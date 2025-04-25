@@ -7,7 +7,7 @@
   <title>Story Engine</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Optional custom styles -->
+  <!-- Custom styles -->
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-gray-100">
@@ -28,15 +28,15 @@
   </div>
 
   <script>
-    // Get story ID from URL
+    // Parse story ID
     const params = new URLSearchParams(window.location.search);
     const storyId = params.get('story') || '';
-    let scenarios = {};
-    let drugInfo = {};
+    let scenarios = {}, drugInfo = {};
 
     // SVG helper
     function createSVG(html) {
-      const tpl = document.createElement('template'); tpl.innerHTML = html.trim();
+      const tpl = document.createElement('template');
+      tpl.innerHTML = html.trim();
       return tpl.content.firstChild;
     }
     const InfoIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2.25c5.385 0 9.75 4.365 9.75 9.75S17.385 21.75 12 21.75 2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/></svg>`;
@@ -49,43 +49,85 @@
     document.getElementById('modal-close').addEventListener('click', () => modal.classList.add('hidden'));
     function showModal(name) {
       const info = drugInfo[name]; if (!info) return;
-      const html = `<strong class="text-lg">${name}</strong><ul class="list-disc ml-5 mt-2"><li><strong>Spectrum:</strong> ${info.Spectrum}</li><li><strong>PK:</strong> ${info.PK}</li><li><strong>Toxicities:</strong> ${info.Toxicities}</li></ul>`;
-      modalTitle.textContent = ''; modalTitle.append(createSVG(ShieldIconSVG), document.createTextNode(' ' + name + ' Info'));
-      modalContent.innerHTML = html; modal.classList.remove('hidden');
+      const html = `
+        <strong class="text-lg">${name}</strong>
+        <ul class="list-disc ml-5 mt-2">
+          <li><strong>Spectrum:</strong> ${info.Spectrum}</li>
+          <li><strong>PK:</strong> ${info.PK}</li>
+          <li><strong>Toxicities:</strong> ${info.Toxicities}</li>
+        </ul>
+      `;
+      modalTitle.textContent = '';
+      modalTitle.append(createSVG(ShieldIconSVG), document.createTextNode(' ' + name + ' Info'));
+      modalContent.innerHTML = html;
+      modal.classList.remove('hidden');
     }
 
-    // Load story
-    fetch(`stories/${storyId}.json`).then(r => r.ok ? r.json() : Promise.reject('Story not found')).then(data => {
-      scenarios = data.scenarios; drugInfo = data.drugInfo; render();
-    }).catch(err => {
-      console.error(err); document.getElementById('app').innerHTML = `<div class="text-red-600 p-4">Could not load '${storyId}'.</div>`;
-    });
+    // Load story data
+    fetch(`stories/${storyId}.json`)
+      .then(r => r.ok ? r.json() : Promise.reject('Story not found'))
+      .then(data => {
+        scenarios = data.scenarios;
+        drugInfo  = data.drugInfo;
+        render();
+      })
+      .catch(err => {
+        console.error(err);
+        document.getElementById('app').innerHTML = `<div class="text-red-600 p-4">Could not load story '${storyId}'.</div>`;
+      });
 
     let current = 'intro';
     function render() {
-      const app = document.getElementById('app'); app.innerHTML = '';
+      const app = document.getElementById('app');
+      app.innerHTML = '';
       const sc = scenarios[current] || { text: 'Unknown scene', options: [] };
+
       // Highlight drugs dynamically
       const keys = Object.keys(drugInfo).map(k => k.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'));
       const regex = new RegExp(`\\b(${keys.join('|')})\\b`, 'g');
-      const card = document.createElement('div'); card.className = 'bg-white shadow rounded p-6 text-base sm:text-lg whitespace-pre-wrap';
+      
+      // Render narrative
+      const card = document.createElement('div');
+      card.className = 'bg-white shadow rounded p-6 text-base sm:text-lg whitespace-pre-wrap';
       sc.text.split(regex).forEach(part => {
         if (drugInfo[part]) {
-          const btn = document.createElement('button'); btn.className = 'inline-flex items-center text-blue-600 hover:text-blue-800 underline';
-          btn.textContent = part; btn.append(createSVG(InfoIconSVG)); btn.addEventListener('click', () => showModal(part)); card.append(btn);
-        } else card.append(document.createTextNode(part));
-      }); app.append(card);
-      // Options
-      const opts = document.createElement('div'); opts.className = 'flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0 mt-4';
+          const btn = document.createElement('button');
+          btn.className = 'inline-flex items-center text-blue-600 hover:text-blue-800 underline';
+          btn.textContent = part;
+          btn.append(createSVG(InfoIconSVG));
+          btn.addEventListener('click', () => showModal(part));
+          card.append(btn);
+        } else {
+          card.append(document.createTextNode(part));
+        }
+      });
+      app.append(card);
+
+      // Render options
+      const optsContainer = document.createElement('div');
+      optsContainer.className = 'flex flex-col space-y-3 mt-4';
       sc.options.forEach(opt => {
         const clean = opt.replace(/Emp$/, '');
-        const b = document.createElement('button'); b.className = 'flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded text-center';
-        b.textContent = opt==='start'?'Next':clean; b.addEventListener('click', () => { current = opt==='Restart'?'intro':opt; render(); }); opts.append(b);
+        const row = document.createElement('div');
+        row.className = 'flex items-center space-x-2';
+
         if (drugInfo[clean]) {
-          const ib = document.createElement('button'); ib.className = 'inline-flex items-center border border-blue-500 hover:bg-blue-50 px-3 py-1 rounded';
-          ib.innerHTML = ShieldIconSVG + 'Info'; ib.addEventListener('click', () => showModal(clean)); opts.append(ib);
+          const ib = document.createElement('button');
+          ib.className = 'inline-flex items-center border border-blue-500 hover:bg-blue-50 px-3 py-1 rounded';
+          ib.innerHTML = ShieldIconSVG + 'Info';
+          ib.addEventListener('click', () => showModal(clean));
+          row.append(ib);
         }
-      }); app.append(opts);
+
+        const btn = document.createElement('button');
+        btn.className = 'flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded text-center';
+        btn.textContent = opt === 'start' ? 'Next' : clean;
+        btn.addEventListener('click', () => { current = opt === 'Restart' ? 'intro' : opt; render(); });
+        row.append(btn);
+
+        optsContainer.append(row);
+      });
+      app.append(optsContainer);
     }
   </script>
 </body>
