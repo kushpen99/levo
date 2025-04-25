@@ -7,253 +7,235 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
-  <div class="container mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+  <div class="container mx-auto px-4 py-6">
     <a href="index.html" class="text-blue-600 hover:underline mb-4 inline-block">← Back to Stories</a>
     <div id="app" class="space-y-6"></div>
   </div>
 
-  <!-- Modal for drug info -->
+  <!-- Drug Info Modal -->
   <div id="modal" class="fixed inset-0 hidden bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-xl p-4 w-11/12 max-w-md">
       <div class="flex items-center mb-2">
-        <span id="modal-title" class="text-lg font-semibold text-blue-800 flex-1"></span>
+        <span id="modal-title" class="flex-1 text-lg font-semibold text-blue-800"></span>
         <button id="modal-close" class="text-gray-500 hover:text-gray-800">✕</button>
       </div>
       <div id="modal-content" class="whitespace-pre-wrap text-sm text-gray-800 max-h-60 overflow-y-auto"></div>
     </div>
   </div>
 
-  <script>
-  (async function(){
-    //— load storyId from URL
-    const params = new URLSearchParams(window.location.search);
-    const storyId = params.get('story') || 'mssa-mayhem';
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
+    import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
 
-    //— fetch the JSON
-    const res = await fetch(`stories/${encodeURIComponent(storyId)}.json`);
-    if (!res.ok) {
-      document.getElementById('app').innerHTML =
-        `<div class="text-red-600">Could not load story “${storyId}”.</div>`;
-      return;
-    }
-    const story = await res.json();
-    const { scenarios, drugInfo, quiz, summary } = story;
+    // ---- YOUR FIREBASE CONFIG HERE ----
+    const firebaseConfig = {
+      apiKey: "AIzaSyClEgpGrVTXT2zQNNDBDg0TNX2F24k6oTg",
+      authDomain: "urushka99.firebaseapp.com",
+      projectId: "urushka99",
+      storageBucket: "urushka99.firebasestorage.app",
+      messagingSenderId: "954120822793",
+      appId: "1:954120822793:web:6c316b1b178081b56758d8",
+      measurementId: "G-5LCB9E7PL9"
+    };
+    // -----------------------------------
 
-    //— globals
-    let current = 'OPT0';
-    let inQuiz  = false;
-    let answers = {};
+    // Initialize Firebase and Firestore
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
 
-    //— utility to create SVG
-    function svg(html){ 
-      const t = document.createElement('template');
-      t.innerHTML = html.trim(); 
-      return t.content.firstChild;
-    }
-    const InfoSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 ml-1 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-        d="M13 16h-1v-4h-1m1-4h.01M12 2.25c5.385 0
-           9.75 4.365 9.75 9.75S17.385 21.75 12 21.75
-           2.25 17.385 2.25 12 6.615 2.25 12 2.25z" />
-    </svg>`;
+    (async function() {
+      // 1) Determine storyId from URL
+      const params  = new URLSearchParams(window.location.search);
+      const storyId = params.get('story') || 'mssa-mayhem';
 
-    const ShieldSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-        d="M9 12l2 2 4-4m1-2a9 9 0
-           11-8 0v5a2 2 0 002 2h4a2 2 0 010 0V6z" />
-    </svg>`;
+      // 2) Load story doc from Firestore
+      const snap = await getDoc(doc(db, 'stories', storyId));
+      if (!snap.exists()) {
+        document.getElementById('app').innerHTML =
+          `<div class="text-red-600">Story “${storyId}” not found in Firestore.</div>`;
+        return;
+      }
+      const data      = snap.data();
+      const scenarios = data.scenarios;
+      const drugInfo  = data.drugInfo || {};
+      const quiz      = data.quiz;
+      const summary   = data.summary;
 
-    //— modal controls
-    const modal = document.getElementById('modal');
-    document.getElementById('modal-close').onclick = ()=> modal.classList.add('hidden');
-    function showModal(title, info){
-      const mt = document.getElementById('modal-title');
-      const mc = document.getElementById('modal-content');
-      mt.textContent = '';
-      mt.append(svg(ShieldSVG), document.createTextNode(' '+ title +' Info'));
-      mc.innerHTML = `<p class="font-semibold">${title}</p>
-        <ul class="list-disc ml-5">
-          <li><strong>Spectrum:</strong> ${info.Spectrum}</li>
-          <li><strong>PK:</strong> ${info.PK}</li>
-          <li><strong>Toxicities:</strong> ${info.Toxicities}</li>
-        </ul>`;
-      modal.classList.remove('hidden');
-    }
+      // 3) Setup state & SVG utility
+      let current = 'OPT0', inQuiz = false, answers = {};
+      function svg(html) {
+        const t = document.createElement('template');
+        t.innerHTML = html.trim();
+        return t.content.firstChild;
+      }
+      const InfoSVG   = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 ml-1 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2.25c5.385 0 9.75 4.365 9.75 9.75S17.385 21.75 12 21.75 2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/></svg>`;
+      const ShieldSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m1-2a9 9 0 11-8 0v5a2 2 0 002 2h4a2 2 0 010 0V6z"/></svg>`;
 
-    //— render story screen
-    function renderStory(){
-      inQuiz = false;
-      const app = document.getElementById('app');
-      app.innerHTML = '';
-      const sc  = scenarios[current];
+      // Modal controls
+      const modal = document.getElementById('modal');
+      document.getElementById('modal-close').onclick = () => modal.classList.add('hidden');
+      function showModal(title, info) {
+        document.getElementById('modal-title').textContent = '';
+        document.getElementById('modal-title').append(svg(ShieldSVG), document.createTextNode(' '+title+' Info'));
+        document.getElementById('modal-content').innerHTML =
+          `<strong>${title}</strong>
+           <ul class="list-disc ml-5">
+             <li><strong>Spectrum:</strong> ${info.Spectrum}</li>
+             <li><strong>PK:</strong> ${info.PK}</li>
+             <li><strong>Toxicities:</strong> ${info.Toxicities}</li>
+           </ul>`;
+        modal.classList.remove('hidden');
+      }
 
-      // text card
-      const card = document.createElement('div');
-      card.className = 'bg-white p-6 rounded shadow text-lg whitespace-pre-wrap';
-      // inline drug highlights
-      sc.text.split(new RegExp(`(${Object.keys(drugInfo).join('|')})`, 'g'))
-        .forEach((part, i)=>{
-          if (drugInfo[part]){
+      // Render story
+      function renderStory() {
+        inQuiz = false;
+        const app = document.getElementById('app');
+        app.innerHTML = '';
+        const sc = scenarios[current];
+
+        // Story text card
+        const card = document.createElement('div');
+        card.className = 'bg-white p-6 rounded shadow text-lg whitespace-pre-wrap';
+        // highlight drug names inline
+        const regex = new RegExp(`(${Object.keys(drugInfo).join('|')})`, 'g');
+        sc.text.split(regex).forEach((seg,i) => {
+          if (drugInfo[seg]) {
             const btn = document.createElement('button');
             btn.className = 'inline-flex items-center text-blue-600 hover:underline';
-            btn.textContent = part;
+            btn.textContent = seg;
             btn.append(svg(InfoSVG));
-            btn.onclick = ()=> showModal(part, drugInfo[part]);
+            btn.onclick = ()=> showModal(seg, drugInfo[seg]);
             card.append(btn);
           } else {
-            card.append(document.createTextNode(part));
+            card.append(document.createTextNode(seg));
           }
         });
-      app.append(card);
+        app.append(card);
 
-      // buttons
-      const opts = document.createElement('div');
-      opts.className = 'flex flex-col space-y-3';
-      const hasRestart = sc.options.some(o=> o.id==='OPT0');
-      sc.options.forEach(o=>{
-        const row = document.createElement('div');
-        row.className = 'flex';
-        // option
-        const b = document.createElement('button');
-        b.className = 'flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded';
-        b.textContent = o.text;
-        b.onclick = ()=>{
-          current = o.id;
-          renderStory();
-        };
-        row.append(b);
-        // info
-        if (drugInfo[o.text]){
-          const ib = document.createElement('button');
-          ib.className = 'ml-2 inline-flex items-center border border-blue-500 hover:bg-blue-50 px-3 py-1 rounded';
-          ib.innerHTML = ShieldSVG + 'Info';
-          ib.onclick = ()=> showModal(o.text, drugInfo[o.text]);
-          row.append(ib);
-        }
-        opts.append(row);
-      });
-
-      // “Take Quiz” if this is an end-screen and quiz exists
-      if (hasRestart && quiz){
-        const qbtn = document.createElement('button');
-        qbtn.textContent = 'Take Quiz';
-        qbtn.className = 'mt-4 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded';
-        qbtn.onclick = renderQuiz;
-        opts.append(qbtn);
-      }
-      app.append(opts);
-    }
-
-    //— render quiz screen
-    function renderQuiz(){
-      inQuiz = true;
-      answers = {};
-      const app = document.getElementById('app');
-      app.innerHTML = '';
-      const form = document.createElement('form');
-      form.className = 'space-y-6 bg-white p-6 rounded shadow';
-
-      quiz.choices.forEach(q=>{
-        const block = document.createElement('div');
-        // question
-        const qel = document.createElement('p');
-        qel.className = 'font-semibold';
-        qel.textContent = q.question;
-        block.append(qel);
-        // options
-        q.options.forEach(opt=>{
-          const label = document.createElement('label');
-          label.className = 'inline-flex items-center mr-4';
-          const inp = document.createElement('input');
-          inp.type = 'radio';
-          inp.name = q.id;
-          inp.value = opt;
-          inp.className = 'mr-2';
-          label.append(inp, document.createTextNode(opt));
-          block.append(label);
+        // Options & Info buttons
+        const opts = document.createElement('div');
+        opts.className = 'flex flex-col space-y-3';
+        const hasRestart = sc.options.some(o=> o.id==='OPT0');
+        sc.options.forEach(o=>{
+          const row = document.createElement('div');
+          row.className = 'flex';
+          // option button
+          const b = document.createElement('button');
+          b.className = 'flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded';
+          b.textContent = o.text;
+          b.onclick = ()=> { current = o.id; renderStory(); };
+          row.append(b);
+          // info button if drugInfo exists
+          if (drugInfo[o.text]) {
+            const ib = document.createElement('button');
+            ib.className = 'ml-2 inline-flex items-center border border-blue-500 hover:bg-blue-50 px-3 py-1 rounded';
+            ib.innerHTML = ShieldSVG + 'Info';
+            ib.onclick = ()=> showModal(o.text, drugInfo[o.text]);
+            row.append(ib);
+          }
+          opts.append(row);
         });
-        form.append(block);
-      });
 
-      const submit = document.createElement('button');
-      submit.textContent = 'Submit Quiz';
-      submit.type = 'submit';
-      submit.className = 'bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded';
-      form.append(submit);
+        // “Take Quiz” if end-of-story and quiz exists
+        if (hasRestart && quiz) {
+          const qbtn = document.createElement('button');
+          qbtn.textContent = 'Take Quiz';
+          qbtn.className = 'mt-4 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded';
+          qbtn.onclick = renderQuiz;
+          opts.append(qbtn);
+        }
+        app.append(opts);
+      }
 
-      form.onsubmit = e=>{
-        e.preventDefault();
-        // collect answers
+      // Render quiz
+      function renderQuiz() {
+        inQuiz = true; answers = {};
+        const app = document.getElementById('app');
+        app.innerHTML = '';
+        const form = document.createElement('form');
+        form.className = 'space-y-6 bg-white p-6 rounded shadow';
+
         quiz.choices.forEach(q=>{
-          const val = form[q.id].value;
-          answers[q.id] = val;
+          const block = document.createElement('div');
+          const qel = document.createElement('p');
+          qel.className = 'font-semibold';
+          qel.textContent = q.question;
+          block.append(qel);
+          q.options.forEach(opt=>{
+            const label = document.createElement('label');
+            label.className = 'inline-flex items-center mr-4';
+            const inp = document.createElement('input');
+            inp.type = 'radio'; inp.name = q.id; inp.value = opt; inp.className='mr-2';
+            label.append(inp, document.createTextNode(opt));
+            block.append(label);
+          });
+          form.append(block);
         });
-        renderQuizResults();
-      };
 
-      app.append(form);
-    }
+        const submit = document.createElement('button');
+        submit.type = 'submit';
+        submit.className = 'bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded';
+        submit.textContent = 'Submit Quiz';
+        form.append(submit);
 
-    //— render quiz results + summary button
-    function renderQuizResults(){
-      const app = document.getElementById('app');
-      app.innerHTML = '';
-      quiz.choices.forEach(q=>{
-        const block = document.createElement('div');
-        block.className = 'mb-4';
-        const qel = document.createElement('p');
-        qel.className = 'font-semibold';
-        qel.textContent = q.question;
-        block.append(qel);
-        const user = answers[q.id];
-        const correct = q.correct;
-        const result = document.createElement('p');
-        if (user === correct) {
-          result.textContent = `✔ Correct (${user})`;
-          result.className = 'text-green-600';
-        } else {
-          result.textContent = `✖ You picked "${user || '—'}", correct is "${correct}"`;
-          result.className = 'text-red-600';
-        }
-        block.append(result);
-        app.append(block);
-      });
-
-      // summary button if available
-      if (summary){
-        const sb = document.createElement('button');
-        sb.textContent = 'Show Summary';
-        sb.className = 'mt-2 bg-indigo-500 hover:bg-indigo-600 text-white py-2 px-4 rounded';
-        sb.onclick = renderSummary;
-        app.append(sb);
+        form.onsubmit = e=>{
+          e.preventDefault();
+          quiz.choices.forEach(q=>{
+            answers[q.id] = form[q.id].value;
+          });
+          renderQuizResults();
+        };
+        app.append(form);
       }
-    }
 
-    //— render summary screen
-    function renderSummary(){
-      const app = document.getElementById('app');
-      app.innerHTML = '';
-      const card = document.createElement('div');
-      card.className = 'bg-white p-6 rounded shadow space-y-2';
-      const h = document.createElement('h2');
-      h.className = 'text-xl font-semibold';
-      h.textContent = 'Key Summary Points';
-      card.append(h);
-      summary.points.forEach(pt=>{
-        const li = document.createElement('p');
-        li.className = 'flex items-start';
-        li.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-        </svg>${pt}`;
-        card.append(li);
-      });
-      app.append(card);
-    }
+      // Render quiz results
+      function renderQuizResults() {
+        const app = document.getElementById('app');
+        app.innerHTML = '';
+        quiz.choices.forEach(q=>{
+          const block = document.createElement('div'); block.className='mb-4';
+          const qel = document.createElement('p'); qel.className='font-semibold';
+          qel.textContent = q.question; block.append(qel);
+          const user = answers[q.id], correct=q.correct;
+          const res = document.createElement('p');
+          if (user===correct) {
+            res.textContent = `✔ Correct (${user})`; res.className='text-green-600';
+          } else {
+            res.textContent = `✖ You chose "${user||'—'}", correct is "${correct}"`; res.className='text-red-600';
+          }
+          block.append(res); app.append(block);
+        });
+        if (summary) {
+          const sb = document.createElement('button');
+          sb.textContent = 'Show Summary';
+          sb.className = 'mt-2 bg-indigo-500 hover:bg-indigo-600 text-white py-2 px-4 rounded';
+          sb.onclick = renderSummary;
+          app.append(sb);
+        }
+      }
 
-    //— start
-    renderStory();
+      // Render summary
+      function renderSummary() {
+        const app = document.getElementById('app');
+        app.innerHTML = '';
+        const card = document.createElement('div');
+        card.className = 'bg-white p-6 rounded shadow space-y-2';
+        const h = document.createElement('h2');
+        h.className = 'text-xl font-semibold'; h.textContent = 'Key Summary Points';
+        card.append(h);
+        summary.points.forEach(pt=>{
+          const p = document.createElement('p');
+          p.className = 'flex items-start';
+          p.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>${pt}`;
+          card.append(p);
+        });
+        app.append(card);
+      }
 
-  })();
+      // Kick things off
+      renderStory();
+    })();
   </script>
 </body>
 </html>
