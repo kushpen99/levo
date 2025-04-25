@@ -4,66 +4,63 @@
     <meta charset="UTF-8" />
     <title>Story Admin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Tailwind CSS -->
+    <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Mermaid -->
     <script src="https://unpkg.com/mermaid@9.4.3/dist/mermaid.min.js"></script>
-    <script>
-        mermaid.initialize({ startOnLoad: false });
-    </script>
+    <script>mermaid.initialize({ startOnLoad: false });</script>
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-6">
         <h1 class="text-2xl font-bold mb-4">📋 Story Admin</h1>
 
-        <!-- AUTH ------------------------------------------------------------------>
-        <div id="auth-section" class="mb-6">
+        <!-- AUTH -------------------------------------------------------------- -->
+        <div class="mb-6" id="auth-section">
             <button id="sign-in-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">Sign in with Google</button>
-            <button id="sign-out-btn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded ml-2 hidden">Sign out</button>
+            <button id="sign-out-btn" class="bg-red-500  hover:bg-red-600 text-white px-4 py-2 rounded ml-2 hidden">Sign out</button>
         </div>
 
-        <!-- MAIN UI --------------------------------------------------------------->
-        <div id="admin-interface" class="hidden bg-white p-6 rounded shadow space-y-4">
+        <!-- MAIN UI ----------------------------------------------------------- -->
+        <div id="admin-ui" class="hidden bg-white p-6 rounded shadow space-y-4">
+            <!-- story select -->
             <div>
-                <label for="story-select" class="font-semibold mb-1 block">Existing Stories</label>
-                <select id="story-select" class="border px-3 py-2 rounded w-full">
+                <label for="story-select" class="font-semibold block mb-1">Existing Stories</label>
+                <select id="story-select" class="border rounded px-3 py-2 w-full">
                     <option value="">-- Select a story --</option>
                 </select>
             </div>
 
+            <!-- story id / json -->
             <div>
                 <label for="story-id" class="font-semibold block mb-1">Story ID</label>
-                <input id="story-id" type="text" class="border px-3 py-2 rounded w-full" />
+                <input id="story-id" type="text" class="border rounded px-3 py-2 w-full" />
             </div>
-
             <div>
                 <label for="story-json" class="font-semibold block mb-1">Story JSON</label>
-                <textarea id="story-json" rows="15" class="border px-3 py-2 rounded w-full font-mono text-sm"></textarea>
+                <textarea id="story-json" rows="15" class="border rounded px-3 py-2 font-mono w-full text-sm"></textarea>
             </div>
 
             <button id="upload-btn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">Save to Firestore</button>
             <p id="status-msg" class="mt-2"></p>
 
-            <!-- PRESENTATION CONTROLS ------------------------------------------->
+            <!-- PRESENTATION CONTROLS -->
             <div id="presentation-controls" class="hidden mt-6">
                 <label for="presentation-select" class="font-semibold mr-2">View:</label>
-                <select id="presentation-select" class="border px-2 py-1 rounded"></select>
+                <select id="presentation-select" class="border rounded px-2 py-1"></select>
             </div>
-
-            <!-- PRESENTATION AREA -->
             <div id="presentation-area" class="hidden bg-white p-4 rounded shadow mt-4 overflow-auto">
                 <div id="presentation-content" class="space-y-4"></div>
             </div>
         </div>
     </div>
 
-    <!-- JS (ESM) ----------------------------------------------------------------->
+    <!-- ================================================================ -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js';
         import { getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, getDocs } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
 
-        /* -------------------------- Firebase Init -------------------------- */
+        /* ---------------------------- Firebase ---------------------------- */
         const firebaseConfig = {
             apiKey: "AIzaSyClEgpGrVTXT2zQNNDBDg0TNX2F24k6oTg",
             authDomain: "urushka99.firebaseapp.com",
@@ -77,10 +74,10 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        /* -------------------------- UI Elements --------------------------- */
+        /* ------------------------------ UI -------------------------------- */
         const signInBtn = document.getElementById('sign-in-btn');
         const signOutBtn = document.getElementById('sign-out-btn');
-        const adminUI = document.getElementById('admin-interface');
+        const adminUI = document.getElementById('admin-ui');
 
         const storySelect = document.getElementById('story-select');
         const storyIdInput = document.getElementById('story-id');
@@ -93,85 +90,64 @@
         const presArea = document.getElementById('presentation-area');
         const presContent = document.getElementById('presentation-content');
 
-        /* --------------------------- Auth ---------------------------------- */
-        signInBtn.onclick = () => {
-            const provider = new GoogleAuthProvider();
-            signInWithPopup(auth, provider).catch(e => showStatus(e.message, 'text-red-600'));
-        };
+        /* ----------------------------- Auth ------------------------------- */
+        signInBtn.onclick = () => signInWithPopup(auth, new GoogleAuthProvider()).catch(e => showStatus(e.message, 'text-red-600'));
         signOutBtn.onclick = () => signOut(auth);
 
-        onAuthStateChanged(auth, (user) => {
-            const signedIn = !!user;
-            signInBtn.classList.toggle('hidden', signedIn);
-            signOutBtn.classList.toggle('hidden', !signedIn);
-            adminUI.classList.toggle('hidden', !signedIn);
-            if (signedIn) loadStories();
+        onAuthStateChanged(auth, user => {
+            const logged = !!user;
+            signInBtn.classList.toggle('hidden', logged);
+            signOutBtn.classList.toggle('hidden', !logged);
+            adminUI.classList.toggle('hidden', !logged);
+            if (logged) loadStories();
         });
 
-        /* ------------------------- Firestore ops -------------------------- */
+        /* --------------------- Firestore helpers -------------------------- */
         async function loadStories() {
             storySelect.innerHTML = '<option value="">-- Select a story --</option>';
             const snap = await getDocs(collection(db, 'stories'));
-            snap.forEach((docSnap) => {
-                const { id } = docSnap;
-                const d = docSnap.data();
+            snap.forEach(docSnap => {
                 const opt = document.createElement('option');
-                opt.value = id;
-                opt.textContent = d.title || d.name || id;
+                opt.value = docSnap.id;
+                const d = docSnap.data();
+                opt.textContent = d.title || d.name || docSnap.id;
                 storySelect.append(opt);
             });
         }
 
-        /* ------------------------- UI behaviour --------------------------- */
+        /* --------------------------- UI logic ----------------------------- */
         storySelect.onchange = async () => {
             const id = storySelect.value;
             if (!id) return hidePresentation();
-
-            storyIdInput.value = id;
             const snap = await getDoc(doc(db, 'stories', id));
             if (!snap.exists()) return hidePresentation();
             const data = snap.data();
-
-            // reorder keys for nicer reading
-            const fixed = ['title', 'createdAt', 'updatedAt', 'scenarios', 'drugInfo', 'summary', 'quiz'];
-            const ordered = {};
-            fixed.forEach(k => { if (data[k] !== undefined) ordered[k] = data[k]; });
-            Object.keys(data).forEach(k => { if (!fixed.includes(k)) ordered[k] = data[k]; });
-            storyJsonArea.value = JSON.stringify(ordered, null, 2);
+            storyIdInput.value = id;
+            storyJsonArea.value = orderKeys(data);
             setupPresentation();
         };
 
-        // whenever user types JSON manually, re‑render
-        storyJsonArea.oninput = () => {
-            try { JSON.parse(storyJsonArea.value); } catch { return; }
-            setupPresentation();
-        };
+        storyJsonArea.oninput = () => { try { JSON.parse(storyJsonArea.value); } catch { return; } setupPresentation(); };
 
-        /* --------------------- Presentation logic ------------------------- */
+        /* ------------------------ Presentation ---------------------------- */
         function setupPresentation() {
             let data;
             try { data = JSON.parse(storyJsonArea.value); } catch { return hidePresentation(); }
-
-            // build dropdown fresh each time
             presSelect.innerHTML = '';
-            const opts = [];
-            if (data.scenarios) opts.push({ val: 'graph', label: 'Graph' });
-            if (data.drugInfo) opts.push({ val: 'drugInfo', label: 'Drug Info' });
-            if (data.quiz) opts.push({ val: 'quiz', label: 'Quiz' });
-            if (data.summary) opts.push({ val: 'summary', label: 'Summary' });
-            if (!opts.length) return hidePresentation();
-
-            opts.forEach(o => {
-                const e = document.createElement('option');
-                e.value = o.val;
-                e.textContent = o.label;
-                presSelect.append(e);
+            const views = [];
+            if (data.scenarios) views.push(['graph', 'Graph']);
+            if (data.drugInfo) views.push(['drugInfo', 'Drug Info']);
+            if (data.quiz) views.push(['quiz', 'Quiz']);
+            if (data.summary) views.push(['summary', 'Summary']);
+            if (!views.length) return hidePresentation();
+            views.forEach(([val, label]) => {
+                const o = new Option(label, val);
+                presSelect.append(o);
             });
-
             presControls.classList.remove('hidden');
             presArea.classList.remove('hidden');
             presSelect.onchange = renderPresentation;
-            renderPresentation(); // initial
+            renderPresentation();
         }
 
         function renderPresentation() {
@@ -179,261 +155,182 @@
             try { data = JSON.parse(storyJsonArea.value); } catch { return; }
             presContent.innerHTML = '';
             const mode = presSelect.value;
+            if (mode === 'graph') renderGraphView(data);
+            else if (mode === 'drugInfo') renderDrugInfo(data);
+            else if (mode === 'quiz') renderQuiz(data);
+            else if (mode === 'summary') renderSummary(data);
+        }
 
-            /* ----------------------- GRAPH ----------------------- */
-            if (mode === 'graph') {
+        /* -------------------- GRAPH VIEW ------------------------- */
+        function renderGraphView(data) {
+            // switch between graphic & table views
+            const topBar = document.createElement('div');
+            topBar.className = 'flex items-center justify-between mb-2';
+
+            const viewSel = document.createElement('select');
+            viewSel.className = 'border rounded px-2 py-1';
+            viewSel.innerHTML = '<option value="graphic">Graphic</option><option value="table">Table</option>';
+            topBar.append(viewSel);
+            presContent.append(topBar);
+
+            const holder = document.createElement('div');
+            presContent.append(holder);
+
+            viewSel.onchange = () => draw(viewSel.value);
+            draw('graphic');
+
+            function draw(kind) {
+                holder.innerHTML = '';
+                if (kind === 'graphic') {
+                    drawGraphic(holder, data);
+                } else {
+                    drawScenarioTable(holder);
+                }
+            }
+
+            function drawGraphic(container, d) {
                 const nodes = [], edges = [], idMap = {};
-                Object.entries(data.scenarios || {}).forEach(([k, s], i) => {
+                Object.entries(d.scenarios || {}).forEach(([k, s], i) => {
                     idMap[k] = 'n' + i;
-                    const label = (s.name || '').replace(/"/g, '\\"').replace(/\n/g, ' ');
-                    nodes.push(`${idMap[k]}["${label}"]`);
+                    nodes.push(`${idMap[k]}["${(s.name || '').replace(/"/g, '\\"').replace(/\n/g, ' ')}"]`);
                 });
-                Object.entries(data.scenarios || {}).forEach(([k, s]) => {
+                Object.entries(d.scenarios || {}).forEach(([k, s]) => {
                     const from = idMap[k];
                     (s.options || []).forEach(o => {
                         const to = idMap[o.id || o.next || o.target];
-                        if (to) {
-                            const txt = (o.text || '').replace(/"/g, '\\"').replace(/\n/g, ' ');
-                            edges.push(`${from} -->|${txt}| ${to}`);
-                        }
+                        if (to) edges.push(`${from} -->|${(o.text || '').replace(/"/g, '\\"').replace(/\n/g, ' ')}| ${to}`);
                     });
                 });
                 const diagram = ['flowchart LR', ...nodes, ...edges].join('\n');
                 const div = document.createElement('div');
                 div.className = 'mermaid';
                 div.textContent = diagram;
-                presContent.append(div);
+                container.append(div);
                 mermaid.init(undefined, div);
             }
 
-            /* -------------------- DRUG INFO ---------------------- */
-            if (mode === 'drugInfo') renderDrugInfo(data);
+            function drawScenarioTable(container) {
+                const addBtn = document.createElement('button');
+                addBtn.textContent = 'Add Scenario';
+                addBtn.className = 'mb-2 bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded';
+                addBtn.onclick = () => {
+                    const full = JSON.parse(storyJsonArea.value);
+                    full.scenarios = full.scenarios || {};
+                    let idx = 1; while (full.scenarios['NEW' + idx]) idx++;
+                    full.scenarios['NEW' + idx] = { name: '', text: '', options: [] };
+                    storyJsonArea.value = JSON.stringify(full, null, 2);
+                    renderPresentation();
+                };
+                container.append(addBtn);
 
-            /* ----------------------- QUIZ ------------------------ */
-            if (mode === 'quiz') renderQuiz(data);
+                const table = document.createElement('table');
+                table.className = 'table-auto w-full border-collapse';
+                table.innerHTML = `<thead><tr class='bg-gray-50'>
+                        <th class='border px-2 py-1'>ID</th>
+                        <th class='border px-2 py-1'>Name</th>
+                        <th class='border px-2 py-1'>Text</th>
+                        <th class='border px-2 py-1'>Options (JSON)</th>
+                        <th class='border px-2 py-1'>Remove</th>
+                    </tr></thead>`;
+                const tbody = document.createElement('tbody');
+                Object.entries(data.scenarios || {}).forEach(([id, sc]) => {
+                    const tr = document.createElement('tr');
+                    tr.append(tdPlain(id));
+                    tr.append(tdInput(sc.name || '', val => updateField(id, 'name', val)));
+                    tr.append(tdInput(sc.text || '', val => updateField(id, 'text', val), 'w-96'));
+                    tr.append(tdInput(JSON.stringify(sc.options || []), val => {
+                        try { updateField(id, 'options', JSON.parse(val)); } catch {/*ignore*/ }
+                    }, 'w-64'));
+                    const tdRem = document.createElement('td');
+                    tdRem.className = 'border px-2 py-1 text-center';
+                    const rm = document.createElement('button');
+                    rm.textContent = '🗑';
+                    rm.onclick = () => { const full = JSON.parse(storyJsonArea.value); delete full.scenarios[id]; storyJsonArea.value = JSON.stringify(full, null, 2); renderPresentation(); };
+                    tdRem.append(rm);
+                    tr.append(tdRem);
+                    tbody.append(tr);
+                });
+                table.append(tbody);
+                container.append(table);
 
-            /* --------------------- SUMMARY ----------------------- */
-            if (mode === 'summary') renderSummary(data);
+                function tdPlain(txt) { const td = document.createElement('td'); td.className = 'border px-2 py-1 text-xs break-all'; td.textContent = txt; return td; }
+                function tdInput(val, on, valClass = '')
+                {
+                    const td = document.createElement('td'); td.className = `border px-2 py-1 ${valClass}`; const inp = document.createElement('input'); inp.type = 'text'; inp.value = val; inp.className = 'border rounded px-1 py-0.5 w-full'; inp.oninput = () => cb(inp.value); td.append(inp); return td;
+            }
+            function updateField(sid, key, value) { const full = JSON.parse(storyJsonArea.value); full.scenarios[sid][key] = value; storyJsonArea.value = JSON.stringify(full, null, 2); }
         }
+            }
 
-        /* ------------------ Render helpers --------------------- */
+        /* --------------------- OTHER RENDERERS ------------------------------ */
         function renderSummary(data) {
             const ta = document.createElement('textarea');
-            ta.className = 'border px-2 py-1 w-full h-32';
+            ta.className = 'border rounded px-2 py-1 w-full h-32';
             ta.value = (data.summary?.points || []).join('\n');
-            ta.oninput = () => {
-                const full = JSON.parse(storyJsonArea.value);
-                full.summary = { points: ta.value.split('\n') };
-                storyJsonArea.value = JSON.stringify(full, null, 2);
-            };
+            ta.oninput = () => { const full = JSON.parse(storyJsonArea.value); full.summary = { points: ta.value.split('\n') }; storyJsonArea.value = JSON.stringify(full, null, 2); };
             presContent.append(ta);
         }
 
         function renderQuiz(data) {
-            const addBtn = document.createElement('button');
-            addBtn.textContent = 'Add Question';
-            addBtn.className = 'mb-2 bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded';
-            addBtn.onclick = () => {
-                const full = JSON.parse(storyJsonArea.value);
-                full.quiz = full.quiz || { choices: [] };
-                full.quiz.choices.push({ id: `Q${full.quiz.choices.length + 1}`, question: '', options: [], correct: '' });
-                storyJsonArea.value = JSON.stringify(full, null, 2);
-                renderPresentation();
-            };
-            presContent.append(addBtn);
-
-            const table = document.createElement('table');
-            table.className = 'table-auto w-full border-collapse';
-            table.innerHTML = `
-                    <thead>
-                        <tr class="bg-gray-50">
-                            <th class="border px-2 py-1">#</th>
-                            <th class="border px-2 py-1">ID</th>
-                            <th class="border px-2 py-1">Question</th>
-                            <th class="border px-2 py-1">Options (comma‑sep)</th>
-                            <th class="border px-2 py-1">Correct</th>
-                            <th class="border px-2 py-1">Remove</th>
-                        </tr>
-                    </thead>`;
+            const add = document.createElement('button'); add.textContent = 'Add Question'; add.className = 'mb-2 bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded';
+            add.onclick = () => { const full = JSON.parse(storyJsonArea.value); full.quiz = full.quiz || { choices: [] }; full.quiz.choices.push({ id: `Q${full.quiz.choices.length + 1}`, question: '', options: [], correct: '' }); storyJsonArea.value = JSON.stringify(full, null, 2); renderPresentation(); };
+            presContent.append(add);
+            const table = document.createElement('table'); table.className = 'table-auto w-full border-collapse'; table.innerHTML = `<thead><tr class='bg-gray-50'><th class='border px-2 py-1'>#</th><th class='border px-2 py-1'>ID</th><th class='border px-2 py-1'>Question</th><th class='border px-2 py-1'>Options (comma)</th><th class='border px-2 py-1'>Correct</th><th class='border px-2 py-1'>Remove</th></tr></thead>`;
             const tbody = document.createElement('tbody');
             (data.quiz?.choices || []).forEach((c, i) => {
                 const tr = document.createElement('tr');
-
-                // index
-                tr.append(tdText(i + 1));
-
-                // id
-                tr.append(tdInput(c.id || '', (val) => updateQuizField(i, 'id', val)));
-
-                // question
-                tr.append(tdInput(c.question || '', (val) => updateQuizField(i, 'question', val), 'w-64'));
-
-                // options
-                tr.append(tdInput((c.options || []).join(', '), (val) => updateQuizField(i, 'options', val.split(',').map(s => s.trim()).filter(Boolean))));
-
-                // correct
-                tr.append(tdInput(c.correct || '', (val) => updateQuizField(i, 'correct', val)));
-
-                // remove
-                const tdR = document.createElement('td');
-                tdR.className = 'border px-2 py-1 text-center';
-                const remBtn = document.createElement('button');
-                remBtn.textContent = '🗑';
-                remBtn.onclick = () => {
-                    const full = JSON.parse(storyJsonArea.value);
-                    full.quiz.choices.splice(i, 1);
-                    storyJsonArea.value = JSON.stringify(full, null, 2);
-                    renderPresentation();
-                };
-                tdR.append(remBtn);
-                tr.append(tdR);
-
+                tr.append(tdPlain(i + 1));
+                tr.append(tdInput(c.id || '', v => update(i, 'id', v)));
+                tr.append(tdInput(c.question || '', v => update(i, 'question', v), 'w-64'));
+                tr.append(tdInput((c.options || []).join(', '), v => update(i, 'options', v.split(',').map(s => s.trim()).filter(Boolean)), 'w-64'));
+                tr.append(tdInput(c.correct || '', v => update(i, 'correct', v)));
+                const td = document.createElement('td'); td.className = 'border px-2 py-1 text-center';
+                const rm = document.createElement('button'); rm.textContent = '🗑'; rm.onclick = () => { const full = JSON.parse(storyJsonArea.value); full.quiz.choices.splice(i, 1); storyJsonArea.value = JSON.stringify(full, null, 2); renderPresentation(); }; td.append(rm); tr.append(td);
                 tbody.append(tr);
             });
-            table.append(tbody);
-            presContent.append(table);
-
-            // helpers
-            function tdText(txt) {
-                const td = document.createElement('td');
-                td.className = 'border px-2 py-1';
-                td.textContent = txt;
-                return td;
-            }
-            function tdInput(value, onChange, extra = '') {
-                const td = document.createElement('td');
-                td.className = `border px-2 py-1 ${extra}`;
-                const inp = document.createElement('input');
-                inp.type = 'text';
-                inp.value = value;
-                inp.className = 'border rounded px-1 py-0.5 w-full';
-                inp.oninput = () => onChange(inp.value);
-                td.append(inp);
-                return td;
-            }
-            function updateQuizField(idx, field, value) {
-                const full = JSON.parse(storyJsonArea.value);
-                full.quiz.choices[idx][field] = value;
-                storyJsonArea.value = JSON.stringify(full, null, 2);
-            }
+            table.append(tbody); presContent.append(table);
+            function tdPlain(t) { const td = document.createElement('td'); td.className = 'border px-2 py-1'; td.textContent = t; return td; }
+            function tdInput(v, cb, cls = '') { const td = document.createElement('td'); td.className = `border px-2 py-1 ${cls}`; const inp = document.createElement('input'); inp.type = 'text'; inp.value = v; inp.className = 'border rounded px-1 py-0.5 w-full'; inp.oninput = () => cb(inp.value); td.append(inp); return td; }
+            function update(i, k, v) { const full = JSON.parse(storyJsonArea.value); full.quiz.choices[i][k] = v; storyJsonArea.value = JSON.stringify(full, null, 2); }
         }
 
         function renderDrugInfo(data) {
-            const addBtn = document.createElement('button');
-            addBtn.textContent = 'Add Drug';
-            addBtn.className = 'mb-2 bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded';
-            addBtn.onclick = () => {
-                const full = JSON.parse(storyJsonArea.value);
-                full.drugInfo = full.drugInfo || {};
-                let base = 'NewDrug';
-                let idx = 1;
-                while (full.drugInfo[base + idx]) idx++;
-                full.drugInfo[base + idx] = { PK: '', Spectrum: '', Toxicities: '' };
-                storyJsonArea.value = JSON.stringify(full, null, 2);
-                renderPresentation();
-            };
-            presContent.append(addBtn);
-
-            const table = document.createElement('table');
-            table.className = 'table-auto w-full border-collapse';
-            table.innerHTML = `
-                    <thead>
-                        <tr class="bg-gray-50">
-                            <th class="border px-2 py-1">Name</th>
-                            <th class="border px-2 py-1">PK</th>
-                            <th class="border px-2 py-1">Spectrum</th>
-                            <th class="border px-2 py-1">Toxicities</th>
-                            <th class="border px-2 py-1">Remove</th>
-                        </tr>
-                    </thead>`;
+            const add = document.createElement('button'); add.textContent = 'Add Drug'; add.className = 'mb-2 bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded';
+            add.onclick = () => { const full = JSON.parse(storyJsonArea.value); full.drugInfo = full.drugInfo || {}; let n = 1; while (full.drugInfo['Drug' + n]) n++; full.drugInfo['Drug' + n] = { PK: '', Spectrum: '', Toxicities: '' }; storyJsonArea.value = JSON.stringify(full, null, 2); renderPresentation(); };
+            presContent.append(add);
+            const table = document.createElement('table'); table.className = 'table-auto w-full border-collapse'; table.innerHTML = `<thead><tr class='bg-gray-50'><th class='border px-2 py-1'>Name</th><th class='border px-2 py-1'>PK</th><th class='border px-2 py-1'>Spectrum</th><th class='border px-2 py-1'>Toxicities</th><th class='border px-2 py-1'>Remove</th></tr></thead>`;
             const tbody = document.createElement('tbody');
             Object.entries(data.drugInfo || {}).forEach(([name, info]) => {
                 const tr = document.createElement('tr');
-
-                // Name (editable, unique key!)
-                const tdName = document.createElement('td');
-                tdName.className = 'border px-2 py-1';
-                const nameInput = document.createElement('input');
-                nameInput.type = 'text';
-                nameInput.value = name;
-                nameInput.className = 'border rounded px-1 py-0.5 w-full';
-                nameInput.oninput = () => renameDrug(name, nameInput.value);
-                tdName.append(nameInput);
-                tr.append(tdName);
-
-                ['PK', 'Spectrum', 'Toxicities'].forEach((field) => {
-                    const td = document.createElement('td');
-                    td.className = 'border px-2 py-1';
-                    const inp = document.createElement('input');
-                    inp.type = 'text';
-                    inp.value = info[field] || '';
-                    inp.className = 'border rounded px-1 py-0.5 w-full';
-                    inp.oninput = () => updateDrug(name, field, inp.value);
-                    td.append(inp);
-                    tr.append(td);
-                });
-
-                const tdRem = document.createElement('td');
-                tdRem.className = 'border px-2 py-1 text-center';
-                const remBtn = document.createElement('button');
-                remBtn.textContent = '🗑';
-                remBtn.onclick = () => removeDrug(name);
-                tdRem.append(remBtn);
-                tr.append(tdRem);
-
+                tr.append(tdInput(name, v => renameDrug(name, v)));
+                ['PK', 'Spectrum', 'Toxicities'].forEach(f => tr.append(tdInput(info[f] || '', v => updateDrug(name, f, v))));
+                const tdR = document.createElement('td'); tdR.className = 'border px-2 py-1 text-center'; const rm = document.createElement('button'); rm.textContent = '🗑'; rm.onclick = () => { const full = JSON.parse(storyJsonArea.value); delete full.drugInfo[name]; storyJsonArea.value = JSON.stringify(full, null, 2); renderPresentation(); }; tdR.append(rm); tr.append(tdR);
                 tbody.append(tr);
-            });
-            table.append(tbody);
-            presContent.append(table);
-
-            function renameDrug(oldName, newName) {
-                if (!newName || oldName === newName) return;
-                const full = JSON.parse(storyJsonArea.value);
-                if (full.drugInfo[newName]) return; // already exists
-                full.drugInfo[newName] = { ...full.drugInfo[oldName] };
-                delete full.drugInfo[oldName];
-                storyJsonArea.value = JSON.stringify(full, null, 2);
-                renderPresentation();
-            }
-            function updateDrug(dName, field, value) {
-                const full = JSON.parse(storyJsonArea.value);
-                full.drugInfo[dName][field] = value;
-                storyJsonArea.value = JSON.stringify(full, null, 2);
-            }
-            function removeDrug(dName) {
-                const full = JSON.parse(storyJsonArea.value);
-                delete full.drugInfo[dName];
-                storyJsonArea.value = JSON.stringify(full, null, 2);
-                renderPresentation();
-            }
+            }); table.append(tbody); presContent.append(table);
+            function tdInput(v, cb) { const td = document.createElement('td'); td.className = 'border px-2 py-1'; const inp = document.createElement('input'); inp.type = 'text'; inp.value = v; inp.className = 'border rounded px-1 py-0.5 w-full'; inp.oninput = () => cb(inp.value); td.append(inp); return td; }
+            function renameDrug(oldN, newN) { if (!newN || oldN === newN) return; const full = JSON.parse(storyJsonArea.value); if (full.drugInfo[newN]) return; full.drugInfo[newN] = { ...full.drugInfo[oldN] }; delete full.drugInfo[oldN]; storyJsonArea.value = JSON.stringify(full, null, 2); renderPresentation(); }
+            function updateDrug(n, f, val) { const full = JSON.parse(storyJsonArea.value); full.drugInfo[n][f] = val; storyJsonArea.value = JSON.stringify(full, null, 2); }
         }
 
-        /* ------------------- Utility Helpers -------------------- */
-        function hidePresentation() {
-            presControls.classList.add('hidden');
-            presArea.classList.add('hidden');
-            presContent.innerHTML = '';
+        /* ------------------------- UTILITIES ------------------------------- */
+        function orderKeys(data) {
+            const fixed = ['title', 'createdAt', 'updatedAt', 'scenarios', 'drugInfo', 'summary', 'quiz'];
+            const o = {}; fixed.forEach(k => { if (data[k] !== undefined) o[k] = data[k]; });
+            Object.keys(data).forEach(k => { if (!fixed.includes(k)) o[k] = data[k]; });
+            return JSON.stringify(o, null, 2);
         }
-        function showStatus(txt, cls = '') {
-            statusMsg.textContent = txt;
-            statusMsg.className = cls;
-        }
+        function hidePresentation() { presControls.classList.add('hidden'); presArea.classList.add('hidden'); presContent.innerHTML = ''; }
+        function showStatus(msg, cls = '') { statusMsg.textContent = msg; statusMsg.className = cls; }
 
-        /* -------------------- Upload / Save -------------------- */
+        /* ------------------------- SAVE ----------------------------------- */
         uploadBtn.onclick = async () => {
-            const id = storyIdInput.value.trim();
-            const raw = storyJsonArea.value;
+            const id = storyIdInput.value.trim(); const raw = storyJsonArea.value;
             if (!id || !raw) return showStatus('Story ID and JSON required.', 'text-red-600');
-
-            let obj;
-            try { obj = JSON.parse(raw); } catch { return showStatus('Invalid JSON.', 'text-red-600'); }
-
-            const ref = doc(db, 'stories', id);
-            const snap = await getDoc(ref);
+            let obj; try { obj = JSON.parse(raw); } catch { return showStatus('Invalid JSON.', 'text-red-600'); }
+            const ref = doc(db, 'stories', id); const snap = await getDoc(ref);
             const save = { ...obj, updatedAt: serverTimestamp(), createdAt: snap.exists() ? snap.data().createdAt : serverTimestamp() };
             await setDoc(ref, save);
-            showStatus(`Story "${id}" saved.`, 'text-green-600');
-            loadStories();
+            showStatus(`Story "${id}" saved.`, 'text-green-600'); loadStories();
         };
     </script>
 </body>
