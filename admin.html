@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stories Admin ✏️</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase SDKs -->
+  <script type="module">
+	// Import the functions you need from the SDKs you need
+	import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+	import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
+	import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+	// TODO: Add SDKs for Firebase products that you want to use
+	// https://firebase.google.com/docs/web/setup#available-libraries
+
+	// Your web app's Firebase configuration
+	// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+	const firebaseConfig = {
+	apiKey: "AIzaSyClEgpGrVTXT2zQNNDBDg0TNX2F24k6oTg",
+	authDomain: "urushka99.firebaseapp.com",
+	projectId: "urushka99",
+	storageBucket: "urushka99.firebasestorage.app",
+	messagingSenderId: "954120822793",
+	appId: "1:954120822793:web:6c316b1b178081b56758d8",
+	measurementId: "G-5LCB9E7PL9"
+	};
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    // UI elements
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const form = document.getElementById('story-form');
+    const status = document.getElementById('status');
+    const storyList = document.getElementById('existing-stories');
+
+    // Auth state observer
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        status.textContent = `Signed in as ${user.email}`;
+        loginBtn.classList.add('hidden');
+        logoutBtn.classList.remove('hidden');
+        form.classList.remove('hidden');
+        loadExistingStories();
+      } else {
+        status.textContent = 'Not signed in';
+        loginBtn.classList.remove('hidden');
+        logoutBtn.classList.add('hidden');
+        form.classList.add('hidden');
+        storyList.innerHTML = '';
+      }
+    });
+
+    // Sign in
+    loginBtn.addEventListener('click', async () => {
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (e) {
+        alert('Login failed: ' + e.message);
+      }
+    });
+    // Sign out
+    logoutBtn.addEventListener('click', () => signOut(auth));
+
+    // Handle form submit
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const id = document.getElementById('story-id').value.trim();
+      const title = document.getElementById('story-title').value.trim();
+      const scenarios = JSON.parse(document.getElementById('story-scenarios').value);
+      const drugInfo = JSON.parse(document.getElementById('story-druginfo').value);
+      if (!id || !title) {
+        alert('Story ID and Title are required.');
+        return;
+      }
+      try {
+        await setDoc(doc(db, 'stories', id), { title, scenarios, drugInfo });
+        alert(`Saved story '${id}' successfully.`);
+        loadExistingStories();
+      } catch (err) {
+        alert('Save failed: ' + err.message);
+      }
+    });
+
+    // Load existing story IDs
+    async function loadExistingStories() {
+      storyList.innerHTML = '<li>Loading...</li>';
+      try {
+        const snap = await getDocs(collection(db, 'stories'));
+        storyList.innerHTML = '';
+        snap.forEach(docSnap => {
+          const li = document.createElement('li');
+          li.textContent = `${docSnap.id}: ${docSnap.data().title}`;
+          storyList.append(li);
+        });
+      } catch (err) {
+        storyList.innerHTML = `<li class="text-red-600">Error loading: ${err.message}</li>`;
+      }
+    }
+  </script>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+  <header class="bg-blue-600 text-white p-4">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-xl font-semibold">Stories Admin</h1>
+      <div>
+        <button id="login-btn" class="bg-white text-blue-600 px-4 py-2 rounded shadow hover:bg-gray-100">Sign in</button>
+        <button id="logout-btn" class="hidden bg-red-500 px-4 py-2 rounded shadow hover:bg-red-600">Sign out</button>
+      </div>
+    </div>
+  </header>
+  <main class="container mx-auto flex-1 p-6">
+    <p id="status" class="mb-4 text-gray-700"></p>
+    <section>
+      <h2 class="text-lg font-semibold mb-2">Existing Stories</h2>
+      <ul id="existing-stories" class="list-disc pl-5 mb-6"></ul>
+    </section>
+    <section>
+      <h2 class="text-lg font-semibold mb-2">Add / Edit Story</h2>
+      <form id="story-form" class="space-y-4 hidden">
+        <div>
+          <label for="story-id" class="block text-gray-700">Story ID (unique)</label>
+          <input id="story-id" required class="mt-1 block w-full border border-gray-300 rounded px-3 py-2" />
+        </div>
+        <div>
+          <label for="story-title" class="block text-gray-700">Title</label>
+          <input id="story-title" required class="mt-1 block w-full border border-gray-300 rounded px-3 py-2" />
+        </div>
+        <div>
+          <label for="story-scenarios" class="block text-gray-700">Scenarios JSON</label>
+          <textarea id="story-scenarios" rows="10" class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 font-mono text-sm"></textarea>
+        </div>
+        <div>
+          <label for="story-druginfo" class="block text-gray-700">DrugInfo JSON</label>
+          <textarea id="story-druginfo" rows="10" class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 font-mono text-sm"></textarea>
+        </div>
+        <button type="submit" class="bg-green-500 text-white px-6 py-2 rounded shadow hover:bg-green-600">Save Story</button>
+      </form>
+    </section>
+  </main>
+  <footer class="bg-gray-200 p-4 text-center text-sm text-gray-600">
+    © 2025 Your App
+  </footer>
+</body>
+</html>

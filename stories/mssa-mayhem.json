@@ -1,4 +1,7 @@
 {
+	"title": "MSSA Mayhem"
+    "createdAt": ""
+    "updatedAt": ""
 	"scenarios": {
 	  "intro": {
 		"text": "On a chilly evening, while sipping your chamomile tea with honey in the internal medicine staff room where you work as a physician assistant,\nsuddenly the phone rings. After confirming (damn it) that there’s no one else around to answer, you pick up the receiver:\n\"Hello, this is the microbiology lab. Mr. Nehmadi Nehmad has Staphylococcus aureus in his blood culture. Sensitivities will be ready tomorrow. Got it?\"\n\"Got it.\"\n\nWhat treatment would you recommend the on-call resident start for the nice gentleman?",
