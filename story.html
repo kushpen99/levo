@@ -1,4 +1,3 @@
-<!-- story.html (Story Engine) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -28,28 +27,36 @@
   </div>
 
   <script>
-    // Parse story ID from URL
+    // Get story ID from URL
     const params = new URLSearchParams(window.location.search);
     const storyId = params.get('story') || '';
     let scenarios = {}, drugInfo = {};
 
-    // Helpers to create SVG icons
+    // Helper to create SVG icon
     function createSVG(html) {
-      const tpl = document.createElement('template'); tpl.innerHTML = html.trim();
+      const tpl = document.createElement('template');
+      tpl.innerHTML = html.trim();
       return tpl.content.firstChild;
     }
-    const InfoIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2.25c5.385 0 9.75 4.365 9.75 9.75S17.385 21.75 12 21.75 2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/></svg>`;
-    const ShieldIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m1-2a9 9 0 11-8 0v5a2 2 0 002 2h4a2 2 0 010 0V6z"/></svg>`;
+    const InfoIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M13 16h-1v-4h-1m1-4h.01M12 2.25c5.385 0 9.75 4.365 9.75 9.75S17.385 21.75 12 21.75 2.25 17.385 2.25 12 6.615 2.25 12 2.25z" />
+    </svg>`;
+    const ShieldIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M9 12l2 2 4-4m1-2a9 9 0 11-8 0v5a2 2 0 002 2h4a2 2 0 010 0V6z" />
+    </svg>`;
 
     // Modal logic
     const modal = document.getElementById('modal');
     const modalTitle = document.getElementById('modal-title');
     const modalContent = document.getElementById('modal-content');
     document.getElementById('modal-close').addEventListener('click', () => modal.classList.add('hidden'));
-    function showModal(name) {
-      const info = drugInfo[name]; if (!info) return;
+
+    function showModal(drug) {
+      const info = drugInfo[drug]; if (!info) return;
       const html = `
-        <strong class="text-lg">${name}</strong>
+        <strong class="text-lg">${drug}</strong>
         <ul class="list-disc ml-5 mt-2">
           <li><strong>Spectrum:</strong> ${info.Spectrum}</li>
           <li><strong>PK:</strong> ${info.PK}</li>
@@ -57,54 +64,73 @@
         </ul>
       `;
       modalTitle.textContent = '';
-      modalTitle.append(createSVG(ShieldIconSVG), document.createTextNode(' ' + name + ' Info'));
-      modalContent.innerHTML = html; modal.classList.remove('hidden');
+      modalTitle.append(createSVG(ShieldIconSVG), document.createTextNode(' ' + drug + ' Info'));
+      modalContent.innerHTML = html;
+      modal.classList.remove('hidden');
     }
 
-    // Load scenarios + drugInfo
+    // Load story JSON (scenarios + drugInfo)
     fetch(`stories/${storyId}.json`)
       .then(r => r.ok ? r.json() : Promise.reject('Story not found'))
-      .then(data => { scenarios = data.scenarios; drugInfo = data.drugInfo; render(); })
-      .catch(err => { console.error(err); document.getElementById('app').innerHTML = `<div class="text-red-600 p-4">Could not load story '${storyId}'.</div>`; });
+      .then(data => {
+        scenarios = data.scenarios;
+        drugInfo = data.drugInfo;
+        current = 'OPT0';
+        render();
+      })
+      .catch(err => {
+        console.error(err);
+        document.getElementById('app').innerHTML = `<div class="text-red-600 p-4">Could not load story '${storyId}'.</div>`;
+      });
 
-    let current = 'intro';
+    let current = 'OPT0';
     function render() {
-      const app = document.getElementById('app'); app.innerHTML = '';
+      const app = document.getElementById('app');
+      app.innerHTML = '';
       const sc = scenarios[current] || { text: 'Unknown scene', options: [] };
 
-      // Dynamic drug highlighting
+      // Build regex for drug highlights
       const keys = Object.keys(drugInfo).map(k => k.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'));
       const regex = new RegExp(`\\b(${keys.join('|')})\\b`, 'g');
 
-      // Story text
+      // Render story text
       const card = document.createElement('div');
       card.className = 'bg-white shadow rounded p-6 text-base sm:text-lg whitespace-pre-wrap';
       sc.text.split(regex).forEach(part => {
         if (drugInfo[part]) {
           const btn = document.createElement('button');
           btn.className = 'inline-flex items-center text-blue-600 hover:text-blue-800 underline';
-          btn.textContent = part; btn.append(createSVG(InfoIconSVG)); btn.addEventListener('click', () => showModal(part)); card.append(btn);
-        } else card.append(document.createTextNode(part));
+          btn.textContent = part;
+          btn.append(createSVG(InfoIconSVG));
+          btn.addEventListener('click', () => showModal(part));
+          card.append(btn);
+        } else {
+          card.append(document.createTextNode(part));
+        }
       });
       app.append(card);
 
-      // Options list, info right of option
-      const optsContainer = document.createElement('div'); optsContainer.className = 'flex flex-col space-y-3 mt-4';
-      sc.options.forEach(opt => {
-        const clean = opt.replace(/Emp$/, '');
-        const row = document.createElement('div'); row.className = 'flex items-center space-x-2';
+      // Render options vertical, option then info
+      const optsContainer = document.createElement('div');
+      optsContainer.className = 'flex flex-col space-y-3 mt-4';
+      sc.options.forEach(optObj => {
+        const { id, text } = optObj;
+        const row = document.createElement('div');
+        row.className = 'flex items-center space-x-2';
 
+        // Option button
         const btn = document.createElement('button');
         btn.className = 'flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded text-center';
-        btn.textContent = opt === 'start' ? 'Next' : clean;
-        btn.addEventListener('click', () => { current = opt === 'Restart' ? 'intro' : opt; render(); });
+        btn.textContent = text;
+        btn.addEventListener('click', () => { current = id; render(); });
         row.append(btn);
 
-        if (drugInfo[clean]) {
+        // Info button if drugInfo exists
+        if (drugInfo[text]) {
           const ib = document.createElement('button');
           ib.className = 'inline-flex items-center border border-blue-500 hover:bg-blue-50 px-3 py-1 rounded';
           ib.innerHTML = ShieldIconSVG + 'Info';
-          ib.addEventListener('click', () => showModal(clean));
+          ib.addEventListener('click', () => showModal(text));
           row.append(ib);
         }
         optsContainer.append(row);
