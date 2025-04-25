@@ -17,25 +17,57 @@
       <!-- story links injected here -->
     </ul>
   </div>
-  <script>
-    fetch('stories/manifest.json')
-      .then(r => r.json())
-      .then(list => {
-        const ul = document.getElementById('story-list');
-        list.forEach(({id, title}) => {
+  <!-- Use module script to allow imports -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
+    import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
+
+    // ---- YOUR FIREBASE CONFIG HERE ----
+    const firebaseConfig = {
+      apiKey: "AIzaSyClEgpGrVTXT2zQNNDBDg0TNX2F24k6oTg",
+      authDomain: "urushka99.firebaseapp.com",
+      projectId: "urushka99",
+      storageBucket: "urushka99.firebasestorage.app",
+      messagingSenderId: "954120822793",
+      appId: "1:954120822793:web:6c316b1b178081b56758d8",
+      measurementId: "G-5LCB9E7PL9"
+    };
+    // -----------------------------------
+
+    // Initialize Firebase and Firestore
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    async function loadStories() {
+      const ul = document.getElementById('story-list');
+      try {
+        const storiesCol = collection(db, 'stories');
+        const snapshot = await getDocs(storiesCol);
+
+        if (snapshot.empty) {
+          ul.innerHTML = '<li class="text-gray-600">No stories found.</li>';
+          return;
+        }
+
+        snapshot.forEach(doc => {
+          const { name } = doc.data();
+          const id = doc.id;
           const li = document.createElement('li');
           const a  = document.createElement('a');
           a.href = `story.html?story=${encodeURIComponent(id)}`;
-          a.textContent = title;
+          a.textContent = name;
           a.className = 'block bg-white shadow hover:shadow-md rounded-lg px-5 py-4 text-lg sm:text-xl text-blue-600 hover:text-blue-700 transition';
           li.append(a);
           ul.append(li);
         });
-      })
-      .catch(err => {
-        console.error('Failed to load manifest:', err);
-        document.getElementById('story-list').innerHTML = '<li class="text-red-600">Could not load stories.</li>';
-      });
+      } catch (err) {
+        console.error('Failed to load stories:', err);
+        ul.innerHTML = '<li class="text-red-600">Could not load stories.</li>';
+      }
+    }
+
+    // Load stories on page load
+    loadStories();
   </script>
 </body>
 </html>
