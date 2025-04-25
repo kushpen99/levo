@@ -12,12 +12,13 @@
 		"name": "empiric",
 		"text": "You consider empiric treatment options. It’s nighttime, sensitivities aren’t back yet, and all eyes are on you.\nWhat do you start for now?",
 		"options": [
-			{"id": "OPT5", "text": "Vancomycin"}, 
+			{"id": "OPT10", "text": "Vancomycin"}, 
 			{"id": "OPT2", "text": "Cefazolin"}, 
 			{"id": "OPT3", "text": "Nafcillin"}, 
 			{"id": "OPT9", "text": "Ceftriaxone"}]
 	  },
-	  "OPT1": {
+	  "OPT10": {
+		"name": "VancomycinEmp",
 		"text": "You start Vancomycin. It covers both MRSA (methicillin-resistant Staphylococcus aureus) and MSSA (methicillin-sensitive Staphylococcus aureus), and is a reasonable empiric choice in settings with high MRSA prevalence.\n\nHowever, Vancomycin is less effective than beta-lactams for treating MSSA. Studies have shown worse outcomes in patients treated with Vancomycin when the pathogen was actually sensitive.\n\nThe next day, sensitivities return: the bug is MSSA.",
 		"options": [{"id": "OPT4", "text": "start"}]
 	  },
