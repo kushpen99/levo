@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-gray-100">
-  <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <div class="max-w-xl mx-auto px-4 py-6">
     <a href="index.html" class="inline-block mb-6 text-blue-600 hover:underline">← Back to Stories</a>
     <div id="app" class="space-y-6"></div>
   </div>
@@ -28,15 +28,14 @@
   </div>
 
   <script>
-    // Parse story ID
+    // Parse story ID from URL
     const params = new URLSearchParams(window.location.search);
     const storyId = params.get('story') || '';
     let scenarios = {}, drugInfo = {};
 
-    // SVG helper
+    // Helpers to create SVG icons
     function createSVG(html) {
-      const tpl = document.createElement('template');
-      tpl.innerHTML = html.trim();
+      const tpl = document.createElement('template'); tpl.innerHTML = html.trim();
       return tpl.content.firstChild;
     }
     const InfoIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2.25c5.385 0 9.75 4.365 9.75 9.75S17.385 21.75 12 21.75 2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/></svg>`;
@@ -59,57 +58,47 @@
       `;
       modalTitle.textContent = '';
       modalTitle.append(createSVG(ShieldIconSVG), document.createTextNode(' ' + name + ' Info'));
-      modalContent.innerHTML = html;
-      modal.classList.remove('hidden');
+      modalContent.innerHTML = html; modal.classList.remove('hidden');
     }
 
-    // Load story data
+    // Load scenarios + drugInfo
     fetch(`stories/${storyId}.json`)
       .then(r => r.ok ? r.json() : Promise.reject('Story not found'))
-      .then(data => {
-        scenarios = data.scenarios;
-        drugInfo  = data.drugInfo;
-        render();
-      })
-      .catch(err => {
-        console.error(err);
-        document.getElementById('app').innerHTML = `<div class="text-red-600 p-4">Could not load story '${storyId}'.</div>`;
-      });
+      .then(data => { scenarios = data.scenarios; drugInfo = data.drugInfo; render(); })
+      .catch(err => { console.error(err); document.getElementById('app').innerHTML = `<div class="text-red-600 p-4">Could not load story '${storyId}'.</div>`; });
 
     let current = 'intro';
     function render() {
-      const app = document.getElementById('app');
-      app.innerHTML = '';
+      const app = document.getElementById('app'); app.innerHTML = '';
       const sc = scenarios[current] || { text: 'Unknown scene', options: [] };
 
-      // Highlight drugs dynamically
+      // Dynamic drug highlighting
       const keys = Object.keys(drugInfo).map(k => k.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'));
       const regex = new RegExp(`\\b(${keys.join('|')})\\b`, 'g');
-      
-      // Render narrative
+
+      // Story text
       const card = document.createElement('div');
       card.className = 'bg-white shadow rounded p-6 text-base sm:text-lg whitespace-pre-wrap';
       sc.text.split(regex).forEach(part => {
         if (drugInfo[part]) {
           const btn = document.createElement('button');
           btn.className = 'inline-flex items-center text-blue-600 hover:text-blue-800 underline';
-          btn.textContent = part;
-          btn.append(createSVG(InfoIconSVG));
-          btn.addEventListener('click', () => showModal(part));
-          card.append(btn);
-        } else {
-          card.append(document.createTextNode(part));
-        }
+          btn.textContent = part; btn.append(createSVG(InfoIconSVG)); btn.addEventListener('click', () => showModal(part)); card.append(btn);
+        } else card.append(document.createTextNode(part));
       });
       app.append(card);
 
-      // Render options
-      const optsContainer = document.createElement('div');
-      optsContainer.className = 'flex flex-col space-y-3 mt-4';
+      // Options list, info right of option
+      const optsContainer = document.createElement('div'); optsContainer.className = 'flex flex-col space-y-3 mt-4';
       sc.options.forEach(opt => {
         const clean = opt.replace(/Emp$/, '');
-        const row = document.createElement('div');
-        row.className = 'flex items-center space-x-2';
+        const row = document.createElement('div'); row.className = 'flex items-center space-x-2';
+
+        const btn = document.createElement('button');
+        btn.className = 'w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white py-2 rounded text-center';
+        btn.textContent = opt === 'start' ? 'Next' : clean;
+        btn.addEventListener('click', () => { current = opt === 'Restart' ? 'intro' : opt; render(); });
+        row.append(btn);
 
         if (drugInfo[clean]) {
           const ib = document.createElement('button');
@@ -118,13 +107,6 @@
           ib.addEventListener('click', () => showModal(clean));
           row.append(ib);
         }
-
-        const btn = document.createElement('button');
-        btn.className = 'flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded text-center';
-        btn.textContent = opt === 'start' ? 'Next' : clean;
-        btn.addEventListener('click', () => { current = opt === 'Restart' ? 'intro' : opt; render(); });
-        row.append(btn);
-
         optsContainer.append(row);
       });
       app.append(optsContainer);

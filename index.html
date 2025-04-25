@@ -7,11 +7,11 @@
   <title>Stories Portal</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Optional custom styles -->
+  <!-- Custom styles -->
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-gray-100">
-  <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <h1 class="text-3xl sm:text-4xl font-bold mb-6 text-center">📖 Story Portal</h1>
     <ul id="story-list" class="space-y-4">
       <!-- story links injected here -->
@@ -19,12 +19,12 @@
   </div>
   <script>
     fetch('stories/manifest.json')
-      .then(response => response.json())
+      .then(r => r.json())
       .then(list => {
         const ul = document.getElementById('story-list');
         list.forEach(({id, title}) => {
           const li = document.createElement('li');
-          const a = document.createElement('a');
+          const a  = document.createElement('a');
           a.href = `story.html?story=${encodeURIComponent(id)}`;
           a.textContent = title;
           a.className = 'block bg-white shadow hover:shadow-md rounded-lg px-5 py-4 text-lg sm:text-xl text-blue-600 hover:text-blue-700 transition';
@@ -39,4 +39,3 @@
   </script>
 </body>
 </html>
-
