@@ -95,7 +95,7 @@
         const row = document.createElement('div'); row.className = 'flex items-center space-x-2';
 
         const btn = document.createElement('button');
-        btn.className = 'w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white py-2 rounded text-center';
+        btn.className = 'flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded text-center';
         btn.textContent = opt === 'start' ? 'Next' : clean;
         btn.addEventListener('click', () => { current = opt === 'Restart' ? 'intro' : opt; render(); });
         row.append(btn);
