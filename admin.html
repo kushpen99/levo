@@ -1,135 +1,147 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Story Admin</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <title>Story Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
-  <div class="container mx-auto px-4 py-6">
-    <h1 class="text-2xl font-bold mb-4">📋 Story Admin</h1>
-    <div id="auth-section" class="mb-6">
-      <button id="sign-in-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">Sign in with Google</button>
-      <button id="sign-out-btn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded ml-2 hidden">Sign out</button>
+    <div class="container mx-auto px-4 py-6">
+        <h1 class="text-2xl font-bold mb-4">📋 Story Admin</h1>
+        <div id="auth-section" class="mb-6">
+            <button id="sign-in-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                Sign in with Google
+            </button>
+            <button id="sign-out-btn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded ml-2 hidden">
+                Sign out
+            </button>
+        </div>
+
+        <div id="admin-interface" class="hidden bg-white p-6 rounded shadow space-y-4">
+            <p>Enter the Story ID and paste the full story JSON below:</p>
+
+            <div>
+                <label for="story-id" class="font-semibold block mb-1">Story ID (document name)</label>
+                <input id="story-id" type="text" placeholder="e.g. mssa-mayhem"
+                       class="border px-3 py-2 rounded w-full" />
+            </div>
+
+            <div>
+                <label for="story-json" class="font-semibold block mb-1">Story JSON</label>
+                <textarea id="story-json" rows="15"
+                          class="border px-3 py-2 rounded w-full font-mono text-sm"></textarea>
+            </div>
+
+            <button id="upload-btn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
+                Save to Firestore
+            </button>
+            <p id="status-msg" class="mt-2"></p>
+        </div>
     </div>
 
-    <div id="admin-interface" class="hidden bg-white p-6 rounded shadow">
-      <p class="mb-4">Upload a full story JSON file to add or update a story.</p>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
+        import {
+            getAuth, signInWithPopup, GoogleAuthProvider,
+            onAuthStateChanged, signOut
+        } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js';
+        import {
+            getFirestore, doc, getDoc, setDoc, serverTimestamp
+        } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
 
-      <div class="mb-4">
-        <label for="story-id" class="block font-semibold mb-1">Story ID (doc name):</label>
-        <input id="story-id" type="text" placeholder="e.g. mssa-mayhem" class="border px-3 py-2 rounded w-full"/>
-      </div>
+        // Your Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyClEgpGrVTXT2zQNNDBDg0TNX2F24k6oTg",
+            authDomain: "urushka99.firebaseapp.com",
+            projectId: "urushka99",
+            storageBucket: "urushka99.firebasestorage.app",
+            messagingSenderId: "954120822793",
+            appId: "1:954120822793:web:6c316b1b178081b56758d8",
+            measurementId: "G-5LCB9E7PL9"
+        };
 
-      <div class="mb-4">
-        <label for="story-file" class="block font-semibold mb-1">Story JSON File:</label>
-        <input id="story-file" type="file" accept=".json" class="w-full"/>
-      </div>
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-      <button id="upload-btn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">Upload Story</button>
-      <p id="status-msg" class="mt-4"></p>
-    </div>
-  </div>
+        // UI references
+        const signInBtn = document.getElementById('sign-in-btn');
+        const signOutBtn = document.getElementById('sign-out-btn');
+        const adminInterface = document.getElementById('admin-interface');
+        const statusMsg = document.getElementById('status-msg');
+        const uploadBtn = document.getElementById('upload-btn');
+        const storyIdInput = document.getElementById('story-id');
+        const storyJsonArea = document.getElementById('story-json');
 
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
-    import {
-      getAuth, signInWithPopup, GoogleAuthProvider,
-      onAuthStateChanged, signOut
-    } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js';
-    import {
-      getFirestore, doc, getDoc, setDoc, serverTimestamp
-    } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
+        // Auth handlers
+        signInBtn.onclick = () => {
+            const provider = new GoogleAuthProvider();
+            signInWithPopup(auth, provider)
+                .catch(err => {
+                    console.error(err);
+                    statusMsg.textContent = 'Login failed: ' + err.message;
+                    statusMsg.className = 'text-red-600';
+                });
+        };
+        signOutBtn.onclick = () => signOut(auth);
 
-    // TODO: replace with your Firebase config
-    const firebaseConfig = {
-      apiKey: "AIzaSyClEgpGrVTXT2zQNNDBDg0TNX2F24k6oTg",
-      authDomain: "urushka99.firebaseapp.com",
-      projectId: "urushka99",
-      storageBucket: "urushka99.firebasestorage.app",
-      messagingSenderId: "954120822793",
-      appId: "1:954120822793:web:6c316b1b178081b56758d8",
-      measurementId: "G-5LCB9E7PL9"
-    };
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                signInBtn.classList.add('hidden');
+                signOutBtn.classList.remove('hidden');
+                adminInterface.classList.remove('hidden');
+            } else {
+                signInBtn.classList.remove('hidden');
+                signOutBtn.classList.add('hidden');
+                adminInterface.classList.add('hidden');
+            }
+        });
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+        // Upload JSON to Firestore
+        uploadBtn.onclick = async () => {
+            statusMsg.textContent = '';
+            const storyId = storyIdInput.value.trim();
+            const rawJson = storyJsonArea.value.trim();
+            if (!storyId) {
+                statusMsg.textContent = 'Please enter a Story ID.';
+                statusMsg.className = 'text-red-600';
+                return;
+            }
+            if (!rawJson) {
+                statusMsg.textContent = 'Please paste the story JSON.';
+                statusMsg.className = 'text-red-600';
+                return;
+            }
 
-    const signInBtn = document.getElementById('sign-in-btn');
-    const signOutBtn = document.getElementById('sign-out-btn');
-    const adminInterface = document.getElementById('admin-interface');
-    const statusMsg = document.getElementById('status-msg');
+            let json;
+            try {
+                json = JSON.parse(rawJson);
+            } catch (err) {
+                statusMsg.textContent = 'Invalid JSON: ' + err.message;
+                statusMsg.className = 'text-red-600';
+                return;
+            }
 
-    signInBtn.onclick = () => {
-      const provider = new GoogleAuthProvider();
-      signInWithPopup(auth, provider).catch(err => {
-        console.error(err);
-        statusMsg.textContent = 'Login failed: ' + err.message;
-        statusMsg.className = 'text-red-600 mt-2';
-      });
-    };
-
-    signOutBtn.onclick = () => {
-      signOut(auth);
-    };
-
-    onAuthStateChanged(auth, user => {
-      if (user) {
-        // Show admin interface
-        signInBtn.classList.add('hidden');
-        signOutBtn.classList.remove('hidden');
-        adminInterface.classList.remove('hidden');
-      } else {
-        signInBtn.classList.remove('hidden');
-        signOutBtn.classList.add('hidden');
-        adminInterface.classList.add('hidden');
-      }
-    });
-
-    document.getElementById('upload-btn').onclick = async () => {
-      const storyId = document.getElementById('story-id').value.trim();
-      const fileInput = document.getElementById('story-file');
-      statusMsg.textContent = '';
-      if (!storyId) {
-        statusMsg.textContent = 'Please enter a Story ID.';
-        statusMsg.className = 'text-red-600';
-        return;
-      }
-      if (!fileInput.files.length) {
-        statusMsg.textContent = 'Please select a JSON file.';
-        statusMsg.className = 'text-red-600';
-        return;
-      }
-
-      const file = fileInput.files[0];
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const json = JSON.parse(e.target.result);
-          // Add timestamps
-          const docRef = doc(db, 'stories', storyId);
-          // Check if doc exists, preserve createdAt
-          const snap = await getDoc(docRef);
-          const data = {
-            ...json,
-            updatedAt: serverTimestamp(),
-            createdAt: snap.exists() ? snap.data().createdAt : serverTimestamp()
-          };
-          await setDoc(docRef, data);
-          statusMsg.textContent = 'Story "' + storyId + '" uploaded successfully.';
-          statusMsg.className = 'text-green-600 mt-2';
-        } catch (err) {
-          console.error(err);
-          statusMsg.textContent = 'Error parsing or uploading JSON: ' + err.message;
-          statusMsg.className = 'text-red-600 mt-2';
-        }
-      };
-      reader.readAsText(file);
-    };
-  </script>
+            try {
+                const docRef = doc(db, 'stories', storyId);
+                const snap = await getDoc(docRef);
+                const data = {
+                    ...json,
+                    updatedAt: serverTimestamp(),
+                    createdAt: snap.exists() ? snap.data().createdAt : serverTimestamp()
+                };
+                await setDoc(docRef, data);
+                statusMsg.textContent = `Story "${storyId}" saved successfully.`;
+                statusMsg.className = 'text-green-600';
+            } catch (err) {
+                console.error(err);
+                statusMsg.textContent = 'Error saving story: ' + err.message;
+                statusMsg.className = 'text-red-600';
+            }
+        };
+    </script>
 </body>
 </html>
