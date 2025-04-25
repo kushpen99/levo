@@ -93,4 +93,41 @@
 		"Toxicities": "Biliary sludging, GI upset, rash"
 	  }
 	}
+	"quiz": {
+	  "choices": [
+		{
+		  "id": "Q1",
+		  "question": "1. Which antibiotic is the first-line definitive therapy for confirmed MSSA bloodstream infections?",
+		  "options": ["Vancomycin", "Cefazolin", "Daptomycin"],
+		  "correct": "Cefazolin"
+		},
+		{
+		  "id": "Q2",
+		  "question": "2. Which adverse event is characteristically associated with rapid vancomycin infusion?",
+		  "options": ["Red man syndrome", "Tendon rupture", "Interstitial nephritis"],
+		  "correct": "Red man syndrome"
+		},
+		{
+		  "id": "Q3",
+		  "question": "3. Which antibiotic is inactivated by lung surfactant?",
+		  "options": ["Daptomycin", "Ceftriaxone", "Nafcillin"],
+		  "correct": "Daptomycin"
+		},
+		{
+		  "id": "Q4",
+		  "question": "4. Which antibiotic requires creatine kinase monitoring due to risk of myopathy?",
+		  "options": ["Daptomycin", "Vancomycin", "Cefazolin"],
+		  "correct": "Daptomycin"
+		}
+	  ]
+	},
+	"summary": {
+	  "points": [
+		"Empiric therapy for suspected Staph aureus bacteremia often starts with vancomycin to cover MRSA.",
+		"Once MSSA is confirmed, de-escalate to a beta-lactam such as cefazolin for superior efficacy and lower toxicity.",
+		"Vancomycin is linked to nephrotoxicity and the infusion-related “red man syndrome.”",
+		"Daptomycin should be reserved for resistant Gram-positive infections and requires CK monitoring.",
+		"Good antimicrobial stewardship means promptly narrowing therapy based on culture & sensitivity results."
+	  ]
+	}
 }
