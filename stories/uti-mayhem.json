@@ -1,54 +1,83 @@
 {
+  "title": "UTI Mayhem: A Marathon Runner’s Showdown",
+  "createdAt": "",
+  "updatedAt": "",
   "scenarios": {
-    "intro": {
+    "OPT0": {
+      "name": "intro",
       "text": "🏃‍♀️ It’s Monday morning in the urgent-care clinic. A 28-year-old marathon runner limps in, grimacing: “I feel like I’m peeing tiny daggers! 🔪💧” Vital signs are stable, no fever. Urinalysis shows 3+ leukocyte esterase and nitrites. 😂\n\nWhat empiric antibiotic do you start while cultures are pending?",
       "options": [
-        "NitrofurantoinEmp",
-        "TMPSMXEmp",
-        "CiprofloxacinEmp",
-        "CephalexinEmp"
+        { "id": "OPT1", "text": "Nitrofurantoin" },
+        { "id": "OPT2", "text": "TMPSMX" },
+        { "id": "OPT3", "text": "Ciprofloxacin" },
+        { "id": "OPT4", "text": "Cephalexin" }
       ]
     },
-    "NitrofurantoinEmp": {
+    "OPT1": {
+      "name": "Nitrofurantoin",
       "text": "You start Nitrofurantoin – the UTI ninja. 🥷 It hits E. coli right where it hurts and concentrates in the bladder.\n\nCulture pending: E. coli, sensitive to everything except penicillin.",
-      "options": ["start"]
+      "options": [
+        { "id": "OPT5", "text": "start" }
+      ]
     },
-    "TMPSMXEmp": {
+    "OPT2": {
+      "name": "TMPSMXEmp",
       "text": "You pick Trimethoprim-Sulfamethoxazole (TMP-SMX). 📜➕💊 Sure, it’s effective… unless local resistance is high. Fingers crossed! 🤞\n\nCulture pending: E. coli, sensitive to everything except penicillin.",
-      "options": ["start"]
+      "options": [
+        { "id": "OPT5", "text": "start" }
+      ]
     },
-    "CiprofloxacinEmp": {
+    "OPT3": {
+      "name": "CiprofloxacinEmp",
       "text": "You go bold with Ciprofloxacin – the fluoroquinolone flamboyance. 💃 Broad coverage, but FDA frowns at overuse. 🧐\n\nCulture pending: E. coli, sensitive to everything except penicillin.",
-      "options": ["start"]
+      "options": [
+        { "id": "OPT5", "text": "start" }
+      ]
     },
-    "CephalexinEmp": {
+    "OPT4": {
+      "name": "CephalexinEmp",
       "text": "You grab Cephalexin – the trusty cephalosporin. 🛡️ Good against E. coli, but might not concentrate as well in urine.\n\nCulture pending: E. coli, sensitive to everything except penicillin.",
-      "options": ["start"]
+      "options": [
+        { "id": "OPT5", "text": "start" }
+      ]
     },
-    "start": {
+    "OPT5": {
+      "name": "start",
       "text": "🧫 Lab calls: “It’s uropathogenic E. coli, nitro-sensitive, TMP-SMX sensitive, cipro sensitive, cephalexin sensitive.”\n“Your move, doc. What’s the best narrow-spectrum choice?”",
       "options": [
-        "Nitrofurantoin",
-        "TMPSMX",
-        "Ciprofloxacin",
-        "Cephalexin"
+        { "id": "OPT6", "text": "Nitrofurantoin" },
+        { "id": "OPT7", "text": "TMPSMX" },
+        { "id": "OPT8", "text": "Ciprofloxacin" },
+        { "id": "OPT9", "text": "Cephalexin" }
       ]
     },
-    "Nitrofurantoin": {
+    "OPT6": {
+      "name": "Nitrofurantoin",
       "text": "🎉 Perfect! Nitrofurantoin remains first-line for uncomplicated UTI. Bladder-only ninja strike. Patient pees happy by tomorrow. 🥳🚽",
-      "options": ["Restart"]
+      "options": [
+        { "id": "OPT0", "text": "Restart" }
+      ]
     },
-    "TMPSMX": {
+    "OPT7": {
+      "name": "TMPSMX",
       "text": "👍 TMP-SMX works, but it has more systemic effects and potential rash. Not wrong, just not the bladder-specialist. 🤷‍♀️",
-      "options": ["Restart"]
+      "options": [
+        { "id": "OPT0", "text": "Restart" }
+      ]
     },
-    "Ciprofloxacin": {
+    "OPT8": {
+      "name": "Ciprofloxacin",
       "text": "❌ Too broad! Save fluoroquinolones for pyelonephritis or resistant bugs. Plus Achilles tendon risk for our marathoner. 🦶⚠️",
-      "options": ["Restart"]
+      "options": [
+        { "id": "OPT0", "text": "Restart" }
+      ]
     },
-    "Cephalexin": {
+    "OPT9": {
+      "name": "Cephalexin",
       "text": "❌ Cephalexin is okay, but nitrofurantoin beats it in bladder concentration. Better luck next time. 😉",
-      "options": ["Restart"]
+      "options": [
+        { "id": "OPT0", "text": "Restart" }
+      ]
     }
   },
   "drugInfo": {
