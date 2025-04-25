@@ -50,12 +50,12 @@
         }
 
         snapshot.forEach(doc => {
-          const { name } = doc.data();
+		  const data = doc.data();
           const id = doc.id;
           const li = document.createElement('li');
           const a  = document.createElement('a');
           a.href = `story.html?story=${encodeURIComponent(id)}`;
-          a.textContent = name;
+          a.textContent = data.name;
           a.className = 'block bg-white shadow hover:shadow-md rounded-lg px-5 py-4 text-lg sm:text-xl text-blue-600 hover:text-blue-700 transition';
           li.append(a);
           ul.append(li);
