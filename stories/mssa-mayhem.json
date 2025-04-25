@@ -6,15 +6,15 @@
 	  "OPT0": {
 		"name": "intro",
 		"text": "On a chilly evening, while sipping your chamomile tea with honey in the internal medicine staff room where you work as a physician assistant,\nsuddenly the phone rings. After confirming (damn it) that there’s no one else around to answer, you pick up the receiver:\n\"Hello, this is the microbiology lab. Mr. Nehmadi Nehmad has Staphylococcus aureus in his blood culture. Sensitivities will be ready tomorrow. Got it?\"\n\"Got it.\"\n\nWhat treatment would you recommend the on-call resident start for the nice gentleman?",
-		"options": ["id": "OPT1", "text": "empiric"]
+		"options": [{"id": "OPT1", "text": "empiric"}]
 	  },
 	  "OPT1": {
 		"name": "empiric",
 		"text": "You consider empiric treatment options. It’s nighttime, sensitivities aren’t back yet, and all eyes are on you.\nWhat do you start for now?",
 		"options": [
 			{"id": "OPT5", "text": "Vancomycin"}, 
-			{"id": "OPT2", "text": "CefazolinEmp"}, 
-			{"id": "OPT3", "text": "NafcillinEmp"}, 
+			{"id": "OPT2", "text": "Cefazolin"}, 
+			{"id": "OPT3", "text": "Nafcillin"}, 
 			{"id": "OPT9", "text": "Ceftriaxone"}]
 	  },
 	  "OPT1": {
