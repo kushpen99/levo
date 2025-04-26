@@ -266,7 +266,7 @@
                 container.append(table);
 
                 function tdPlain(txt) { const td = document.createElement('td'); td.className = 'border px-2 py-1 text-xs break-all'; td.textContent = txt; return td; }
-                function tdInput(val, on, valClass = '') {
+                function tdInput(val, cb, valClass = '') {
                     const td = document.createElement('td'); td.className = `border px-2 py-1 ${valClass}`; const inp = document.createElement('input'); inp.type = 'text'; inp.value = val; inp.className = 'border rounded px-1 py-0.5 w-full'; inp.oninput = () => cb(inp.value); td.append(inp); return td;
                 }
                 function updateField(sid, key, value) { const full = JSON.parse(storyJsonArea.value); full.scenarios[sid][key] = value; storyJsonArea.value = JSON.stringify(full, null, 2); }
