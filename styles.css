@@ -52,7 +52,6 @@ button:active {
 }
 
 #modal-content ul li {
-  margin: 0.15rem 0 0 0;   /* top gap ≈ 2–3 px, no bottom gap              */
-  line-height: 1.25rem;    /* tighter text line height                     */
-  background-color: #DCDCDC;
+  margin: 0.15rem 0 0 0 !important;   /* top gap ≈ 2–3 px, no bottom gap              */
+  line-height: 1.25rem !important;    /* tighter text line height                     */
 }
