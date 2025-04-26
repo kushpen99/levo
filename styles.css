@@ -44,3 +44,14 @@ a.block:hover {
 button:active {
   opacity: 0.8;
 }
+
+/* Tighter spacing for the bullet list in the drug-info modal */
+#modal-content ul {
+  margin: 0;              /* remove default gap above the list            */
+  padding-left: 1.25rem;   /* keep bullet indent (same as Tailwind ml-5)   */
+}
+
+#modal-content ul li {
+  margin: 0.15rem 0 0 0;   /* top gap ≈ 2–3 px, no bottom gap              */
+  line-height: 1.25rem;    /* tighter text line height                     */
+}
