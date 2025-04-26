@@ -307,14 +307,14 @@
 
         function renderDrugInfo(data) {
             const add = document.createElement('button'); add.textContent = 'Add Drug'; add.className = 'mb-2 bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded';
-            add.onclick = () => { const full = JSON.parse(storyJsonArea.value); full.drugInfo = full.drugInfo || {}; let n = 1; while (full.drugInfo['Drug' + n]) n++; full.drugInfo['Drug' + n] = { PK: '', Spectrum: '', Toxicities: '' }; storyJsonArea.value = JSON.stringify(full, null, 2); renderPresentation(); };
+            add.onclick = () => { const full = JSON.parse(storyJsonArea.value); full.drugInfo = full.drugInfo || {}; let n = 1; while (full.drugInfo['Drug' + n]) n++; full.drugInfo['Drug' + n] = { Family: '', PK: '', Spectrum: '', Toxicities: '' }; storyJsonArea.value = JSON.stringify(full, null, 2); renderPresentation(); };
             presContent.append(add);
-            const table = document.createElement('table'); table.className = 'table-auto w-full border-collapse'; table.innerHTML = `<thead><tr class='bg-gray-50'><th class='border px-2 py-1'>Name</th><th class='border px-2 py-1'>PK</th><th class='border px-2 py-1'>Spectrum</th><th class='border px-2 py-1'>Toxicities</th><th class='border px-2 py-1'>Remove</th></tr></thead>`;
+            const table = document.createElement('table'); table.className = 'table-auto w-full border-collapse'; table.innerHTML = `<thead><tr class='bg-gray-50'><th class='border px-2 py-1'>Name</th><th class='border px-2 py-1'>Family</th><th class='border px-2 py-1'>PK</th><th class='border px-2 py-1'>Spectrum</th><th class='border px-2 py-1'>Toxicities</th><th class='border px-2 py-1'>Remove</th></tr></thead>`;
             const tbody = document.createElement('tbody');
             Object.entries(data.drugInfo || {}).forEach(([name, info]) => {
                 const tr = document.createElement('tr');
                 tr.append(tdInput(name, v => renameDrug(name, v)));
-                ['PK', 'Spectrum', 'Toxicities'].forEach(f => tr.append(tdInput(info[f] || '', v => updateDrug(name, f, v))));
+                ['Family', 'PK', 'Spectrum', 'Toxicities'].forEach(f => tr.append(tdInput(info[f] || '', v => updateDrug(name, f, v))));
                 const tdR = document.createElement('td'); tdR.className = 'border px-2 py-1 text-center'; const rm = document.createElement('button'); rm.textContent = '🗑'; rm.onclick = () => { const full = JSON.parse(storyJsonArea.value); delete full.drugInfo[name]; storyJsonArea.value = JSON.stringify(full, null, 2); renderPresentation(); }; tdR.append(rm); tr.append(tdR);
                 tbody.append(tr);
             }); table.append(tbody); presContent.append(table);
