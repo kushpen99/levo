@@ -94,7 +94,7 @@
         const storyIdInput = document.getElementById('story-id');
         const storyJsonArea = document.getElementById('story-json');
         const uploadBtn = document.getElementById('upload-btn');
-        const deleteBtn = document.getElementById('delete-btn');  
+        const deleteBtn = document.getElementById('delete-btn');
         const statusMsg = document.getElementById('status-msg');
 
         const presControls = document.getElementById('presentation-controls');
@@ -238,12 +238,12 @@
                 const table = document.createElement('table');
                 table.className = 'table-auto w-full border-collapse';
                 table.innerHTML = `<thead><tr class='bg-gray-50'>
-                            <th class='border px-2 py-1'>ID</th>
-                            <th class='border px-2 py-1'>Name</th>
-                            <th class='border px-2 py-1'>Text</th>
-                            <th class='border px-2 py-1'>Options (JSON)</th>
-                            <th class='border px-2 py-1'>Remove</th>
-                        </tr></thead>`;
+                                <th class='border px-2 py-1'>ID</th>
+                                <th class='border px-2 py-1'>Name</th>
+                                <th class='border px-2 py-1'>Text</th>
+                                <th class='border px-2 py-1'>Options (JSON)</th>
+                                <th class='border px-2 py-1'>Remove</th>
+                            </tr></thead>`;
                 const tbody = document.createElement('tbody');
                 Object.entries(data.scenarios || {}).forEach(([id, sc]) => {
                     const tr = document.createElement('tr');
@@ -325,11 +325,59 @@
 
         /* ------------------------- UTILITIES ------------------------------- */
         function orderKeys(data) {
-            const fixed = ['title', 'createdAt', 'updatedAt', 'scenarios', 'drugInfo', 'summary', 'quiz'];
-            const o = {}; fixed.forEach(k => { if (data[k] !== undefined) o[k] = data[k]; });
-            Object.keys(data).forEach(k => { if (!fixed.includes(k)) o[k] = data[k]; });
-            return JSON.stringify(o, null, 2);
+            // ---------- top-level ----------
+            const topOrder = ['title', 'createdAt', 'updatedAt',
+                'scenarios', 'drugInfo', 'summary', 'quiz'];
+
+            const result = {};
+            topOrder.forEach(k => { if (data[k] !== undefined) result[k] = data[k]; });
+            Object.keys(data).forEach(k => { if (!result.hasOwnProperty(k)) result[k] = data[k]; });
+
+            // ---------- per-scenario ----------
+            if (result.scenarios) {
+                const reorderedScenarios = {};
+                Object.entries(result.scenarios).forEach(([id, sc]) => {
+                    reorderedScenarios[id] = orderScenarioFields(sc);
+                });
+                result.scenarios = reorderedScenarios;
+            }
+
+            return JSON.stringify(result, null, 2);
         }
+
+
+        // Re-orders one scenario object →  { name, text, options, …rest }
+        function orderScenarioFields(sc) {
+            const ordered = {};
+            ['name', 'text', 'options'].forEach(k => {
+                if (sc[k] !== undefined) ordered[k] = sc[k];
+            });
+            Object.keys(sc).forEach(k => {
+                if (!ordered.hasOwnProperty(k)) ordered[k] = sc[k];
+            });
+
+            // ----- inside the options array -----
+            if (Array.isArray(ordered.options)) {
+                ordered.options = ordered.options.map(orderOptionFields);
+            }
+
+            return ordered;
+        }
+
+
+        // Re-orders one option object → { text, id, …rest }
+        function orderOptionFields(opt) {
+            const ordered = {};
+            ['text', 'id'].forEach(k => {
+                if (opt[k] !== undefined) ordered[k] = opt[k];
+            });
+            Object.keys(opt).forEach(k => {
+                if (!ordered.hasOwnProperty(k)) ordered[k] = opt[k];
+            });
+            return ordered;
+        }
+
+
         function hidePresentation() { presControls.classList.add('hidden'); presArea.classList.add('hidden'); presContent.innerHTML = ''; }
         function showStatus(msg, cls = '') { statusMsg.textContent = msg; statusMsg.className = cls; }
 
