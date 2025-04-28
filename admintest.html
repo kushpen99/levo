@@ -102,7 +102,7 @@
         import { getFirestore, doc, getDoc, setDoc, deleteDoc, serverTimestamp, collection, getDocs } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
 
         /* ----------------------------- ChatGpt -----------------------------*/
-        const chatEndpoint = '/api/chat.js';
+        const chatEndpoint = '/api/chat';
 
         /* ---------------------------- Firebase ---------------------------- */
         const firebaseConfig = {
@@ -507,15 +507,38 @@
 
             // 3️⃣ Build the LLM prompt (use your template here)
             const prompt = `
-                You are an assistant that generates interactive case‐study stories for medical students.
-                Here is an example story JSON (for reference):
+                You are an assistant that generates interactive case-study stories for medical students, helping them learn the correct treatment pathways. 
+				These stories are represented as JSON following our established schema. Here is an example of an existing story (for reference):
                 \`\`\`
                 ${exampleJson}
                 \`\`\`
 
-                Using the same schema, create a brand‐new story JSON with:
-                - Title based on: Subject: ${subject}
-                - Additional instructions (if any): ${instr || 'none'}
+                Using this schema:
+1. **Top-level keys** in order:  
+   - title (string)  
+   - createdAt, updatedAt (timestamp objects)  
+   - scenarios (object of scenario-objects)  
+   - drugInfo (object of drug-info objects)  
+   - summary (object with a “points” array)  
+   - quiz (object with a “choices” array)
+
+2. **Each scenario** must have keys in this order:  
+   - name (string)  
+   - text (string)  
+   - options (array of option-objects)
+
+3. **Each option** must have:  
+   - text (string)  
+   - id (string matching one of the scenario keys)
+
+4. **Mermaid compliance**:  
+   - Scenario IDs become graph node IDs.  
+   - Option texts must be short, single-line labels without unsupported Unicode.  
+
+---
+
+**Now** create a **brand new interactive case-study story JSON** with:  
+- **Title** based on: Subject: ${subject} and on Additional instructions (if any): ${instr || 'none'}
 
                 Output **only** the new story’s JSON, ready for Mermaid rendering.
                   `.trim();
