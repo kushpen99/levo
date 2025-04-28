@@ -551,12 +551,29 @@
             try {
                 // 5️⃣ Call your serverless function
                 const res = await fetch(chatEndpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt })
-                });
-                const { reply, error } = await res.json();
-                if (error) throw new Error(error);
+				  method: 'POST',
+				  headers: { 'Content-Type': 'application/json' },
+				  body: JSON.stringify({ prompt })
+				});
+
+				// first grab the body (JSON or text)
+				let data;
+				try {
+				  data = await res.json();
+				} catch {
+				  const txt = await res.text();
+				  throw new Error(`Invalid JSON response: ${txt}`);
+				}
+
+				// if the status isn’t OK, throw with the returned error info
+				if (!res.ok) {
+				  const msg = data.error || JSON.stringify(data);
+				  throw new Error(`API error ${res.status}: ${msg}\n${data.stack||''}`);
+				}
+
+				// otherwise you’ve got your reply
+				const reply = data.reply;
+
 
                 // 6️⃣ Load into the textarea & re-render
                 storyJsonArea.value = reply;
