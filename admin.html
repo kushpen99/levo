@@ -22,35 +22,50 @@
 
         <!-- MAIN UI ----------------------------------------------------------- -->
         <div id="admin-ui" class="hidden bg-white p-6 rounded shadow space-y-4">
-			<!-- 1️⃣ Create-story button + hidden form -->
-			<div class="mb-4">
-			  <button id="create-story-btn"
-					  class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded">
-				➕ Create New Story
-			  </button>
+            <!-- 1️⃣ Create-story button + hidden form -->
+            <div class="mb-4">
+                <button id="create-story-btn"
+                        class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded">
+                    ➕ Create New Story
+                </button>
 
-			  <!-- hidden until clicked -->
-			  <div id="create-story-form" class="mt-4 p-4 bg-gray-50 rounded shadow hidden">
-				<div class="mb-3">
-				  <label for="new-story-subject" class="block font-semibold mb-1">Story Subject</label>
-				  <input id="new-story-subject" type="text"
-						 class="border rounded px-3 py-2 w-full"
-						 placeholder="e.g. ESBL Case" />
-				</div>
-				<div class="mb-3">
-				  <label for="new-story-instr" class="block font-semibold mb-1">
-					Additional Instructions <span class="text-gray-500">(optional)</span>
-				  </label>
-				  <textarea id="new-story-instr" rows="3"
-							class="border rounded px-3 py-2 w-full"
-							placeholder="Give extra context…"></textarea>
-				</div>
-				<button id="new-story-submit"
-						class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
-				  Submit
-				</button>
-			  </div>
-			</div>
+                <!-- hidden until clicked -->
+                <div id="create-story-form" class="mt-4 p-4 bg-gray-50 rounded shadow hidden">
+                    <div class="mb-3">
+                        <label for="new-story-subject" class="block font-semibold mb-1">Story Subject</label>
+                        <input id="new-story-subject" type="text"
+                               class="border rounded px-3 py-2 w-full"
+                               placeholder="e.g. ESBL Case" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="new-story-instr" class="block font-semibold mb-1">
+                            Additional Instructions <span class="text-gray-500">(optional)</span>
+                        </label>
+                        <textarea id="new-story-instr" rows="3"
+                                  class="border rounded px-3 py-2 w-full"
+                                  placeholder="Give extra context…"></textarea>
+                    </div>
+					<!-- Submit + spinner -->
+					<div class="flex items-center">
+					  <button id="new-story-submit"
+							  class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
+						<span id="new-story-submit-text">Submit</span>
+					  </button>
+					  <!-- Tailwind spinner, hidden by default -->
+					  <svg id="new-story-spinner"
+						   class="hidden animate-spin h-5 w-5 text-green-600 ml-2"
+						   xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+						<path class="opacity-75" fill="currentColor"
+							  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+					  </svg>
+					</div>
+
+					<!-- per-form status message -->
+					<p id="new-story-status" class="mt-2 text-gray-700"></p>
+
+                </div>
+            </div>
 
             <!-- story select -->
             <div>
@@ -101,6 +116,9 @@
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js';
         import { getFirestore, doc, getDoc, setDoc, deleteDoc, serverTimestamp, collection, getDocs } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
 
+        /* ----------------------------- ChatGpt -----------------------------*/
+        const chatEndpoint = '/api/chat';
+
         /* ---------------------------- Firebase ---------------------------- */
         const firebaseConfig = {
             apiKey: "AIzaSyClEgpGrVTXT2zQNNDBDg0TNX2F24k6oTg",
@@ -125,11 +143,13 @@
         const storyJsonArea = document.getElementById('story-json');
         const uploadBtn = document.getElementById('upload-btn');
         const deleteBtn = document.getElementById('delete-btn');
-		const createBtn     = document.getElementById('create-story-btn');
-		const createForm    = document.getElementById('create-story-form');
-		const subjectInput  = document.getElementById('new-story-subject');
-		const instrInput    = document.getElementById('new-story-instr');
-		const submitBtn     = document.getElementById('new-story-submit');
+        const createBtn = document.getElementById('create-story-btn');
+        const createForm = document.getElementById('create-story-form');
+        const subjectInput = document.getElementById('new-story-subject');
+        const instrInput = document.getElementById('new-story-instr');
+        const submitBtn = document.getElementById('new-story-submit');
+		const spinner       = document.getElementById('new-story-spinner');
+		const newStoryStatus= document.getElementById('new-story-status');
 
         const statusMsg = document.getElementById('status-msg');
 
@@ -290,12 +310,12 @@
                 const table = document.createElement('table');
                 table.className = 'table-auto w-full border-collapse';
                 table.innerHTML = `<thead><tr class='bg-gray-50'>
-                                    <th class='border px-2 py-1'>ID</th>
-                                    <th class='border px-2 py-1'>Name</th>
-                                    <th class='border px-2 py-1'>Text</th>
-                                    <th class='border px-2 py-1'>Options (JSON)</th>
-                                    <th class='border px-2 py-1'>Remove</th>
-                                </tr></thead>`;
+                                        <th class='border px-2 py-1'>ID</th>
+                                        <th class='border px-2 py-1'>Name</th>
+                                        <th class='border px-2 py-1'>Text</th>
+                                        <th class='border px-2 py-1'>Options (JSON)</th>
+                                        <th class='border px-2 py-1'>Remove</th>
+                                    </tr></thead>`;
                 const tbody = document.createElement('tbody');
                 Object.entries(data.scenarios || {}).forEach(([id, sc]) => {
                     const tr = document.createElement('tr');
@@ -477,25 +497,151 @@
                 showStatus(e.message, 'text-red-600');
             }
         };
-		
-		/* ------------------------- CREATE STORY ----------------------------------- */
 
-		// 1. Toggle the form when “Create New Story” is clicked
-		createBtn.onclick = () => {
-		  createForm.classList.toggle('hidden');
-		};
+        /* ------------------------- CREATE STORY ----------------------------------- */
 
-		// 2. On Submit, read inputs and pop an alert
-		submitBtn.onclick = () => {
-		  const subject = subjectInput.value.trim();
-		  const instr   = instrInput.value.trim();
-		  alert(
-			`New Story Details:\n` +
-			`• Subject: ${subject || '(none)'}\n` +
-			`• Instructions: ${instr || '(none)'}`
-		  );
-		  // (You can later replace this with your ChatGPT API call + Firestore logic)
-		};
+        // 1. Toggle the form when “Create New Story” is clicked
+        createBtn.onclick = () => {
+            if (!storySelect.value) {
+                alert('Please select an existing story first – it will be used as an example.');
+                return;
+            }
+            createForm.classList.toggle('hidden');
+        };
+
+
+        submitBtn.onclick = async () => {
+            // 1️⃣ Make sure an example story is loaded
+            if (!storySelect.value) {
+                alert('Please select an existing story to use as an example first.');
+                return;
+            }
+
+            // 2️⃣ Gather inputs
+            const subject = subjectInput.value.trim();
+            const instr = instrInput.value.trim();
+            const exampleJson = storyJsonArea.value;
+
+            // 3️⃣ Build the LLM prompt (use your template here)
+            const prompt = `
+                You are an assistant that generates interactive case-study stories for medical students, helping them learn the correct treatment pathways. 
+				These stories are represented as JSON following our established schema. Here is an example of an existing story (for reference):
+                \`\`\`
+                ${exampleJson}
+                \`\`\`
+
+                Using this schema:
+1. **Top-level keys** in order:  
+   - title (string)  
+   - createdAt, updatedAt (timestamp objects)  
+   - scenarios (object of scenario-objects)  
+   - drugInfo (object of drug-info objects)  
+   - summary (object with a “points” array)  
+   - quiz (object with a “choices” array)
+
+2. **Each scenario** must have keys in this order:  
+   - name (string)  
+   - text (string)  
+   - options (array of option-objects)
+
+3. **Each option** must have:  
+   - text (string)
+   - id (string matching one of the scenario keys)
+   
+4. **Each drugInfo** must have:  
+
+   - Family (string representing the Family of drugs the drug belongs to)  
+   - PK (string)
+   - Spectrum (string)
+   - Toxicities (string)
+
+5. **Mermaid compliance**:  
+   - Scenario IDs become graph node IDs.  
+   - Option texts must be short, single-line labels without unsupported Unicode.  
+
+---
+
+**Now** create a **brand new interactive case-study story JSON** with:  
+- **Title** based on: Subject: ${subject} and on Additional instructions (if any): ${instr || 'none'}
+
+                Output **only** the new story’s JSON, ready for Mermaid rendering.
+                  `.trim();
+
+            // 4️⃣ UI feedback
+			spinner.classList.remove('hidden');
+            submitBtn.disabled = true;
+            newStoryStatus.textContent = 'Generating new story…';
+            newStoryStatus.className = 'text-gray-700';
+
+            try {
+                // 5️⃣ Call your serverless function
+                const res = await fetch(chatEndpoint, {
+				  method: 'POST',
+				  headers: { 'Content-Type': 'application/json' },
+				  body: JSON.stringify({ prompt })
+				});
+
+				// first grab the body (JSON or text)
+				let data;
+				try {
+				  data = await res.json();
+				} catch {
+				  const txt = await res.text();
+				  throw new Error(`Invalid JSON response: ${txt}`);
+				}
+
+				// if the status isn’t OK, throw with the returned error info
+				if (!res.ok) {
+				  const msg = data.error || JSON.stringify(data);
+				  throw new Error(`API error ${res.status}: ${msg}\n${data.stack||''}`);
+				}
+
+				// otherwise you’ve got your reply
+				const reply = data.reply;
+
+
+                // 6️⃣ Load into the textarea & re-render
+                // Clean up code fences, if present
+				let cleaned = reply.trim();
+				if (cleaned.startsWith('```')) {
+				  cleaned = cleaned
+					.replace(/^```(?:json)?\s*/, '')  // remove opening ``` or ```json
+					.replace(/```$/, '');             // remove trailing ```
+				}
+				// put JSON in textarea
+				storyJsonArea.value = cleaned;
+				// derive a slug from the new title and set it as the Story ID
+				try {
+				  const newStory = JSON.parse(cleaned);
+				  const title    = newStory.title || '';
+				  // lowercase, then replace every non-a–z or 0–9 with a hyphen
+				  const slug     = title
+									  .toLowerCase()
+									  .replace(/[^a-z0-9]/g, '-')
+									  // collapse multiple hyphens
+									  .replace(/-+/g, '-')
+									  // trim hyphens off ends
+									  .replace(/(^-|-$)/g, '');
+				  storyIdInput.value = slug;
+				} catch (e) {
+				  console.warn('Could not parse new story JSON for title → ID slug', e);
+				}
+
+                setupPresentation();
+
+                // 7️⃣ Hide form + success message
+                createForm.classList.add('hidden');
+                newStoryStatus.textContent = '✅ New story loaded!';
+                newStoryStatus.className = 'text-green-600';
+            } catch (e) {
+                newStoryStatus.textContent = `Error: ${e.message}`;
+                newStoryStatus.className = 'text-red-600 mt-2';
+            } finally {
+				spinner.classList.add('hidden');
+                submitBtn.disabled = false;
+            }
+        };
+
 
     </script>
 </body>
