@@ -576,7 +576,15 @@
 
 
                 // 6️⃣ Load into the textarea & re-render
-                storyJsonArea.value = reply;
+                // Clean up code fences, if present
+				let cleaned = reply.trim();
+				if (cleaned.startsWith('```')) {
+				  cleaned = cleaned
+					.replace(/^```(?:json)?\s*/, '')  // remove opening ``` or ```json
+					.replace(/```$/, '');             // remove trailing ```
+				}
+				storyJsonArea.value = cleaned;
+
                 setupPresentation();
 
                 // 7️⃣ Hide form + success message
