@@ -49,6 +49,25 @@
                             class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
                         Submit
                     </button>
+					<!-- Submit + spinner -->
+					<div class="flex items-center">
+					  <button id="new-story-submit"
+							  class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
+						<span id="new-story-submit-text">Submit</span>
+					  </button>
+					  <!-- Tailwind spinner, hidden by default -->
+					  <svg id="new-story-spinner"
+						   class="hidden animate-spin h-5 w-5 text-green-600 ml-2"
+						   xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+						<path class="opacity-75" fill="currentColor"
+							  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+					  </svg>
+					</div>
+
+					<!-- per-form status message -->
+					<p id="new-story-status" class="mt-2 text-gray-700"></p>
+
                 </div>
             </div>
 
@@ -133,6 +152,8 @@
         const subjectInput = document.getElementById('new-story-subject');
         const instrInput = document.getElementById('new-story-instr');
         const submitBtn = document.getElementById('new-story-submit');
+		const spinner       = document.getElementById('new-story-spinner');
+		const newStoryStatus= document.getElementById('new-story-status');
 
         const statusMsg = document.getElementById('status-msg');
 
@@ -551,9 +572,10 @@
                   `.trim();
 
             // 4️⃣ UI feedback
+			spinner.classList.remove('hidden');
             submitBtn.disabled = true;
-            statusMsg.textContent = 'Generating new story…';
-            statusMsg.className = 'text-gray-700';
+            newStoryStatus.textContent = 'Generating new story…';
+            newStoryStatus.className = 'text-gray-700';
 
             try {
                 // 5️⃣ Call your serverless function
@@ -613,12 +635,13 @@
 
                 // 7️⃣ Hide form + success message
                 createForm.classList.add('hidden');
-                statusMsg.textContent = '✅ New story loaded!';
-                statusMsg.className = 'text-green-600';
+                newStoryStatus.textContent = '✅ New story loaded!';
+                newStoryStatus.className = 'text-green-600';
             } catch (e) {
-                statusMsg.textContent = `Error: ${e.message}`;
-                statusMsg.className = 'text-red-600';
+                newStoryStatus.textContent = `Error: ${e.message}`;
+                newStoryStatus.className = 'text-red-600 mt-2';
             } finally {
+				spinner.classList.add('hidden');
                 submitBtn.disabled = false;
             }
         };
