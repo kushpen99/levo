@@ -528,10 +528,17 @@
    - options (array of option-objects)
 
 3. **Each option** must have:  
-   - text (string)  
+   - text (string)
    - id (string matching one of the scenario keys)
+   
+4. **Each drugInfo** must have:  
 
-4. **Mermaid compliance**:  
+   - Family (string representing the Family of drugs the drug belongs to)  
+   - PK (string)
+   - Spectrum (string)
+   - Toxicities (string)
+
+5. **Mermaid compliance**:  
    - Scenario IDs become graph node IDs.  
    - Option texts must be short, single-line labels without unsupported Unicode.  
 
@@ -583,7 +590,24 @@
 					.replace(/^```(?:json)?\s*/, '')  // remove opening ``` or ```json
 					.replace(/```$/, '');             // remove trailing ```
 				}
+				// put JSON in textarea
 				storyJsonArea.value = cleaned;
+				// derive a slug from the new title and set it as the Story ID
+				try {
+				  const newStory = JSON.parse(cleaned);
+				  const title    = newStory.title || '';
+				  // lowercase, then replace every non-a–z or 0–9 with a hyphen
+				  const slug     = title
+									  .toLowerCase()
+									  .replace(/[^a-z0-9]/g, '-')
+									  // collapse multiple hyphens
+									  .replace(/-+/g, '-')
+									  // trim hyphens off ends
+									  .replace(/(^-|-$)/g, '');
+				  storyIdInput.value = slug;
+				} catch (e) {
+				  console.warn('Could not parse new story JSON for title → ID slug', e);
+				}
 
                 setupPresentation();
 
