@@ -1,8 +1,6 @@
 // api/chat.js
-// 1. Import the default export
 import OpenAI from "openai";
 
-// 2. Instantiate with your API key
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
