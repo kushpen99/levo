@@ -218,7 +218,23 @@
                 div.className = 'mermaid';
                 div.textContent = diagram;
                 container.append(div);
+
+                /* Mermaid error output */
+                const mermaidError = document.createElement('div');
+                mermaidError.className = 'hidden text-red-600 text-sm whitespace-pre-wrap mt-2';
+                mermaidError.id = "mermaid-error";
+                container.append(mermaidError);
+
                 mermaid.init(undefined, div);
+
+                // display any syntax / parse error inside the page
+                mermaid.parseError = (err /* Error object */, hash /* details */) => {
+
+                    mermaidError.textContent =
+                        'Mermaid syntax error:\n' + (err.str || err.message || err.toString());
+
+                    mermaidError.classList.remove('hidden');
+                };
             }
 
             function drawScenarioTable(container) {
@@ -238,12 +254,12 @@
                 const table = document.createElement('table');
                 table.className = 'table-auto w-full border-collapse';
                 table.innerHTML = `<thead><tr class='bg-gray-50'>
-                                <th class='border px-2 py-1'>ID</th>
-                                <th class='border px-2 py-1'>Name</th>
-                                <th class='border px-2 py-1'>Text</th>
-                                <th class='border px-2 py-1'>Options (JSON)</th>
-                                <th class='border px-2 py-1'>Remove</th>
-                            </tr></thead>`;
+                                    <th class='border px-2 py-1'>ID</th>
+                                    <th class='border px-2 py-1'>Name</th>
+                                    <th class='border px-2 py-1'>Text</th>
+                                    <th class='border px-2 py-1'>Options (JSON)</th>
+                                    <th class='border px-2 py-1'>Remove</th>
+                                </tr></thead>`;
                 const tbody = document.createElement('tbody');
                 Object.entries(data.scenarios || {}).forEach(([id, sc]) => {
                     const tr = document.createElement('tr');
