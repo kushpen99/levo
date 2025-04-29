@@ -632,6 +632,10 @@
 2. **Each scenario** must have keys in this order:
        - name (string)
        - text (string)
+	   - pathResult (string. one of the values: 
+			undetermined - for paths still in progress, 
+			success - for paths ending positively, 
+			failure - for paths ending negatively)
        - options (array of option-objects)
 
 3. **Each option** must have:
@@ -731,6 +735,7 @@
                 submitBtn.disabled = false;
             }
         };
+
 
     </script>
 </body>
