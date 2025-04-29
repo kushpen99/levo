@@ -45,24 +45,24 @@
                                   class="border rounded px-3 py-2 w-full"
                                   placeholder="Give extra context…"></textarea>
                     </div>
-					<!-- Submit + spinner -->
-					<div class="flex items-center">
-					  <button id="new-story-submit"
-							  class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
-						<span id="new-story-submit-text">Submit</span>
-					  </button>
-					  <!-- Tailwind spinner, hidden by default -->
-					  <svg id="new-story-spinner"
-						   class="hidden animate-spin h-5 w-5 text-green-600 ml-2"
-						   xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-						<path class="opacity-75" fill="currentColor"
-							  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
-					  </svg>
-					</div>
+                    <!-- Submit + spinner -->
+                    <div class="flex items-center">
+                        <button id="new-story-submit"
+                                class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
+                            <span id="new-story-submit-text">Submit</span>
+                        </button>
+                        <!-- Tailwind spinner, hidden by default -->
+                        <svg id="new-story-spinner"
+                             class="hidden animate-spin h-5 w-5 text-green-600 ml-2"
+                             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                            <path class="opacity-75" fill="currentColor"
+                                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                        </svg>
+                    </div>
 
-					<!-- per-form status message -->
-					<p id="new-story-status" class="mt-2 text-gray-700"></p>
+                    <!-- per-form status message -->
+                    <p id="new-story-status" class="mt-2 text-gray-700"></p>
 
                 </div>
             </div>
@@ -80,21 +80,30 @@
                 <label for="story-id" class="font-semibold block mb-1">Story ID</label>
                 <input id="story-id" type="text" class="border rounded px-3 py-2 w-full" />
             </div>
+            <div>
+                <label for="story-status" class="font-semibold block mb-1">Status</label>
+                <select id="story-status" class="border rounded px-3 py-2 w-auto inline-block">
+                    <option value="draft">Draft</option>
+                    <option value="review">Review</option>
+                    <option value="published">Published</option>
+                    <option value="archived">Archived</option>
+                </select>
+            </div>
             <!-- 🌟 Collapsible JSON Section -->
-			<div id="json-section" class="space-y-1">
-				<div class="flex items-center space-x-2 mb-1">
-					<label for="story-json" class="font-semibold">Story JSON</label>
-					<button id="toggle-json-btn"
-							class="text-blue-600 hover:underline text-sm">
-						Show
-					</button>
-				</div>
-				<div id="json-container" class="hidden">
-					<textarea id="story-json"
-							  rows="15"
-							  class="border rounded px-3 py-2 font-mono w-full text-sm"></textarea>
-				</div>
-			</div>
+            <div id="json-section" class="space-y-1">
+                <div class="flex items-center space-x-2 mb-1">
+                    <label for="story-json" class="font-semibold">Story JSON</label>
+                    <button id="toggle-json-btn"
+                            class="text-blue-600 hover:underline text-sm">
+                        Show
+                    </button>
+                </div>
+                <div id="json-container" class="hidden">
+                    <textarea id="story-json"
+                              rows="15"
+                              class="border rounded px-3 py-2 font-mono w-full text-sm"></textarea>
+                </div>
+            </div>
 
             <div class="flex space-x-2">
                 <button id="upload-btn"
@@ -107,24 +116,24 @@
                         class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
                     Delete Story
                 </button>
-				<button id="preview-btn"
-					  class="flex items-center bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-				<!-- standard “eye” icon SVG from Heroicons -->
-				<svg xmlns="http://www.w3.org/2000/svg"
-					 class="w-5 h-5 mr-2"
-					 fill="none" viewBox="0 0 24 24"
-					 stroke="currentColor">
-				  <path stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-				  <path stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-				</svg>
-				Preview
-			  </button>
+                <button id="preview-btn"
+                        class="flex items-center bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                    <!-- standard “eye” icon SVG from Heroicons -->
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="w-5 h-5 mr-2"
+                         fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    Preview
+                </button>
             </div>
             <p id="status-msg" class="mt-2"></p>
 
@@ -169,19 +178,20 @@
 
         const storySelect = document.getElementById('story-select');
         const storyIdInput = document.getElementById('story-id');
-		const toggleJsonBtn = document.getElementById('toggle-json-btn');
-		const jsonContainer = document.getElementById('json-container');
+        const statusSelect = document.getElementById('story-status');
+        const toggleJsonBtn = document.getElementById('toggle-json-btn');
+        const jsonContainer = document.getElementById('json-container');
         const storyJsonArea = document.getElementById('story-json');
         const uploadBtn = document.getElementById('upload-btn');
         const deleteBtn = document.getElementById('delete-btn');
-		const previewBtn = document.getElementById('preview-btn');
+        const previewBtn = document.getElementById('preview-btn');
         const createBtn = document.getElementById('create-story-btn');
         const createForm = document.getElementById('create-story-form');
         const subjectInput = document.getElementById('new-story-subject');
         const instrInput = document.getElementById('new-story-instr');
         const submitBtn = document.getElementById('new-story-submit');
-		const spinner       = document.getElementById('new-story-spinner');
-		const newStoryStatus= document.getElementById('new-story-status');
+        const spinner = document.getElementById('new-story-spinner');
+        const newStoryStatus = document.getElementById('new-story-status');
 
         const statusMsg = document.getElementById('status-msg');
 
@@ -225,14 +235,42 @@
             storyIdInput.value = id;
             storyJsonArea.value = orderKeys(data);
             setupPresentation();
+            try {
+                const full = JSON.parse(storyJsonArea.value);
+                statusSelect.value = full.status || 'Draft';
+            } catch {/* ignore if JSON invalid */ }
         };
 
-        storyJsonArea.oninput = () => { try { JSON.parse(storyJsonArea.value); } catch { return; } setupPresentation(); };
-		
-		toggleJsonBtn.onclick = () => {
-			const isNowHidden = jsonContainer.classList.toggle('hidden');
-			toggleJsonBtn.textContent = isNowHidden ? 'Show' : 'Hide';
-		};
+        storyJsonArea.oninput = () => {
+            try
+            {
+                JSON.parse(storyJsonArea.value);
+            }
+            catch { return; }
+            setupPresentation();
+            try {
+                const full = JSON.parse(storyJsonArea.value);
+                statusSelect.value = full.status || 'Draft';
+            } catch {/* ignore if JSON invalid */ }
+        };
+
+        statusSelect.onchange = () => {
+            let full;
+            try {
+                full = JSON.parse(storyJsonArea.value);
+            } catch {
+                return;
+            }
+            full.status = statusSelect.value;
+            storyJsonArea.value = JSON.stringify(full, null, 2);
+            setupPresentation();
+        };
+
+
+        toggleJsonBtn.onclick = () => {
+            const isNowHidden = jsonContainer.classList.toggle('hidden');
+            toggleJsonBtn.textContent = isNowHidden ? 'Show' : 'Hide';
+        };
 
         /* ------------------------ Presentation ---------------------------- */
         function setupPresentation() {
@@ -347,12 +385,12 @@
                 const table = document.createElement('table');
                 table.className = 'table-auto w-full border-collapse';
                 table.innerHTML = `<thead><tr class='bg-gray-50'>
-                                        <th class='border px-2 py-1'>ID</th>
-                                        <th class='border px-2 py-1'>Name</th>
-                                        <th class='border px-2 py-1'>Text</th>
-                                        <th class='border px-2 py-1'>Options (JSON)</th>
-                                        <th class='border px-2 py-1'>Remove</th>
-                                    </tr></thead>`;
+                                            <th class='border px-2 py-1'>ID</th>
+                                            <th class='border px-2 py-1'>Name</th>
+                                            <th class='border px-2 py-1'>Text</th>
+                                            <th class='border px-2 py-1'>Options (JSON)</th>
+                                            <th class='border px-2 py-1'>Remove</th>
+                                        </tr></thead>`;
                 const tbody = document.createElement('tbody');
                 Object.entries(data.scenarios || {}).forEach(([id, sc]) => {
                     const tr = document.createElement('tr');
@@ -534,21 +572,21 @@
                 showStatus(e.message, 'text-red-600');
             }
         };
-		
-		/* ----------------------- PREVIEW STORY -------------------------------------*/
-		
-		previewBtn.onclick = () => {
-		  const rawJson = storyJsonArea.value.trim();
-		  if (!rawJson) {
-			alert('Nothing to preview – please load or create a story JSON first.');
-			return;
-		  }
-		  // URL-encode and open in new tab
-		  const encoded = encodeURIComponent(rawJson);
-		  const previewUrl = `story.html?preview=1&data=${encoded}`;
-		  window.open(previewUrl, '_blank');
-		};
-		
+
+        /* ----------------------- PREVIEW STORY -------------------------------------*/
+
+        previewBtn.onclick = () => {
+            const rawJson = storyJsonArea.value.trim();
+            if (!rawJson) {
+                alert('Nothing to preview – please load or create a story JSON first.');
+                return;
+            }
+            // URL-encode and open in new tab
+            const encoded = encodeURIComponent(rawJson);
+            const previewUrl = `story.html?preview=1&data=${encoded}`;
+            window.open(previewUrl, '_blank');
+        };
+
         /* ------------------------- CREATE STORY ----------------------------------- */
 
         // 1. Toggle the form when “Create New Story” is clicked
@@ -575,52 +613,52 @@
 
             // 3️⃣ Build the LLM prompt (use your template here)
             const prompt = `
-                You are an assistant that generates interactive case-study stories for medical students, helping them learn the correct treatment pathways. 
-				These stories are represented as JSON following our established schema. Here is an example of an existing story (for reference):
-                \`\`\`
-                ${exampleJson}
-                \`\`\`
+                    You are an assistant that generates interactive case-study stories for medical students, helping them learn the correct treatment pathways.
+                    These stories are represented as JSON following our established schema. Here is an example of an existing story (for reference):
+                    \`\`\`
+                    ${exampleJson}
+                    \`\`\`
 
-                Using this schema:
-1. **Top-level keys** in order:  
-   - title (string)  
-   - status (string - initial value: draft)
-   - createdAt, updatedAt (timestamp objects)  
-   - scenarios (object of scenario-objects)  
-   - drugInfo (object of drug-info objects)  
-   - summary (object with a “points” array)  
-   - quiz (object with a “choices” array)
+                    Using this schema:
+1. **Top-level keys** in order:
+       - title (string)
+       - status (string - initial value: draft)
+       - createdAt, updatedAt (timestamp objects)
+       - scenarios (object of scenario-objects)
+       - drugInfo (object of drug-info objects)
+       - summary (object with a “points” array)
+       - quiz (object with a “choices” array)
 
-2. **Each scenario** must have keys in this order:  
-   - name (string)  
-   - text (string)  
-   - options (array of option-objects)
+2. **Each scenario** must have keys in this order:
+       - name (string)
+       - text (string)
+       - options (array of option-objects)
 
-3. **Each option** must have:  
-   - text (string)
-   - id (string matching one of the scenario keys)
-   
-4. **Each drugInfo** must have:  
+3. **Each option** must have:
+       - text (string)
+       - id (string matching one of the scenario keys)
 
-   - Family (string representing the Family of drugs the drug belongs to)  
-   - PK (string)
-   - Spectrum (string)
-   - Toxicities (string)
+4. **Each drugInfo** must have:
 
-5. **Mermaid compliance**:  
-   - Scenario IDs become graph node IDs.  
-   - Option texts must be short, single-line labels without unsupported Unicode.  
+       - Family (string representing the Family of drugs the drug belongs to)
+       - PK (string)
+       - Spectrum (string)
+       - Toxicities (string)
+
+5. **Mermaid compliance**:
+       - Scenario IDs become graph node IDs.
+       - Option texts must be short, single-line labels without unsupported Unicode.
 
 ---
 
-**Now** create a **brand new interactive case-study story JSON** with:  
+**Now** create a **brand new interactive case-study story JSON** with:
 - **Title** based on: Subject: ${subject} and on Additional instructions (if any): ${instr || 'none'}
 
-                Output **only** the new story’s JSON, ready for Mermaid rendering.
-                  `.trim();
+                    Output **only** the new story’s JSON, ready for Mermaid rendering.
+                      `.trim();
 
             // 4️⃣ UI feedback
-			spinner.classList.remove('hidden');
+            spinner.classList.remove('hidden');
             submitBtn.disabled = true;
             newStoryStatus.textContent = 'Generating new story…';
             newStoryStatus.className = 'text-gray-700';
@@ -628,56 +666,56 @@
             try {
                 // 5️⃣ Call your serverless function
                 const res = await fetch(chatEndpoint, {
-				  method: 'POST',
-				  headers: { 'Content-Type': 'application/json' },
-				  body: JSON.stringify({ prompt })
-				});
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
 
-				// first grab the body (JSON or text)
-				let data;
-				try {
-				  data = await res.json();
-				} catch {
-				  const txt = await res.text();
-				  throw new Error(`Invalid JSON response: ${txt}`);
-				}
+                // first grab the body (JSON or text)
+                let data;
+                try {
+                    data = await res.json();
+                } catch {
+                    const txt = await res.text();
+                    throw new Error(`Invalid JSON response: ${txt}`);
+                }
 
-				// if the status isn’t OK, throw with the returned error info
-				if (!res.ok) {
-				  const msg = data.error || JSON.stringify(data);
-				  throw new Error(`API error ${res.status}: ${msg}\n${data.stack||''}`);
-				}
+                // if the status isn’t OK, throw with the returned error info
+                if (!res.ok) {
+                    const msg = data.error || JSON.stringify(data);
+                    throw new Error(`API error ${res.status}: ${msg}\n${data.stack || ''}`);
+                }
 
-				// otherwise you’ve got your reply
-				const reply = data.reply;
+                // otherwise you’ve got your reply
+                const reply = data.reply;
 
 
                 // 6️⃣ Load into the textarea & re-render
                 // Clean up code fences, if present
-				let cleaned = reply.trim();
-				if (cleaned.startsWith('```')) {
-				  cleaned = cleaned
-					.replace(/^```(?:json)?\s*/, '')  // remove opening ``` or ```json
-					.replace(/```$/, '');             // remove trailing ```
-				}
-				// put JSON in textarea
-				storyJsonArea.value = cleaned;
-				// derive a slug from the new title and set it as the Story ID
-				try {
-				  const newStory = JSON.parse(cleaned);
-				  const title    = newStory.title || '';
-				  // lowercase, then replace every non-a–z or 0–9 with a hyphen
-				  const slug     = title
-									  .toLowerCase()
-									  .replace(/[^a-z0-9]/g, '-')
-									  // collapse multiple hyphens
-									  .replace(/-+/g, '-')
-									  // trim hyphens off ends
-									  .replace(/(^-|-$)/g, '');
-				  storyIdInput.value = slug;
-				} catch (e) {
-				  console.warn('Could not parse new story JSON for title → ID slug', e);
-				}
+                let cleaned = reply.trim();
+                if (cleaned.startsWith('```')) {
+                    cleaned = cleaned
+                        .replace(/^```(?:json)?\s*/, '')  // remove opening ``` or ```json
+                        .replace(/```$/, '');             // remove trailing ```
+                }
+                // put JSON in textarea
+                storyJsonArea.value = cleaned;
+                // derive a slug from the new title and set it as the Story ID
+                try {
+                    const newStory = JSON.parse(cleaned);
+                    const title = newStory.title || '';
+                    // lowercase, then replace every non-a–z or 0–9 with a hyphen
+                    const slug = title
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]/g, '-')
+                        // collapse multiple hyphens
+                        .replace(/-+/g, '-')
+                        // trim hyphens off ends
+                        .replace(/(^-|-$)/g, '');
+                    storyIdInput.value = slug;
+                } catch (e) {
+                    console.warn('Could not parse new story JSON for title → ID slug', e);
+                }
 
                 setupPresentation();
 
@@ -689,7 +727,7 @@
                 newStoryStatus.textContent = `Error: ${e.message}`;
                 newStoryStatus.className = 'text-red-600 mt-2';
             } finally {
-				spinner.classList.add('hidden');
+                spinner.classList.add('hidden');
                 submitBtn.disabled = false;
             }
         };
