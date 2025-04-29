@@ -52,16 +52,28 @@
     (async function() {
       // 1) Determine storyId from URL
       const params  = new URLSearchParams(window.location.search);
-      const storyId = params.get('story') || 'mssa-mayhem';
-
-      // 2) Load story doc from Firestore
-      const snap = await getDoc(doc(db, 'stories', storyId));
-      if (!snap.exists()) {
-        document.getElementById('app').innerHTML =
-          `<div class="text-red-600">Story “${storyId}” not found in Firestore.</div>`;
-        return;
-      }
-      const data      = snap.data();
+      let data;
+	  if (params.get('preview') === '1' && params.has('data')) {
+		// —— PREVIEW MODE ——
+		try {
+		  data = JSON.parse(decodeURIComponent(params.get('data')));
+		} catch (e) {
+		  document.getElementById('app').innerHTML =
+			`<div class="text-red-600">Preview JSON is invalid: ${e.message}</div>`;
+		  return;
+		}
+	  } else {
+		// —— NORMAL MODE ——
+		const storyId = params.get('story') || 'mssa-mayhem';
+		const snap    = await getDoc(doc(db, 'stories', storyId));
+		if (!snap.exists()) {
+		  document.getElementById('app').innerHTML =
+			`<div class="text-red-600">Story “${storyId}” not found in Firestore.</div>`;
+		  return;
+		}
+		data = snap.data();
+	  }
+	  
       const scenarios = data.scenarios;
       const drugInfo  = data.drugInfo || {};
       const quiz      = data.quiz;
