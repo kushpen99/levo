@@ -80,10 +80,21 @@
                 <label for="story-id" class="font-semibold block mb-1">Story ID</label>
                 <input id="story-id" type="text" class="border rounded px-3 py-2 w-full" />
             </div>
-            <div>
-                <label for="story-json" class="font-semibold block mb-1">Story JSON</label>
-                <textarea id="story-json" rows="15" class="border rounded px-3 py-2 font-mono w-full text-sm"></textarea>
-            </div>
+            <!-- 🌟 Collapsible JSON Section -->
+			<div id="json-section" class="space-y-1">
+				<div class="flex items-center space-x-2 mb-1">
+					<label for="story-json" class="font-semibold">Story JSON</label>
+					<button id="toggle-json-btn"
+							class="text-blue-600 hover:underline text-sm">
+						Show
+					</button>
+				</div>
+				<div id="json-container" class="hidden">
+					<textarea id="story-json"
+							  rows="15"
+							  class="border rounded px-3 py-2 font-mono w-full text-sm"></textarea>
+				</div>
+			</div>
 
             <div class="flex space-x-2">
                 <button id="upload-btn"
@@ -96,6 +107,24 @@
                         class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
                     Delete Story
                 </button>
+				<button id="preview-btn"
+					  class="flex items-center bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+				<!-- standard “eye” icon SVG from Heroicons -->
+				<svg xmlns="http://www.w3.org/2000/svg"
+					 class="w-5 h-5 mr-2"
+					 fill="none" viewBox="0 0 24 24"
+					 stroke="currentColor">
+				  <path stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+				  <path stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+				</svg>
+				Preview
+			  </button>
             </div>
             <p id="status-msg" class="mt-2"></p>
 
@@ -140,9 +169,12 @@
 
         const storySelect = document.getElementById('story-select');
         const storyIdInput = document.getElementById('story-id');
+		const toggleJsonBtn = document.getElementById('toggle-json-btn');
+		const jsonContainer = document.getElementById('json-container');
         const storyJsonArea = document.getElementById('story-json');
         const uploadBtn = document.getElementById('upload-btn');
         const deleteBtn = document.getElementById('delete-btn');
+		const previewBtn = document.getElementById('preview-btn');
         const createBtn = document.getElementById('create-story-btn');
         const createForm = document.getElementById('create-story-form');
         const subjectInput = document.getElementById('new-story-subject');
@@ -196,6 +228,11 @@
         };
 
         storyJsonArea.oninput = () => { try { JSON.parse(storyJsonArea.value); } catch { return; } setupPresentation(); };
+		
+		toggleJsonBtn.onclick = () => {
+			const isNowHidden = jsonContainer.classList.toggle('hidden');
+			toggleJsonBtn.textContent = isNowHidden ? 'Show' : 'Hide';
+		};
 
         /* ------------------------ Presentation ---------------------------- */
         function setupPresentation() {
@@ -497,7 +534,21 @@
                 showStatus(e.message, 'text-red-600');
             }
         };
-
+		
+		/* ----------------------- PREVIEW STORY -------------------------------------*/
+		
+		previewBtn.onclick = () => {
+		  const rawJson = storyJsonArea.value.trim();
+		  if (!rawJson) {
+			alert('Nothing to preview – please load or create a story JSON first.');
+			return;
+		  }
+		  // URL-encode and open in new tab
+		  const encoded = encodeURIComponent(rawJson);
+		  const previewUrl = `story.html?preview=1&data=${encoded}`;
+		  window.open(previewUrl, '_blank');
+		};
+		
         /* ------------------------- CREATE STORY ----------------------------------- */
 
         // 1. Toggle the form when “Create New Story” is clicked
