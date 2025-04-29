@@ -344,7 +344,25 @@
                         if (to) edges.push(`${from} -->|${(o.text || '').replace(/"/g, '\\"').replace(/\n/g, ' ')}| ${to}`);
                     });
                 });
-                const diagram = ['flowchart LR', ...nodes, ...edges].join('\n');
+				
+				// build style directives
+				const styleLines = [];
+				  Object.entries(d.scenarios || {}).forEach(([k, s]) => {
+					const nid = idMap[k];
+					if (s.pathResult === 'success') {
+					  styleLines.push(`style ${nid} fill:#ccffcc`);
+					} else if (s.pathResult === 'failure') {
+					  styleLines.push(`style ${nid} fill:#ffcccc`);
+					}
+				  });
+				  
+                const diagram = [
+					  'flowchart LR',
+					  ...nodes,
+					  ...edges,
+					  ...styleLines    // ← apply our conditional node styles
+					].join('\n');
+
                 const div = document.createElement('div');
                 div.className = 'mermaid';
                 div.textContent = diagram;
@@ -652,7 +670,10 @@
 5. **Mermaid compliance**:
        - Scenario IDs become graph node IDs.
        - Option texts must be short, single-line labels without unsupported Unicode.
-
+	   
+** There always must be an OPT0 scenario which is the starting point**
+** Scenario with pathResult=success must always have an empty options array**
+** Scenario with pathResult=failure must always have one option with the text Back which is getting the user back to the scenario he came from**
 ---
 
 **Now** create a **brand new interactive case-study story JSON** with:
