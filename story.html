@@ -135,7 +135,7 @@
         // Options & Info buttons
         const opts = document.createElement('div');
         opts.className = 'flex flex-col space-y-3';
-        const hasRestart = sc.options.some(o=> o.id==='OPT0');
+		const startQuiz = sc.pathResult === 'success';
         sc.options.forEach(o=>{
           const row = document.createElement('div');
           row.className = 'flex';
@@ -157,7 +157,7 @@
         });
 
         // “Take Quiz” if end-of-story and quiz exists
-        if (hasRestart && quiz) {
+        if (startQuiz && quiz) {
           const qbtn = document.createElement('button');
           qbtn.textContent = 'Take Quiz';
           qbtn.className = 'mt-4 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded';
