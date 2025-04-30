@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/kushpen99/urushka#readme",
   "dependencies": {
+    "firebase-admin": "^13.3.0",
     "openai": "^4.96.0"
   }
 }

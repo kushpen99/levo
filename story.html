@@ -42,7 +42,7 @@
 
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
-    import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
+    import { getFirestore, doc, getDoc, collection, getDocs, query, where, documentId} from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
 
     // ---- YOUR FIREBASE CONFIG HERE ----
     const firebaseConfig = {
@@ -83,10 +83,40 @@
 		  return;
 		}
 		data = snap.data();
+		
+		// —— load drug info from /drugs collection ——
+		// 1) collect all drugName references from the story
+		const drugNames = new Set();
+		Object.values(data.scenarios || {}).forEach(s =>
+		  (s.options || []).forEach(o => {
+			if (o.drugName) drugNames.add(o.drugName);
+		  })
+		);
+
+		// 2) batch‐fetch those drug docs
+		const drugInfoMap = {};
+		if (drugNames.size) {
+		  const names = Array.from(drugNames);
+		  // Firestore allows up to 10 in an 'in' query; if >10, you can loop in batches
+		  const batch = names.slice(0, 10);
+		  const drugsQuery = query(
+			collection(db, 'drugs'),
+			where(documentId(), 'in', batch)
+		  );
+		  const drugSnaps = await getDocs(drugsQuery);
+		  drugSnaps.forEach(d => { drugInfoMap[d.id] = d.data(); });
+
+		  // if you have more than 10 names, repeat for names.slice(10,20), etc.
+		}
+
+		// now use `drugInfoMap` instead of `data.drugInfo`
+		
+		// use the Firestore-loaded info from now on
+		const drugInfo = drugInfoMap;
+
 	  }
 	  
       const scenarios = data.scenarios;
-      const drugInfo  = data.drugInfo || {};
       const quiz      = data.quiz;
       const summary   = data.summary;
 
