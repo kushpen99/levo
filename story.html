@@ -171,7 +171,16 @@
 		}
 
         // highlight drug names inline
-        const regex = new RegExp(`(${Object.keys(drugInfo).join('|')})`, 'g');
+        
+		// build an escaped‐alternation of all drug names
+		const pattern = Object
+		  .keys(drugInfo)
+		  .map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+		  .join('|');
+
+		// now construct your global regex
+		const regex = new RegExp(`(${pattern})`, 'g');
+
         sc.text.split(regex).forEach((seg,i) => {
           if (drugInfo[seg]) {
             const btn = document.createElement('button');
