@@ -170,7 +170,13 @@
           b.onclick = ()=> { current = o.id; renderStory(); };
           row.append(b);
           // info button if drugInfo exists
-          if (drugInfo[o.text]) {
+          if (drugInfo[o.drugName]) {
+            const ib = document.createElement('button');
+            ib.className = 'ml-2 inline-flex items-center border border-blue-500 hover:bg-blue-50 px-3 py-1 rounded';
+            ib.innerHTML = ShieldSVG + 'Info';
+            ib.onclick = ()=> showModal(o.drugName, drugInfo[o.drugName]);
+            row.append(ib);
+          } else if (drugInfo[o.text]) {
             const ib = document.createElement('button');
             ib.className = 'ml-2 inline-flex items-center border border-blue-500 hover:bg-blue-50 px-3 py-1 rounded';
             ib.innerHTML = ShieldSVG + 'Info';
