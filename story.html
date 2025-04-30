@@ -83,6 +83,9 @@
 		  return;
 		}
 		data = snap.data();
+		
+		const drugNames = collectDrugNames(data);
+		console.log(drugNames); 
 
 	  }
 	  
@@ -197,6 +200,30 @@
         }
         app.append(opts);
       }
+	  
+		  /**
+	 * Collect all unique, non-empty drug names that appear in the story options.
+	 *
+	 * @param {Object} storyData – the full JSON object you get from Firestore / file
+	 * @returns {string[]}       – e.g. ["Aspirin", "β-Blocker", "Amoxi-Clav"]
+	 */
+	function collectDrugNames(storyData) {
+	  const names = new Set();                           // guarantees uniqueness
+
+	  // Guard against missing or malformed data
+	  if (!storyData?.scenarios) return [];
+
+	  storyData.scenarios.forEach(sc => {
+		sc.options?.forEach(opt => {
+		  // Trim so "  Aspirin  " → "Aspirin", then keep only non-empty strings
+		  const name = opt?.drugName?.trim();
+		  if (name) names.add(name);
+		});
+	  });
+
+	  return Array.from(names);                          // convert Set → Array
+	}
+
 
       // Render quiz
       function renderQuiz() {
