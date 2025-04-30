@@ -42,7 +42,7 @@
 
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
-    import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
+    import { getFirestore, doc, getDoc, collection, getDocs  } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
 
     // ---- YOUR FIREBASE CONFIG HERE ----
     const firebaseConfig = {
@@ -88,7 +88,6 @@
 	  }
 	  
       const scenarios = data.scenarios;
-      const drugInfo  = data.drugInfo || {};
       const quiz      = data.quiz;
       const summary   = data.summary;
 
@@ -101,6 +100,20 @@
       }
       const InfoSVG   = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 ml-1 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2.25c5.385 0 9.75 4.365 9.75 9.75S17.385 21.75 12 21.75 2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/></svg>`;
       const ShieldSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m1-2a9 9 0 11-8 0v5a2 2 0 002 2h4a2 2 0 010 0V6z"/></svg>`;
+
+	  async function showDrugInfo(name) {
+		  try {
+			const snap = await getDoc(doc(db, 'drugs', name));
+			if (!snap.exists()) {
+			  alert(`Drug “${name}” not found in Firestore.`);
+			  return;
+			}
+			showModal(name, snap.data());   // reuse the existing modal renderer
+		  } catch (err) {
+			console.error(err);
+			alert('Failed to load drug information – please try again.');
+	      }
+	}
 
       // Modal controls
       const modal = document.getElementById('modal');
@@ -172,19 +185,13 @@
           b.onclick = ()=> { current = o.id; renderStory(); };
           row.append(b);
           // info button if drugInfo exists
-          if (drugInfo[o.drugName]) {
-            const ib = document.createElement('button');
-            ib.className = 'ml-2 inline-flex items-center border border-blue-500 hover:bg-blue-50 px-3 py-1 rounded';
-            ib.innerHTML = ShieldSVG + 'Info';
-            ib.onclick = ()=> showModal(o.drugName, drugInfo[o.drugName]);
-            row.append(ib);
-          } else if (drugInfo[o.text]) {
-            const ib = document.createElement('button');
-            ib.className = 'ml-2 inline-flex items-center border border-blue-500 hover:bg-blue-50 px-3 py-1 rounded';
-            ib.innerHTML = ShieldSVG + 'Info';
-            ib.onclick = ()=> showModal(o.text, drugInfo[o.text]);
-            row.append(ib);
-          }
+          if (o.drugName) {                             // NEW
+		   const ib = document.createElement('button');
+		   ib.className = 'ml-2 inline-flex items-center border border-blue-500 hover:bg-blue-50 px-3 py-1 rounded';
+		   ib.innerHTML = ShieldSVG + 'Info';
+		   ib.onclick = () => showDrugInfo(o.drugName);
+		   row.append(ib);
+		 }
           opts.append(row);
         });
 
