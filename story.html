@@ -154,10 +154,25 @@
 		  banner.innerHTML = `<span class="text-xl mr-2">❌</span><strong>Incorrect choice</strong>`;
 		  card.prepend(banner);
 		}
+		
+			// ---------- 1. gather the names that appear in the story ----------
+			const drugNames = new Set();                        // keeps them unique
+			data.scenarios.forEach(sc =>
+			  sc.options?.forEach(o => {
+				if (o.drugName) drugNames.add(o.drugName);
+			  })
+			);
 
-        // highlight drug names inline
-        const regex = new RegExp(`(${Object.keys(drugInfo).join('|')})`, 'g');
-        sc.text.split(regex).forEach((seg,i) => {
+			// ---------- 2. escape metacharacters so the names are regex-safe ----------
+			function escapeRegExp(str) {
+			  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+			}
+
+			// ---------- 3. build the regex from only those names ----------
+			const pattern = Array.from(drugNames).map(escapeRegExp).join('|');  // "Aspirin|β-Blocker|Amoxi-Clav"
+			const regex   = new RegExp(`\\b(${pattern})\\b`, 'gi');             // word-boundaries, global, case-insensitive
+
+		  sc.text.split(regex).forEach((seg,i) => {
           if (drugInfo[seg]) {
             const btn = document.createElement('button');
             btn.className = 'inline-flex items-center text-blue-600 hover:underline';
