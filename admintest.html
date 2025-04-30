@@ -242,8 +242,7 @@
         };
 
         storyJsonArea.oninput = () => {
-            try
-            {
+            try {
                 JSON.parse(storyJsonArea.value);
             }
             catch { return; }
@@ -344,24 +343,24 @@
                         if (to) edges.push(`${from} -->|${(o.text || '').replace(/"/g, '\\"').replace(/\n/g, ' ')}| ${to}`);
                     });
                 });
-				
-				// build style directives
-				const styleLines = [];
-				  Object.entries(d.scenarios || {}).forEach(([k, s]) => {
-					const nid = idMap[k];
-					if (s.pathResult === 'success') {
-					  styleLines.push(`style ${nid} fill:#ccffcc`);
-					} else if (s.pathResult === 'failure') {
-					  styleLines.push(`style ${nid} fill:#ffcccc`);
-					}
-				  });
-				  
+
+                // build style directives
+                const styleLines = [];
+                Object.entries(d.scenarios || {}).forEach(([k, s]) => {
+                    const nid = idMap[k];
+                    if (s.pathResult === 'success') {
+                        styleLines.push(`style ${nid} fill:#ccffcc`);
+                    } else if (s.pathResult === 'failure') {
+                        styleLines.push(`style ${nid} fill:#ffcccc`);
+                    }
+                });
+
                 const diagram = [
-					  'flowchart LR',
-					  ...nodes,
-					  ...edges,
-					  ...styleLines    // ← apply our conditional node styles
-					].join('\n');
+                    'flowchart LR',
+                    ...nodes,
+                    ...edges,
+                    ...styleLines    // ← apply our conditional node styles
+                ].join('\n');
 
                 const div = document.createElement('div');
                 div.className = 'mermaid';
@@ -386,6 +385,7 @@
                 };
             }
 
+
             function drawScenarioTable(container) {
                 const addBtn = document.createElement('button');
                 addBtn.textContent = 'Add Scenario';
@@ -403,21 +403,44 @@
                 const table = document.createElement('table');
                 table.className = 'table-auto w-full border-collapse';
                 table.innerHTML = `<thead><tr class='bg-gray-50'>
-                                            <th class='border px-2 py-1'>ID</th>
-                                            <th class='border px-2 py-1'>Name</th>
-                                            <th class='border px-2 py-1'>Text</th>
-                                            <th class='border px-2 py-1'>Options (JSON)</th>
-                                            <th class='border px-2 py-1'>Remove</th>
-                                        </tr></thead>`;
+                                                <th class='border px-2 py-1'>ID</th>
+                                                <th class='border px-2 py-1'>Name</th>
+                                                <th class='border px-2 py-1'>Text</th>
+                                                <th class='border px-2 py-1'>Result</th>
+                                                <th class='border px-2 py-1'>Options (JSON)</th>
+                                                <th class='border px-2 py-1'>Remove</th>
+                                            </tr></thead>`;
                 const tbody = document.createElement('tbody');
                 Object.entries(data.scenarios || {}).forEach(([id, sc]) => {
                     const tr = document.createElement('tr');
                     tr.append(tdPlain(id));
                     tr.append(tdInput(sc.name || '', val => updateField(id, 'name', val)));
-                    tr.append(tdInput(sc.text || '', val => updateField(id, 'text', val), 'w-96'));
-                    tr.append(tdInput(JSON.stringify(sc.options || []), val => {
-                        try { updateField(id, 'options', JSON.parse(val)); } catch {/*ignore*/ }
-                    }, 'w-64'));
+                    tr.append(tdTextarea(sc.text || '', val => updateField(id, 'text', val), 'w-96'));
+                    const tdRes = document.createElement('td');
+                    tdRes.className = 'border px-2 py-1';
+
+                    const sel = document.createElement('select');
+                    sel.className = 'border rounded px-1 py-0.5';
+
+                    // the three allowed values
+                    const choices = ['undetermined', 'success', 'failure'];
+                    choices.forEach(val => {
+                        const opt = document.createElement('option');
+                        opt.value = val;
+                        // capitalize first letter
+                        opt.textContent = val.charAt(0).toUpperCase() + val.slice(1);
+                        if ((sc.pathResult || 'undetermined') === val) opt.selected = true;
+                        sel.append(opt);
+                    });
+
+                    // when changed, update the JSON
+                    sel.onchange = () => updateField(id, 'pathResult', sel.value);
+
+                    tdRes.append(sel);
+                    tr.append(tdRes);
+
+                    tr.append(createOptionsCell(id, sc.options || []));
+
                     const tdRem = document.createElement('td');
                     tdRem.className = 'border px-2 py-1 text-center';
                     const rm = document.createElement('button');
@@ -434,8 +457,209 @@
                 function tdInput(val, cb, valClass = '') {
                     const td = document.createElement('td'); td.className = `border px-2 py-1 ${valClass}`; const inp = document.createElement('input'); inp.type = 'text'; inp.value = val; inp.className = 'border rounded px-1 py-0.5 w-full'; inp.oninput = () => cb(inp.value); td.append(inp); return td;
                 }
+                function tdTextarea(val, cb, expandedRows = 4) {
+                    const td = document.createElement('td');
+                    td.className = 'border px-2 py-1';
+
+                    const ta = document.createElement('textarea');
+                    // start single‐line high
+                    ta.rows = 1;
+                    ta.value = val;
+                    ta.className = 'border rounded px-1 py-0.5 w-full resize-none overflow-hidden';
+                    ta.style.transition = 'height 0.2s';
+
+                    // when focused, expand...
+                    ta.addEventListener('focus', () => {
+                        ta.rows = expandedRows;
+                        // auto‐grow to content
+                        ta.style.height = 'auto';
+                        ta.style.height = ta.scrollHeight + 'px';
+                    });
+
+                    // ...and collapse back on blur
+                    ta.addEventListener('blur', () => {
+                        ta.rows = 1;
+                        ta.style.height = 'auto';
+                    });
+
+                    // also update JSON on every change
+                    ta.addEventListener('input', () => {
+                        cb(ta.value);
+                        // if still focused, keep growing
+                        if (document.activeElement === ta) {
+                            ta.style.height = 'auto';
+                            ta.style.height = ta.scrollHeight + 'px';
+                        }
+                    });
+
+                    td.append(ta);
+                    return td;
+                }
+
+
                 function updateField(sid, key, value) { const full = JSON.parse(storyJsonArea.value); full.scenarios[sid][key] = value; storyJsonArea.value = JSON.stringify(full, null, 2); }
             }
+
+           /**
+             * Builds a <td> with:
+             *  - “Edit…” button
+             *  - hidden .options-editor panel
+             */
+            function createOptionsCell(sid, optionsArr) {
+                const td = document.createElement('td');
+                td.className = 'border px-2 py-1 align-top';
+
+                // 1) Edit button
+                const btn = document.createElement('button');
+                btn.textContent = 'Edit…';
+                btn.className = 'bg-gray-200 hover:bg-gray-300 text-sm px-2 py-1 rounded';
+                td.append(btn);
+
+                // 2) Editor panel (hidden initially)
+                const panel = document.createElement('div');
+                panel.className = 'options-editor hidden mt-2 p-2 bg-gray-50 rounded shadow';
+                td.append(panel);
+
+                // 3) When clicked, toggle & render
+                btn.onclick = () => {
+                    panel.classList.toggle('hidden');
+                    if (!panel._rendered) {
+                        renderOptionsEditor(sid, panel);
+                        panel._rendered = true;
+                    }
+                };
+
+                return td;
+            }
+
+            /**
+ * Renders the list of option rows inside the given panel.
+ * Hooks up add/remove and value-change callbacks.
+ */
+            function renderOptionsEditor(sid, panel) {
+                // clear
+                panel.innerHTML = '';
+
+                // get the latest array from the JSON text
+                let full;
+                try { full = JSON.parse(storyJsonArea.value); }
+                catch { return; }
+                const opts = full.scenarios[sid].options = full.scenarios[sid].options || [];
+
+                // 1) Table skeleton
+                const tbl = document.createElement('table');
+                tbl.className = 'w-full mb-2';
+                tbl.innerHTML = `
+    <thead class="text-left text-sm text-gray-600">
+    <tr>
+      <th class="py-1">Text</th>
+      <th class="py-1">Id</th>
+      <th class="py-1">Drug</th>
+      <th></th>
+    </tr>
+  </thead>
+  `;
+                const tbody = document.createElement('tbody');
+                tbl.append(tbody);
+                panel.append(tbl);
+
+                // 2) Helper to rebuild rows
+                function rebuild() {
+                    tbody.innerHTML = '';
+                    // reload opts in case they changed
+                    full.scenarios[sid].options = opts;
+                    opts.forEach((o, i) => {
+                        const tr = document.createElement('tr');
+                        tr.className = 'align-top';
+
+                        // label cell
+                        const tdLabel = document.createElement('td');
+                        tdLabel.className = 'py-1 pr-2';
+                        const inpLabel = document.createElement('input');
+                        inpLabel.type = 'text';
+                        inpLabel.value = o.text || '';
+                        inpLabel.className = 'border rounded px-1 py-0.5 w-full';
+                        inpLabel.oninput = () => {
+                            o.text = inpLabel.value;
+                            pushJson();
+                        };
+                        tdLabel.append(inpLabel);
+                        tr.append(tdLabel);
+
+                        // target-ID cell
+                        const tdNext = document.createElement('td');
+                        tdNext.className = 'py-1 pr-2';
+                        const sel = document.createElement('select');
+                        sel.className = 'border rounded px-1 py-0.5 w-full';
+                        // populate with current scenario keys
+                        Object.keys(full.scenarios).sort().forEach(key => {
+                            const optEl = document.createElement('option');
+                            optEl.value = key;
+                            optEl.textContent = key;
+                            if (o.id === key) optEl.selected = true;
+                            sel.append(optEl);
+                        });
+                        sel.onchange = () => {
+                            o.id = sel.value;
+                            pushJson();
+                        };
+                        tdNext.append(sel);
+                        tr.append(tdNext);
+
+                        // — Drug column —
+                        const tdDrug = document.createElement('td');
+                        tdDrug.className = 'py-1 pr-2';
+                        const inpDrug = document.createElement('input');
+                        inpDrug.type = 'text';
+                        inpDrug.value = o.drugName || '';
+                        inpDrug.className = 'border rounded px-1 py-0.5 w-full';
+                        inpDrug.oninput = () => {
+                            o.drugName = inpDrug.value;
+                            pushJson();
+                        };
+                        tdDrug.append(inpDrug);
+                        tr.append(tdDrug);
+
+
+                        // remove button
+                        const tdRem = document.createElement('td');
+                        tdRem.className = 'py-1 text-center';
+                        const rmBtn = document.createElement('button');
+                        rmBtn.textContent = '✕';
+                        rmBtn.className = 'text-red-500 hover:text-red-700';
+                        rmBtn.onclick = () => {
+                            opts.splice(i, 1);
+                            pushJson();
+                            rebuild();
+                        };
+                        tdRem.append(rmBtn);
+                        tr.append(tdRem);
+
+                        tbody.append(tr);
+                    });
+                }
+
+                // 3) “Add Option” button
+                const addBtn = document.createElement('button');
+                addBtn.textContent = '+ Add Option';
+                addBtn.className = 'bg-blue-500 hover:bg-blue-600 text-white text-sm px-2 py-1 rounded';
+                addBtn.onclick = () => {
+                    opts.push({ text: '', id: Object.keys(full.scenarios)[0] || '' });
+                    pushJson();
+                    rebuild();
+                };
+                panel.append(addBtn);
+
+                // 4) pushJson: update the textarea & re-render presentation
+                function pushJson() {
+                    storyJsonArea.value = JSON.stringify(full, null, 2);
+                    setupPresentation();
+                }
+
+                // initial render
+                rebuild();
+            }
+
         }
 
         /* --------------------- OTHER RENDERERS ------------------------------ */
@@ -500,8 +724,15 @@
 
             // ---------- per-scenario ----------
             if (result.scenarios) {
+                const sorted = {};
+                Object.keys(result.scenarios)
+                    .sort((a, b) => a.localeCompare(b))
+                    .forEach(id => {
+                        sorted[id] = result.scenarios[id];
+                    });
+
                 const reorderedScenarios = {};
-                Object.entries(result.scenarios).forEach(([id, sc]) => {
+                Object.entries(sorted).forEach(([id, sc]) => {
                     reorderedScenarios[id] = orderScenarioFields(sc);
                 });
                 result.scenarios = reorderedScenarios;
@@ -631,47 +862,47 @@
 
             // 3️⃣ Build the LLM prompt (use your template here)
             const prompt = `
-                    You are an assistant that generates interactive case-study stories for medical students, helping them learn the correct treatment pathways.
-                    These stories are represented as JSON following our established schema. Here is an example of an existing story (for reference):
-                    \`\`\`
-                    ${exampleJson}
-                    \`\`\`
+                        You are an assistant that generates interactive case-study stories for medical students, helping them learn the correct treatment pathways.
+                        These stories are represented as JSON following our established schema. Here is an example of an existing story (for reference):
+                        \`\`\`
+                        ${exampleJson}
+                        \`\`\`
 
-                    Using this schema:
+                        Using this schema:
 1. **Top-level keys** in order:
-       - title (string)
-       - status (string - initial value: draft)
-       - createdAt, updatedAt (timestamp objects)
-       - scenarios (object of scenario-objects)
-       - drugInfo (object of drug-info objects)
-       - summary (object with a “points” array)
-       - quiz (object with a “choices” array)
+           - title (string)
+           - status (string - initial value: draft)
+           - createdAt, updatedAt (timestamp objects)
+           - scenarios (object of scenario-objects)
+           - drugInfo (object of drug-info objects)
+           - summary (object with a “points” array)
+           - quiz (object with a “choices” array)
 
 2. **Each scenario** must have keys in this order:
-       - name (string)
-       - text (string)
-	   - pathResult (string. one of the values: 
-			undetermined - for paths still in progress, 
-			success - for paths ending positively, 
-			failure - for paths ending negatively)
-       - options (array of option-objects)
+           - name (string)
+           - text (string)
+           - pathResult (string. one of the values:
+                undetermined - for paths still in progress,
+                success - for paths ending positively,
+                failure - for paths ending negatively)
+           - options (array of option-objects)
 
 3. **Each option** must have:
-       - text (string)
-       - id (string matching one of the scenario keys)
-	   - drugName(string, the name of the chosen drug if this option represents a drug choice)
+           - text (string)
+           - id (string matching one of the scenario keys)
+           - drugName(string, the name of the chosen drug if this option represents a drug choice)
 
 4. **Each drugInfo** must have:
 
-       - Family (string representing the Family of drugs the drug belongs to)
-       - PK (string)
-       - Spectrum (string)
-       - Toxicities (string)
+           - Family (string representing the Family of drugs the drug belongs to)
+           - PK (string)
+           - Spectrum (string)
+           - Toxicities (string)
 
 5. **Mermaid compliance**:
-       - Scenario IDs become graph node IDs.
-       - Option texts must be short, single-line labels without unsupported Unicode.
-	   
+           - Scenario IDs become graph node IDs.
+           - Option texts must be short, single-line labels without unsupported Unicode.
+
 ** There always must be an OPT0 scenario which is the starting point**
 ** Scenario with pathResult=success must always have an empty options array**
 ** Scenario with pathResult=failure must always have one option with the text Back which is getting the user back to the scenario he came from**
@@ -680,8 +911,8 @@
 **Now** create a **brand new interactive case-study story JSON** with:
 - **Title** based on: Subject: ${subject} and on Additional instructions (if any): ${instr || 'none'}
 
-                    Output **only** the new story’s JSON, ready for Mermaid rendering.
-                      `.trim();
+                        Output **only** the new story’s JSON, ready for Mermaid rendering.
+                          `.trim();
 
             // 4️⃣ UI feedback
             spinner.classList.remove('hidden');
@@ -697,22 +928,25 @@
                     body: JSON.stringify({ prompt })
                 });
 
-                // first grab the body (JSON or text)
+                // 6️⃣ Read the body exactly once as text
+                const raw = await res.text();
+
+                // 7️⃣ Try to parse JSON out of it
                 let data;
                 try {
-                    data = await res.json();
+                    data = JSON.parse(raw);
                 } catch {
-                    const txt = await res.text();
-                    throw new Error(`Invalid JSON response: ${txt}`);
+                    // if it wasn’t JSON, show the whole response
+                    throw new Error(`Invalid JSON response:\n${raw}`);
                 }
 
-                // if the status isn’t OK, throw with the returned error info
+                // 8️⃣ Check for HTTP errors
                 if (!res.ok) {
                     const msg = data.error || JSON.stringify(data);
                     throw new Error(`API error ${res.status}: ${msg}\n${data.stack || ''}`);
                 }
 
-                // otherwise you’ve got your reply
+                // 9️⃣ Pull out your `reply`
                 const reply = data.reply;
 
 
