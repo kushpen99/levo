@@ -239,6 +239,14 @@
         const presArea = document.getElementById('presentation-area');
         const presContent = document.getElementById('presentation-content');
 
+        /* ───────── view-state memory ───────── */
+        let currentMode = null;   // 'graph', 'quiz', 'summary', …
+        let currentGraphView = 'graphic'; // 'graphic' | 'table'
+
+        /* ───────── view-refresh guard ───────── */
+        let suppressPresentation = false;   // true only while we programmatically
+        // change the JSON textarea
+
         /* ----------------------------- Auth ------------------------------- */
         signInBtn.onclick = () => signInWithPopup(auth, new GoogleAuthProvider()).catch(e => showStatus(e.message, 'text-red-600'));
         signOutBtn.onclick = () => signOut(auth);
@@ -281,6 +289,12 @@
         };
 
         storyJsonArea.oninput = () => {
+
+            if (suppressPresentation) {        // ← skip redraw during quiet updates
+                suppressPresentation = false;
+                return;
+            }
+
             try {
                 JSON.parse(storyJsonArea.value);
             }
@@ -314,7 +328,12 @@
         function setupPresentation() {
             let data;
             try { data = JSON.parse(storyJsonArea.value); } catch { return hidePresentation(); }
+
+            // keep whatever was selected before the re-render
+            const prev = currentMode ?? presSelect.value;
+
             presSelect.innerHTML = '';
+
             const views = [];
             if (data.scenarios) views.push(['graph', 'Graph']);
             if (data.drugInfo) views.push(['drugInfo', 'Drug Info']);
@@ -328,6 +347,8 @@
             presControls.classList.remove('hidden');
             presArea.classList.remove('hidden');
             presSelect.onchange = renderPresentation;
+            // restore previous main view if still available, else default
+            presSelect.value = views.some(v => v[0] === prev) ? prev : views[0][0];
             renderPresentation();
         }
 
@@ -336,6 +357,7 @@
             try { data = JSON.parse(storyJsonArea.value); } catch { return; }
             presContent.innerHTML = '';
             const mode = presSelect.value;
+            currentMode = mode;                 // <-- remember
             if (mode === 'graph') renderGraphView(data);
             else if (mode === 'drugInfo') renderDrugInfo(data);
             else if (mode === 'quiz') renderQuiz(data);
@@ -357,8 +379,14 @@
             const holder = document.createElement('div');
             presContent.append(holder);
 
-            viewSel.onchange = () => draw(viewSel.value);
-            draw('graphic');
+            // restore last picked sub-view
+            viewSel.value = currentGraphView;
+            viewSel.onchange = () => {
+                currentGraphView = viewSel.value;   // remember choice
+                draw(currentGraphView);
+            };
+            
+            draw(currentGraphView);
 
             function draw(kind) {
                 holder.innerHTML = '';
@@ -446,7 +474,7 @@
                                                     <th class='border px-2 py-1'>Name</th>
                                                     <th class='border px-2 py-1'>Text</th>
                                                     <th class='border px-2 py-1'>Result</th>
-                                                    <th class='border px-2 py-1'>Options (JSON)</th>
+                                                    <th class='border px-2 py-1'>Options</th>
                                                     <th class='border px-2 py-1'>Remove</th>
                                                 </tr></thead>`;
                 const tbody = document.createElement('tbody');
@@ -585,6 +613,16 @@
                 catch { return; }
                 const opts = full.scenarios[sid].options = full.scenarios[sid].options || [];
 
+                // 5) 'Done' button – closes panel & refreshes preview
+                const doneBtn = document.createElement('button');
+                doneBtn.textContent = '✓ Done';
+                doneBtn.className = 'ml-2 bg-gray-300 hover:bg-gray-400 text-xs px-2 py-1 rounded';
+                doneBtn.onclick = () => {
+                    panel.classList.add('hidden');   // minimise the panel
+                    renderPresentation();            // refresh preview once
+                };
+                panel.append(doneBtn);
+
                 // 1) Table skeleton
                 const tbl = document.createElement('table');
                 tbl.className = 'w-full mb-2';
@@ -622,6 +660,7 @@
                             o.text = inpLabel.value;
                             pushJson();
                         };
+                        
                         tdLabel.append(inpLabel);
                         tr.append(tdLabel);
 
@@ -657,8 +696,9 @@
                             pushJson();
                             paintDrugInput(inpDrug); 
                         };
-                        inpDrug.addEventListener('blur', () => paintDrugInput(inpDrug)); // extra safety
-
+                        inpDrug.addEventListener('blur', () => {
+                            paintDrugInput?.(inpDrug);    // keep colour up-to-date (optional)
+                        });
                         tdDrug.append(inpDrug);
                         paintDrugInput(inpDrug);
                         tr.append(tdDrug);
@@ -695,8 +735,8 @@
 
                 // 4) pushJson: update the textarea & re-render presentation
                 function pushJson() {
+                    suppressPresentation = true;       // prevent oninput from redrawing
                     storyJsonArea.value = JSON.stringify(full, null, 2);
-                    setupPresentation();
                 }
 
                 // initial render
