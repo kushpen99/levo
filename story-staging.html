@@ -33,10 +33,10 @@
   <div id="modal" class="fixed inset-0 hidden bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-xl p-4 w-11/12 max-w-md">
       <div class="flex items-center mb-2">
-        <span id="modal-title" class="flex-1 text-lg font-semibold text-blue-800"></span>
+        <span id="modal-title" class="flex flex-1 text-lg font-semibold text-blue-800"></span>
         <button id="modal-close" class="text-gray-500 hover:text-gray-800">✕</button>
       </div>
-      <div id="modal-content" class="whitespace-pre-wrap text-sm text-gray-800 max-h-60 overflow-y-auto"></div>
+      <div id="modal-content" class="text-sm text-gray-800 max-h-60 overflow-y-auto"></div>
     </div>
   </div>
 
@@ -81,19 +81,21 @@
     (async function() {
       // 1) Determine storyId from URL
       const params  = new URLSearchParams(window.location.search);
-      let data;
+        let data;
 	  if (params.get('preview') === '1' && params.has('data')) {
-		// —— PREVIEW MODE ——
-		try {
-		  data = JSON.parse(decodeURIComponent(params.get('data')));
-		} catch (e) {
-		  document.getElementById('app').innerHTML =
-			`<div class="text-red-600">Preview JSON is invalid: ${e.message}</div>`;
-		  return;
-		}
+          // —— PREVIEW MODE ——
+
+          const dataParam = params.get('data');
+          // only now parse
+          try {
+              data = JSON.parse(dataParam);
+          } catch (e) {
+              document.getElementById('app').innerHTML =
+                  `<div class="text-red-600">Preview JSON is invalid: ${e.message}</div>`;
+          }
 	  } else {
 		// —— NORMAL MODE ——
-		const storyId = params.get('story') || 'mssa-mayhem';
+		const storyId = params.get('story') || 'no story';
 		const snap    = await getDoc(doc(db, 'stories', storyId));
 		if (!snap.exists()) {
 		  document.getElementById('app').innerHTML =
@@ -152,14 +154,13 @@
       document.getElementById('modal-close').onclick = () => modal.classList.add('hidden');
       function showModal(title, info) {
         document.getElementById('modal-title').textContent = '';
-        document.getElementById('modal-title').append(svg(ShieldSVG), document.createTextNode(' '+title+' Info'));
+        document.getElementById('modal-title').append(svg(ShieldSVG), document.createTextNode(' '+title));
         document.getElementById('modal-content').innerHTML =
-          `<strong>${title}</strong>
-           <ul class="list-disc ml-5">
-		     <li><strong>Family:</strong> ${info.Family || ''}</li>
-             <li><strong>Spectrum:</strong> ${info.Spectrum}</li>
-             <li><strong>PK:</strong> ${info.PK}</li>
-             <li><strong>Toxicities:</strong> ${info.Toxicities}</li>
+            `<ul class="list-disc ml-5 space-y-1">
+             <li><strong>Family:</strong> ${info.Family || '—'}</li>
+             <li><strong>Spectrum:</strong> ${info.Spectrum || '—'}</li>
+             <li><strong>PK:</strong> ${info.PK || '—'}</li>
+             <li><strong>Toxicities:</strong> ${info.Toxicities || '—'}</li>
            </ul>`;
         modal.classList.remove('hidden');
       }
@@ -189,9 +190,6 @@
 
         /* ------------ 1. utilities prepared once ------------------- */
           
-          function isDrug(token) {
-              return drugSet.has(token);
-          }
 
           // ---------- inline highlighting (no drugInfo JSON any more) ----------
           const paragraph = document.createElement('p');
@@ -234,6 +232,7 @@
                 const ib = document.createElement('button');
                 ib.className = 'ml-2 inline-flex items-center border border-blue-500 hover:bg-blue-50 px-2 py-0.5 rounded';
                 ib.textContent = 'Info';
+                ib.prepend(svg(ShieldSVG));
                 ib.onclick = () => showDrugInfo(o.drugName);
                 row.append(ib);
             }
