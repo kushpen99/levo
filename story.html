@@ -81,19 +81,21 @@
     (async function() {
       // 1) Determine storyId from URL
       const params  = new URLSearchParams(window.location.search);
-      let data;
+        let data;
 	  if (params.get('preview') === '1' && params.has('data')) {
-		// —— PREVIEW MODE ——
-		try {
-		  data = JSON.parse(decodeURIComponent(params.get('data')));
-		} catch (e) {
-		  document.getElementById('app').innerHTML =
-			`<div class="text-red-600">Preview JSON is invalid: ${e.message}</div>`;
-		  return;
-		}
+          // —— PREVIEW MODE ——
+
+          const dataParam = params.get('data');
+          // only now parse
+          try {
+              data = JSON.parse(dataParam);
+          } catch (e) {
+              document.getElementById('app').innerHTML =
+                  `<div class="text-red-600">Preview JSON is invalid: ${e.message}</div>`;
+          }
 	  } else {
 		// —— NORMAL MODE ——
-		const storyId = params.get('story') || 'mssa-mayhem';
+		const storyId = params.get('story') || 'no story';
 		const snap    = await getDoc(doc(db, 'stories', storyId));
 		if (!snap.exists()) {
 		  document.getElementById('app').innerHTML =
