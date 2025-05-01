@@ -58,7 +58,25 @@
 
     // Initialize Firebase and Firestore
     const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
+      const db = getFirestore(app);
+
+      const drugCache = new Map();                 // name → { …profile… } | null
+
+      async function fetchDrug(name) {
+          if (drugCache.has(name)) return drugCache.get(name);
+          try {
+              const snap = await getDoc(doc(db, 'drugs', name));
+              const data = snap.exists() ? snap.data() : null;
+              
+              drugCache.set(name, data);
+              return data;
+          } catch (e) {
+              console.error('Drug fetch failed', e);
+              drugCache.set(name, null);
+              return null;
+          }
+      }
+
 
     (async function() {
       // 1) Determine storyId from URL
@@ -84,12 +102,40 @@
 		}
 		data = snap.data();
 
-	  }
-	  
-      const scenarios = data.scenarios;
-      const drugInfo  = data.drugInfo || {};
+        }
+        const scenarios = data.scenarios;
+
+        const drugNames = Array.from(
+            Object.values(data.scenarios || {})       // turn the object into an array
+                .reduce((acc, sc) => {
+                    (sc.options || []).forEach(o => {
+                        if (o.drugName) acc.add(o.drugName);   // Set keeps them unique
+                    });
+                    return acc;
+                }, new Set())                       // ← Set for uniqueness
+        );
+
+        /* --- canonical map:  "ciprofloxacin" → "Ciprofloxacin" --- */
+        const drugMap = new Map(drugNames.map(n => [n.toLowerCase(), n]));
+        const drugSet = new Set(drugMap.keys());          // fast membership test
+
+        const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const DRUG_REGEX =
+            new RegExp(`\\b(${drugNames.map(esc).join('|')})\\b`, 'gi'); // still global / i
+
       const quiz      = data.quiz;
-      const summary   = data.summary;
+        const summary = data.summary;
+
+        async function showDrugInfo(name) {
+            const info = await fetchDrug(name);
+            if (!info) {
+                alert(`Drug “${name}” is not yet in the database.`);
+                return;
+            }
+            // reuse your existing modal renderer
+            showModal(name, info);
+        }
+
 
       // 3) Setup state & SVG utility
       let current = 'OPT0', inQuiz = false, answers = {};
@@ -141,21 +187,34 @@
 		  card.prepend(banner);
 		}
 
-        // highlight drug names inline
-        const regex = new RegExp(`(${Object.keys(drugInfo).join('|')})`, 'g');
-        sc.text.split(regex).forEach((seg,i) => {
-          if (drugInfo[seg]) {
-            const btn = document.createElement('button');
-            btn.className = 'inline-flex items-center text-blue-600 hover:underline';
-            btn.textContent = seg;
-            btn.append(svg(InfoSVG));
-            btn.onclick = ()=> showModal(seg, drugInfo[seg]);
-            card.append(btn);
-          } else {
-            card.append(document.createTextNode(seg));
+        /* ------------ 1. utilities prepared once ------------------- */
+          
+          function isDrug(token) {
+              return drugSet.has(token);
           }
-        });
-        app.append(card);
+
+          // ---------- inline highlighting (no drugInfo JSON any more) ----------
+          const paragraph = document.createElement('p');
+          paragraph.className = 'mb-4 whitespace-pre-wrap';   // ← keep your old styling
+          card.append(paragraph);                             // add <p> to the card first
+
+          // highlight drug names inline   (inside the scenario loop where `card` exists)
+          sc.text.split(DRUG_REGEX).forEach(seg => {
+              const key = seg.toLowerCase();
+              if (drugSet.has(key)) {
+                  const canon = drugMap.get(key);                 // Firestore ID
+                  const btn = document.createElement('button');
+                  btn.className =
+                      'inline-flex items-center text-blue-600 hover:underline';
+                  btn.textContent = seg;                          // keep original casing
+                  btn.append(svg(InfoSVG));
+                  btn.onclick = () => showDrugInfo(canon);         // ← canonical name
+                  card.append(btn);
+              } else {
+                  card.append(document.createTextNode(seg));
+              }
+          });
+
 
         // Options & Info buttons
         const opts = document.createElement('div');
@@ -171,19 +230,13 @@
           b.onclick = ()=> { current = o.id; renderStory(); };
           row.append(b);
           // info button if drugInfo exists
-          if (drugInfo[o.drugName]) {
-            const ib = document.createElement('button');
-            ib.className = 'ml-2 inline-flex items-center border border-blue-500 hover:bg-blue-50 px-3 py-1 rounded';
-            ib.innerHTML = ShieldSVG + 'Info';
-            ib.onclick = ()=> showModal(o.drugName, drugInfo[o.drugName]);
-            row.append(ib);
-          } else if (drugInfo[o.text]) {
-            const ib = document.createElement('button');
-            ib.className = 'ml-2 inline-flex items-center border border-blue-500 hover:bg-blue-50 px-3 py-1 rounded';
-            ib.innerHTML = ShieldSVG + 'Info';
-            ib.onclick = ()=> showModal(o.text, drugInfo[o.text]);
-            row.append(ib);
-          }
+            if (o.drugName) {
+                const ib = document.createElement('button');
+                ib.className = 'ml-2 inline-flex items-center border border-blue-500 hover:bg-blue-50 px-2 py-0.5 rounded';
+                ib.textContent = 'Info';
+                ib.onclick = () => showDrugInfo(o.drugName);
+                row.append(ib);
+            }
           opts.append(row);
         });
 
@@ -194,8 +247,9 @@
           qbtn.className = 'mt-4 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded';
           qbtn.onclick = renderQuiz;
           opts.append(qbtn);
-        }
-        app.append(opts);
+          }
+          app.append(card); 
+          app.append(opts);
       }
 	  
 
