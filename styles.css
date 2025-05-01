@@ -55,3 +55,9 @@ button:active {
   margin: 0.15rem 0 0 0 !important;   /* top gap ≈ 2–3 px, no bottom gap              */
   line-height: 1.25rem !important;    /* tighter text line height                     */
 }
+
+/* success  – Tailwind bg-emerald-100 / text-gray-900 */
+.drug-ok      { background-color:#d1fae5; color:#111827; }
+
+/* failure  – Tailwind bg-rose-100 / text-gray-900 */
+.drug-missing { background-color:#fee2e2; color:#111827; }
