@@ -1179,7 +1179,6 @@
                    - status (string - initial value: draft)
                    - createdAt, updatedAt (timestamp objects)
                    - scenarios (object of scenario-objects)
-                   - drugInfo (object of drug-info objects)
                    - summary (object with a “points” array)
                    - quiz (object with a “choices” array)
 
@@ -1195,14 +1194,8 @@
 3. **Each option** must have:
                    - text (string)
                    - id (string matching one of the scenario keys)
-                   - drugName(string, the name of the chosen drug if this option represents a drug choice)
+                   - drugName(string, the name of the chosen drug if this option represents a drug choice, starts with a capital letter)
 
-4. **Each drugInfo** must have:
-
-                   - Family (string representing the Family of drugs the drug belongs to)
-                   - PK (string)
-                   - Spectrum (string)
-                   - Toxicities (string)
 
 5. **Mermaid compliance**:
                    - Scenario IDs become graph node IDs.
