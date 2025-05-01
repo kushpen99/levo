@@ -135,6 +135,73 @@
                     </svg>
                     Preview
                 </button>
+				<!-- 💊 DRUGS ADMIN --------------------------------------------------- -->
+				<div id="drugs-area" class="mt-8">
+				  <h2 class="text-lg font-bold mb-2">💊 Drugs</h2>
+
+				  <!-- toolbar -->
+				  <div class="flex items-center mb-3 space-x-3">
+					<label for="drug-select" class="font-semibold">Existing drugs</label>
+					<select id="drug-select" class="border rounded px-2 py-1 min-w-[12rem]">
+					  <option value="">-- select --</option>
+					</select>
+
+					<button id="new-drug-btn"
+							class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded">
+					  + New Drug
+					</button>
+				  </div>
+
+				  <!-- editor -->
+				  <div id="drug-editor" class="hidden bg-gray-50 p-4 rounded shadow space-y-3">
+					<div>
+					  <label class="block font-semibold mb-1">Drug Name (ID)</label>
+					  <input id="drug-name" type="text"
+							 class="border rounded px-2 py-1 w-full">
+					</div>
+
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					  <div>
+						<label class="block font-semibold mb-1">Family</label>
+						<input id="drug-family" type="text"
+							   class="border rounded px-2 py-1 w-full">
+					  </div>
+					  <div>
+						<label class="block font-semibold mb-1">PK</label>
+						<input id="drug-pk" type="text"
+							   class="border rounded px-2 py-1 w-full">
+					  </div>
+					  <div class="md:col-span-2">
+						<label class="block font-semibold mb-1">Spectrum</label>
+						<textarea id="drug-spectrum" rows="2"
+								  class="border rounded px-2 py-1 w-full"></textarea>
+					  </div>
+					  <div class="md:col-span-2">
+						<label class="block font-semibold mb-1">Toxicities</label>
+						<textarea id="drug-toxicities" rows="2"
+								  class="border rounded px-2 py-1 w-full"></textarea>
+					  </div>
+					</div>
+
+					<div class="flex space-x-2">
+					  <button id="drug-save-btn"
+							  class="bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded">
+						Save
+					  </button>
+					  <button id="drug-delete-btn"
+							  class="bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded hidden">
+						Delete
+					  </button>
+					  <button id="drug-cancel-btn"
+							  class="bg-gray-300 hover:bg-gray-400 px-4 py-1 rounded">
+						Cancel
+					  </button>
+					</div>
+
+    <p id="drug-status" class="text-sm"></p>
+  </div>
+</div>
+
             </div>
             <p id="status-msg" class="mt-2"></p>
 
@@ -201,11 +268,15 @@
             // scrub any previous colours
             inputEl.classList.remove('bg-emerald-100', 'bg-rose-100');
 
-            if (!name) return;                       // nothing to validate
+            if (!name) { hideAddDrugShortcut(inputEl); return; } 
 
-            (await drugExists(name))
-                ? inputEl.classList.add('bg-emerald-100')   // light green = exists
-                : inputEl.classList.add('bg-rose-100');     // light red   = missing
+			if (await drugExists(name)) {
+				inputEl.classList.add('bg-emerald-100');
+				hideAddDrugShortcut(inputEl);
+			} else {
+				inputEl.classList.add('bg-rose-100');
+				showAddDrugShortcut(inputEl);   // ← new
+			}
         }
 
 
@@ -238,6 +309,21 @@
         const presSelect = document.getElementById('presentation-select');
         const presArea = document.getElementById('presentation-area');
         const presContent = document.getElementById('presentation-content');
+		
+		/* drugs UI handles */
+		const drugSelect        = document.getElementById('drug-select');
+		const newDrugBtn        = document.getElementById('new-drug-btn');
+		const drugEditor        = document.getElementById('drug-editor');
+		const drugNameEl        = document.getElementById('drug-name');
+		const drugFamilyEl      = document.getElementById('drug-family');
+		const drugPkEl          = document.getElementById('drug-pk');
+		const drugSpectrumEl    = document.getElementById('drug-spectrum');
+		const drugToxEl         = document.getElementById('drug-toxicities');
+		const drugSaveBtn       = document.getElementById('drug-save-btn');
+		const drugDeleteBtn     = document.getElementById('drug-delete-btn');
+		const drugCancelBtn     = document.getElementById('drug-cancel-btn');
+		const drugStatus        = document.getElementById('drug-status');
+
 
         /* ───────── view-state memory ───────── */
         let currentMode = null;   // 'graph', 'quiz', 'summary', …
@@ -256,7 +342,11 @@
             signInBtn.classList.toggle('hidden', logged);
             signOutBtn.classList.toggle('hidden', !logged);
             adminUI.classList.toggle('hidden', !logged);
-            if (logged) loadStories();
+            if (logged) 
+			{
+				loadStories();
+				loadDrugs();
+			}
         });
 
         /* --------------------- Firestore helpers -------------------------- */
@@ -271,6 +361,96 @@
                 storySelect.append(opt);
             });
         }
+		
+		/* ───────────── DRUGS CRUD ───────────── */
+
+		async function loadDrugs() {
+		  const sel = document.getElementById('drug-select');
+		  sel.innerHTML = '<option value="">-- select --</option>';
+		  const snap = await getDocs(collection(db, 'drugs'));
+		  snap.forEach(d => {
+			const o = new Option(d.id, d.id);
+			sel.append(o);
+		  });
+		}
+
+		async function saveDrug() {
+		  const id   = drugNameEl.value.trim();
+		  if (!id)   return setDrugStatus('Drug name required', 'text-red-600');
+
+		  const payload = {
+			Family:     drugFamilyEl.value.trim(),
+			PK:         drugPkEl.value.trim(),
+			Spectrum:   drugSpectrumEl.value.trim(),
+			Toxicities: drugToxEl.value.trim(),
+		  };
+
+		  await setDoc(doc(db, 'drugs', id), payload);
+		  setDrugStatus(`Drug “${id}” saved`, 'text-green-600');
+		  await loadDrugs();                // refresh list
+		  drugSelect.value = id;            // highlight it
+		  drugDeleteBtn.classList.remove('hidden');
+		  invalidateDrugCache(id);          // so the table recolours next time
+		}
+
+		async function deleteDrug() {
+		  const id = drugSelect.value;
+		  if (!id) return;
+		  const ok = confirm(`Delete drug “${id}” permanently?`);
+		  if (!ok) return;
+		  await deleteDoc(doc(db, 'drugs', id));
+		  setDrugStatus(`Drug “${id}” deleted`, 'text-green-600');
+		  resetDrugEditor();
+		  await loadDrugs();
+		  invalidateDrugCache(id);
+		}
+
+		function openDrugEditor(id = '') {
+		  drugEditor.classList.remove('hidden');
+		  if (id) {
+			// load existing doc
+			getDoc(doc(db, 'drugs', id)).then(snap => {
+			  if (snap.exists()) {
+				const d = snap.data();
+				drugNameEl.value      = id;
+				drugFamilyEl.value    = d.Family     || '';
+				drugPkEl.value        = d.PK         || '';
+				drugSpectrumEl.value  = d.Spectrum   || '';
+				drugToxEl.value       = d.Toxicities || '';
+				drugDeleteBtn.classList.remove('hidden');
+			  } else {
+				// new doc with prefilled name
+				drugNameEl.value      = id;
+				drugFamilyEl.value    = '';
+				drugPkEl.value        = '';
+				drugSpectrumEl.value  = '';
+				drugToxEl.value       = '';
+				drugDeleteBtn.classList.add('hidden');
+			  }
+			});
+		  } else {
+			resetDrugEditor();
+		  }
+		}
+
+		function resetDrugEditor() {
+		  drugEditor.classList.add('hidden');
+		  [drugNameEl, drugFamilyEl, drugPkEl,
+		   drugSpectrumEl, drugToxEl].forEach(el => el.value = '');
+		  drugDeleteBtn.classList.add('hidden');
+		  setDrugStatus('');
+		}
+
+		function setDrugStatus(msg = '', cls = '') {
+		  drugStatus.textContent = msg;
+		  drugStatus.className   = cls;
+		}
+
+		/* invalidate one entry in the exists-cache */
+		function invalidateDrugCache(name) {
+		  drugCache.delete(name);
+		}
+
 
         /* --------------------------- UI logic ----------------------------- */
         storySelect.onchange = async () => {
@@ -323,6 +503,13 @@
             const isNowHidden = jsonContainer.classList.toggle('hidden');
             toggleJsonBtn.textContent = isNowHidden ? 'Show' : 'Hide';
         };
+		
+		/* drugs UI events */
+		newDrugBtn.onclick       = () => openDrugEditor('');
+		drugSelect.onchange      = () => openDrugEditor(drugSelect.value);
+		drugSaveBtn.onclick      = saveDrug;
+		drugDeleteBtn.onclick    = deleteDrug;
+		drugCancelBtn.onclick    = resetDrugEditor;
 
         /* ------------------------ Presentation ---------------------------- */
         function setupPresentation() {
@@ -598,11 +785,39 @@
 
                 return td;
             }
+			
+			function showAddDrugShortcut(inputEl) {
+			  // already attached?
+			  if (inputEl.parentElement.querySelector('.add-drug-btn')) return;
+
+			  const btn = document.createElement('button');
+			  btn.type  = 'button';
+			  btn.textContent = '+';
+			  btn.title = 'Add this drug';
+			  btn.className =
+				'add-drug-btn absolute right-1 top-1 text-xs text-blue-600 hover:text-blue-800';
+			  btn.onclick = e => {
+				e.stopPropagation();
+				openDrugEditor(inputEl.value.trim());
+				// scroll to the drugs panel
+				document.getElementById('drugs-area').scrollIntoView({ behavior:'smooth' });
+			  };
+
+			  // make the containing <td> relative so absolute coords work
+			  inputEl.parentElement.style.position = 'relative';
+			  inputEl.parentElement.append(btn);
+			}
+
+			function hideAddDrugShortcut(inputEl) {
+			  const btn = inputEl.parentElement.querySelector('.add-drug-btn');
+			  if (btn) btn.remove();
+			}
+
 
             /**
-* Renders the list of option rows inside the given panel.
-* Hooks up add/remove and value-change callbacks.
-*/
+			* Renders the list of option rows inside the given panel.
+			* Hooks up add/remove and value-change callbacks.
+			*/
             function renderOptionsEditor(sid, panel) {
                 // clear
                 panel.innerHTML = '';
