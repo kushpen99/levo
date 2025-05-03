@@ -174,28 +174,60 @@
                            class="border rounded px-2 py-1 w-full">
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- paste this inside your <div id="drug-editor" class="…">, alongside the existing fields -->
+                <div class="grid grid-cols-1 gap-4">
+                    <!-- existing ones… -->
                     <div>
-                        <label class="block font-semibold mb-1">Family</label>
-                        <input id="drug-family" type="text"
-                               class="border rounded px-2 py-1 w-full">
+                        <label class="block font-semibold mb-1">Family (ex)</label>
+                        <input id="drug-family-ex" type="text" class="border rounded px-2 py-1 w-full">
                     </div>
                     <div>
-                        <label class="block font-semibold mb-1">PK</label>
-                        <input id="drug-pk" type="text"
-                               class="border rounded px-2 py-1 w-full">
+                        <label class="block font-semibold mb-1">Subclass (ex)</label>
+                        <input id="drug-subclass-ex" type="text" class="border rounded px-2 py-1 w-full">
                     </div>
-                    <div class="md:col-span-2">
-                        <label class="block font-semibold mb-1">Spectrum</label>
-                        <textarea id="drug-spectrum" rows="2"
-                                  class="border rounded px-2 py-1 w-full"></textarea>
+                    <div>
+                        <label class="block font-semibold mb-1">Mechanism of action (ex)</label>
+                        <input id="drug-mechanism-of-action-ex" type="text" class="border rounded px-2 py-1 w-full">
                     </div>
-                    <div class="md:col-span-2">
-                        <label class="block font-semibold mb-1">Toxicities</label>
-                        <textarea id="drug-toxicities" rows="2"
-                                  class="border rounded px-2 py-1 w-full"></textarea>
+                    <div>
+                        <label class="block font-semibold mb-1">Spectrum of coverage (ex)</label>
+                        <textarea id="drug-spectrum-of-coverage-ex" rows="2" class="border rounded px-2 py-1 w-full"></textarea>
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1">Major resistance mechanisms (ex)</label>
+                        <textarea id="drug-major-resistance-mechanisms-ex" rows="2" class="border rounded px-2 py-1 w-full"></textarea>
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1">Pharmacodynamics (ex)</label>
+                        <textarea id="drug-pd-ex" rows="2" class="border rounded px-2 py-1 w-full"></textarea>
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1">PK (ex)</label>
+                        <textarea id="drug-pk-ex" rows="2" class="border rounded px-2 py-1 w-full"></textarea>
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1">Toxicity (ex)</label>
+                        <textarea id="drug-toxicity-ex" rows="2" class="border rounded px-2 py-1 w-full"></textarea>
+                    </div>
+                    <!-- now the “-sum” fields -->
+                    <div>
+                        <label class="block font-semibold mb-1">Family (sum)</label>
+                        <input id="drug-family-sum" type="text" class="border rounded px-2 py-1 w-full">
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1">Spectrum of coverage (sum)</label>
+                        <input id="drug-spectrum-of-coverage-sum" type="text" class="border rounded px-2 py-1 w-full">
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1">PK (sum)</label>
+                        <input id="drug-pk-sum" type="text" class="border rounded px-2 py-1 w-full">
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1">Toxicity (sum)</label>
+                        <input id="drug-toxicity-sum" type="text" class="border rounded px-2 py-1 w-full">
                     </div>
                 </div>
+
 
                 <div class="flex space-x-2">
                     <button id="drug-save-btn"
@@ -309,7 +341,7 @@
             } else {
                 inputEl.classList.add('bg-rose-100');
                 console.log("paintDrugInput: showAddDrugShortcut");
-                showAddDrugShortcut(inputEl);  
+                showAddDrugShortcut(inputEl);
             }
         }
 
@@ -349,10 +381,23 @@
         const newDrugBtn = document.getElementById('new-drug-btn');
         const drugEditor = document.getElementById('drug-editor');
         const drugNameEl = document.getElementById('drug-name');
-        const drugFamilyEl = document.getElementById('drug-family');
-        const drugPkEl = document.getElementById('drug-pk');
-        const drugSpectrumEl = document.getElementById('drug-spectrum');
-        const drugToxEl = document.getElementById('drug-toxicities');
+        
+        const drugFamilyExEl = document.getElementById('drug-family-ex');
+        const drugSubclassExEl = document.getElementById('drug-subclass-ex');
+        const drugMoAExEl = document.getElementById('drug-mechanism-of-action-ex');
+        const drugSpectrumExEl = document.getElementById('drug-spectrum-of-coverage-ex');
+        const drugMajorResExEl = document.getElementById('drug-major-resistance-mechanisms-ex');
+        const drugPdExEl = document.getElementById('drug-pd-ex');
+        const drugPkExEl2 = document.getElementById('drug-pk-ex');               // rename local var if needed
+        const drugToxExEl = document.getElementById('drug-toxicity-ex');
+
+        const drugFamilySumEl = document.getElementById('drug-family-sum');
+        const drugSpectrumSumEl = document.getElementById('drug-spectrum-of-coverage-sum');
+        const drugPkSumEl = document.getElementById('drug-pk-sum');
+        const drugToxicitySumEl = document.getElementById('drug-toxicity-sum');
+
+
+
         const drugSaveBtn = document.getElementById('drug-save-btn');
         const drugDeleteBtn = document.getElementById('drug-delete-btn');
         const drugCancelBtn = document.getElementById('drug-cancel-btn');
@@ -412,19 +457,25 @@
             if (!id) return setDrugStatus('Drug name required', 'text-red-600');
 
             const payload = {
-                Family: drugFamilyEl.value.trim(),
-                PK: drugPkEl.value.trim(),
-                Spectrum: drugSpectrumEl.value.trim(),
-                Toxicities: drugToxEl.value.trim(),
+                'family-ex': drugFamilyExEl.value.trim(),
+                'subclass-ex': drugSubclassExEl.value.trim(),
+                'mechanism-of-action-ex': drugMoAExEl.value.trim(),
+                'spectrum-of-coverage-ex': drugSpectrumExEl.value.trim(),
+                'major-resistance-mechanisms-ex': drugMajorResExEl.value.trim(),
+                'pd-ex': drugPdExEl.value.trim(),
+                'pk-ex': drugPkExEl2.value.trim(),
+                'toxicity-ex': drugToxExEl.value.trim(),
+
+                'family-sum': drugFamilySumEl.value.trim(),
+                'spectrum-of-coverage-sum': drugSpectrumSumEl.value.trim(),
+                'pk-sum': drugPkSumEl.value.trim(),
+                'toxicity-sum': drugToxicitySumEl.value.trim(),
             };
 
             await setDoc(doc(db, 'drugs', id), payload);
-            setDrugStatus(`Drug “${id}” saved`, 'text-green-600');
-            await loadDrugs();                // refresh list
-            drugSelect.value = id;            // highlight it
-            drugDeleteBtn.classList.remove('hidden');
-            invalidateDrugCache(id);          // so the table recolours next time
+            // … rest of your existing save logic
         }
+
 
         async function deleteDrug() {
             const id = drugSelect.value;
@@ -446,18 +497,38 @@
                     if (snap.exists()) {
                         const d = snap.data();
                         drugNameEl.value = id;
-                        drugFamilyEl.value = d.Family || '';
-                        drugPkEl.value = d.PK || '';
-                        drugSpectrumEl.value = d.Spectrum || '';
-                        drugToxEl.value = d.Toxicities || '';
+                        drugFamilyExEl.value = d['family-ex'] || '';
+                        drugSubclassExEl.value = d['subclass-ex'] || '';
+                        drugMoAExEl.value = d['mechanism-of-action-ex'] || '';
+                        drugSpectrumExEl.value = d['spectrum-of-coverage-ex'] || '';
+                        drugMajorResExEl.value = d['major-resistance-mechanisms-ex'] || '';
+                        drugPdExEl.value = d['pd-ex'] || '';
+                        drugPkExEl2.value = d['pk-ex'] || '';
+                        drugToxExEl.value = d['toxicity-ex'] || '';
+
+                        drugFamilySumEl.value = d['family-sum'] || '';
+                        drugSpectrumSumEl.value = d['spectrum-of-coverage-sum'] || '';
+                        drugPkSumEl.value = d['pk-sum'] || '';
+                        drugToxicitySumEl.value = d['toxicity-sum'] || '';
+
                         drugDeleteBtn.classList.remove('hidden');
                     } else {
                         // new doc with prefilled name
                         drugNameEl.value = id;
-                        drugFamilyEl.value = '';
-                        drugPkEl.value = '';
-                        drugSpectrumEl.value = '';
-                        drugToxEl.value = '';
+                        drugFamilyExEl.value = '';
+                        drugSubclassExEl.value = '';
+                        drugMoAExEl.value = '';
+                        drugSpectrumExEl.value = '';
+                        drugMajorResExEl.value = '';
+                        drugPdExEl.value = '';
+                        drugPkExEl2.value = '';
+                        drugToxExEl.value = '';
+
+                        drugFamilySumEl.value = '';
+                        drugSpectrumSumEl.value = '';
+                        drugPkSumEl.value = '';
+                        drugToxicitySumEl.value = '';
+
                         drugDeleteBtn.classList.add('hidden');
                     }
                 });
@@ -690,13 +761,13 @@
                 const table = document.createElement('table');
                 table.className = 'table-auto w-full border-collapse';
                 table.innerHTML = `<thead><tr class='bg-gray-50'>
-                                                        <th class='border px-2 py-1'>ID</th>
-                                                        <th class='border px-2 py-1'>Name</th>
-                                                        <th class='border px-2 py-1'>Text</th>
-                                                        <th class='border px-2 py-1'>Result</th>
-                                                        <th class='border px-2 py-1'>Options</th>
-                                                        <th class='border px-2 py-1'>Remove</th>
-                                                    </tr></thead>`;
+                                                            <th class='border px-2 py-1'>ID</th>
+                                                            <th class='border px-2 py-1'>Name</th>
+                                                            <th class='border px-2 py-1'>Text</th>
+                                                            <th class='border px-2 py-1'>Result</th>
+                                                            <th class='border px-2 py-1'>Options</th>
+                                                            <th class='border px-2 py-1'>Remove</th>
+                                                        </tr></thead>`;
                 const tbody = document.createElement('tbody');
                 Object.entries(data.scenarios || {}).forEach(([id, sc]) => {
                     const tr = document.createElement('tr');
@@ -819,7 +890,7 @@
                 return td;
             }
 
-            
+
 
             /**
             * Renders the list of option rows inside the given panel.
@@ -849,15 +920,15 @@
                 const tbl = document.createElement('table');
                 tbl.className = 'w-full mb-2';
                 tbl.innerHTML = `
-            <thead class="text-left text-sm text-gray-600">
-            <tr>
-              <th class="py-1">Text</th>
-              <th class="py-1">Id</th>
-              <th class="py-1">Drug</th>
-              <th></th>
-            </tr>
-          </thead>
-          `;
+                <thead class="text-left text-sm text-gray-600">
+                <tr>
+                  <th class="py-1">Text</th>
+                  <th class="py-1">Id</th>
+                  <th class="py-1">Drug</th>
+                  <th></th>
+                </tr>
+              </thead>
+              `;
                 const tbody = document.createElement('tbody');
                 tbl.append(tbody);
                 panel.append(tbl);
@@ -1167,39 +1238,39 @@
 
             // 3️⃣ Build the LLM prompt (use your template here)
             const prompt = `
-                                You are an assistant that generates interactive case-study stories for medical students, helping them learn the correct treatment pathways.
-                                These stories are represented as JSON following our established schema. Here is an example of an existing story (for reference):
-                                \`\`\`
-                                ${exampleJson}
-                                \`\`\`
+                                    You are an assistant that generates interactive case-study stories for medical students, helping them learn the correct treatment pathways.
+                                    These stories are represented as JSON following our established schema. Here is an example of an existing story (for reference):
+                                    \`\`\`
+                                    ${exampleJson}
+                                    \`\`\`
 
-                                Using this schema:
+                                    Using this schema:
 1. **Top-level keys** in order:
-                   - title (string)
-                   - status (string - initial value: draft)
-                   - createdAt, updatedAt (timestamp objects)
-                   - scenarios (object of scenario-objects)
-                   - summary (object with a “points” array)
-                   - quiz (object with a “choices” array)
+                       - title (string)
+                       - status (string - initial value: draft)
+                       - createdAt, updatedAt (timestamp objects)
+                       - scenarios (object of scenario-objects)
+                       - summary (object with a “points” array)
+                       - quiz (object with a “choices” array)
 
 2. **Each scenario** must have keys in this order:
-                   - name (string)
-                   - text (string)
-                   - pathResult (string. one of the values:
-                        undetermined - for paths still in progress,
-                        success - for paths ending positively,
-                        failure - for paths ending negatively)
-                   - options (array of option-objects)
+                       - name (string)
+                       - text (string)
+                       - pathResult (string. one of the values:
+                            undetermined - for paths still in progress,
+                            success - for paths ending positively,
+                            failure - for paths ending negatively)
+                       - options (array of option-objects)
 
 3. **Each option** must have:
-                   - text (string)
-                   - id (string matching one of the scenario keys)
-                   - drugName(string, the name of the chosen drug if this option represents a drug choice, starts with a capital letter)
+                       - text (string)
+                       - id (string matching one of the scenario keys)
+                       - drugName(string, the name of the chosen drug if this option represents a drug choice, starts with a capital letter)
 
 
 5. **Mermaid compliance**:
-                   - Scenario IDs become graph node IDs.
-                   - Option texts must be short, single-line labels without unsupported Unicode.
+                       - Scenario IDs become graph node IDs.
+                       - Option texts must be short, single-line labels without unsupported Unicode.
 
 ** There always must be an OPT0 scenario which is the starting point**
 ** Scenario with pathResult=success must always have an empty options array**
@@ -1209,8 +1280,8 @@
 **Now** create a **brand new interactive case-study story JSON** with:
 - **Title** based on: Subject: ${subject} and on Additional instructions (if any): ${instr || 'none'}
 
-                                Output **only** the new story’s JSON, ready for Mermaid rendering.
-                                  `.trim();
+                                    Output **only** the new story’s JSON, ready for Mermaid rendering.
+                                      `.trim();
 
             // 4️⃣ UI feedback
             spinner.classList.remove('hidden');
