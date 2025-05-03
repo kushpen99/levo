@@ -1,0 +1,284 @@
+<!-- firestore-admin.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Firestore Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <!-- AUTH -------------------------------------------------------------- -->
+    <div class="mb-6" id="auth-section">
+        <button id="sign-in-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">Sign in with Google</button>
+        <button id="sign-out-btn" class="bg-red-500  hover:bg-red-600 text-white px-4 py-2 rounded ml-2 hidden">Sign out</button>
+    </div>
+    <div class="container mx-auto max-w-3xl px-4 py-6 space-y-6">
+
+        <h1 class="text-2xl font-bold">🛠 Firestore Admin</h1>
+
+        <!-- ① Collection picker -->
+        <div>
+            <label class="block font-semibold mb-1" for="coll-select">Collection</label>
+            <select id="coll-select" class="border rounded px-3 py-2 w-full"></select>
+        </div>
+
+        <!-- ② Document picker -->
+        <div id="doc-picker" class="hidden">
+            <label class="block font-semibold mb-1" for="doc-select">
+                Document (existing or
+                <span class="italic">New &raquo;</span>)
+            </label>
+            <select id="doc-select" class="border rounded px-3 py-2 w-full">
+                <option value="">— New document —</option>
+            </select>
+            <div id="new-id-row" class="mt-2 hidden">
+                <input id="new-id" placeholder="Optional custom ID (leave blank for auto)"
+                       class="border rounded px-3 py-2 w-full" />
+            </div>
+        </div>
+
+        <!-- ③ Dynamic form -->
+        <form id="field-form" class="hidden bg-white p-6 rounded shadow space-y-4"></form>
+
+        <!-- Status line -->
+        <p id="status" class="text-sm"></p>
+
+    </div>
+
+    <!-- Firebase + Firestore -->
+    <script type="module">
+        import {
+            initializeApp
+        } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js';
+
+        import {
+            getFirestore, doc, getDoc, setDoc, addDoc, updateDoc,
+            collection, getDocs, deleteField
+        } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
+
+        /* ─── 0.  Config  ───────────────────────────────────────────── */
+        const firebaseConfig = {
+            apiKey: "AIzaSyClEgpGrVTXT2zQNNDBDg0TNX2F24k6oTg",
+            authDomain: "urushka99.firebaseapp.com",
+            projectId: "urushka99",
+            storageBucket: "urushka99.firebasestorage.app",
+            messagingSenderId: "954120822793",
+            appId: "1:954120822793:web:6c316b1b178081b56758d8",
+            measurementId: "G-5LCB9E7PL9"
+        };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        /* ----------------------------- Auth ------------------------------- */
+        const signInBtn = document.getElementById('sign-in-btn');
+        const signOutBtn = document.getElementById('sign-out-btn');
+
+        signInBtn.onclick = () => signInWithPopup(auth, new GoogleAuthProvider()).catch(e => showStatus(e.message, 'text-red-600'));
+        signOutBtn.onclick = () => signOut(auth);
+
+        onAuthStateChanged(auth, user => {
+            const logged = !!user;
+            signInBtn.classList.toggle('hidden', logged);
+            signOutBtn.classList.toggle('hidden', !logged);
+            adminUI.classList.toggle('hidden', !logged);
+            if (logged) {
+                loadStories();
+                loadDrugs();
+            }
+        });
+
+        /* ─── 1.  Elements  ─────────────────────────────────────────── */
+        const collSel = document.getElementById('coll-select');
+        const docSel = document.getElementById('doc-select');
+        const docPick = document.getElementById('doc-picker');
+        const newIdRow = document.getElementById('new-id-row');
+        const newIdInp = document.getElementById('new-id');
+        const form = document.getElementById('field-form');
+        const status = document.getElementById('status');
+
+        /* ─── 2.  Load collection list  ───────────────────────────────
+           meta/collections document shape:
+           { names: ['stories','drugs','users', …] }
+        */
+        (async function loadCollections() {
+            try {
+                const metaSnap = await getDoc(doc(db, 'meta', 'collections'));
+                const names = metaSnap.data()?.names || [];
+                if (!names.length) throw new Error('No collections declared in meta/collections');
+
+                collSel.innerHTML = '<option value="">— Choose —</option>' +
+                    names.map(c => `<option>${c}</option>`).join('');
+            } catch (e) {
+                setError('Failed to load collection list: ' + e.message);
+            }
+        })();
+
+        /* ─── 3.  Collection selected  ─────────────────────────────── */
+        collSel.onchange = async () => {
+            resetUI();
+            const coll = collSel.value;
+            if (!coll) return;
+
+            const colRef = collection(db, coll);
+            try {
+                const snap = await getDocs(colRef);
+                // Populate doc dropdown (IDs)
+                docSel.innerHTML =
+                    '<option value="">— New document —</option>' +
+                    Array.from(snap.docs).map(d => `<option>${d.id}</option>`).join('');
+                docPick.classList.remove('hidden');
+            } catch (e) {
+                setError('Could not fetch docs: ' + e.message);
+            }
+        };
+
+        /* ─── 4.  Document selected / new  ─────────────────────────── */
+        docSel.onchange = async () => {
+            clearStatus();
+            form.innerHTML = '';
+            form.classList.add('hidden');
+            newIdRow.classList.toggle('hidden', !!docSel.value);
+
+            const coll = collSel.value;
+            if (!coll) return;
+
+            let data = {};
+            let isNew = !docSel.value;
+            if (!isNew) {
+                // Existing → pull data
+                try {
+                    const snap = await getDoc(doc(db, coll, docSel.value));
+                    data = snap.data() || {};
+                } catch (e) {
+                    return setError('Failed to load doc: ' + e.message);
+                }
+            } else {
+                // If there is at least one doc in the collection, infer keys
+                try {
+                    const first = await getDocs(collection(db, coll), { limit: 1 });
+                    data = first.docs[0]?.data() || {};
+                } catch {/* ignore */ }
+            }
+
+            buildForm(data, isNew);
+        };
+
+        /* ─── 5.  Build dynamic form  ──────────────────────────────── */
+        function buildForm(obj, isNew) {
+            form.innerHTML = '';
+            const entries = Object.entries(obj);
+            if (!entries.length) {
+                form.insertAdjacentHTML('beforeend',
+                    '<p class="text-gray-600">No fields yet – start adding below.</p>');
+            }
+
+            // each field row
+            entries.forEach(([k, v]) => addFieldRow(k, v));
+
+            // button to add extra field
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.textContent = '➕ Add field';
+            addBtn.className = 'mt-2 text-blue-600 hover:underline';
+            addBtn.onclick = () => addFieldRow('', '');
+            form.append(addBtn);
+
+            // Submit
+            const save = document.createElement('button');
+            save.type = 'submit';
+            save.textContent = isNew ? 'Create document' : 'Save changes';
+            save.className = 'block mt-6 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded';
+            form.append(save);
+
+            form.classList.remove('hidden');
+        }
+
+        // helper – one <fieldset>
+        function addFieldRow(key = '', val = '') {
+            const fs = document.createElement('fieldset');
+            fs.className = 'grid grid-cols-12 gap-2 items-center';
+
+            const keyInp = document.createElement('input');
+            keyInp.placeholder = 'field name';
+            keyInp.value = key;
+            keyInp.className = 'col-span-5 border rounded px-2 py-1 text-sm';
+
+            const valInp = document.createElement('input');
+            valInp.placeholder = 'value';
+            valInp.value = val;
+            valInp.className = 'col-span-5 border rounded px-2 py-1 text-sm';
+
+            const del = document.createElement('button');
+            del.type = 'button';
+            del.textContent = '🗑';
+            del.className = 'col-span-1 text-red-600 hover:text-red-800';
+            del.onclick = () => fs.remove();
+
+            fs.append(keyInp, valInp, del);
+            form.insertBefore(fs, form.querySelector('button[type="button"]')); // before “add field”
+        }
+
+        /* ─── 6.  Handle form submit  ──────────────────────────────── */
+        form.onsubmit = async e => {
+            e.preventDefault();
+            clearStatus();
+
+            const coll = collSel.value;
+            if (!coll) return;
+
+            // Gather all fields
+            const data = {};
+            form.querySelectorAll('fieldset').forEach(fs => {
+                const [kInp, vInp] = fs.querySelectorAll('input');
+                const k = kInp.value.trim();
+                if (!k) return; // skip empty keys
+                data[k] = coerce(vInp.value.trim());
+            });
+
+            try {
+                if (docSel.value) {
+                    // update existing – missing keys are left unchanged
+                    await updateDoc(doc(db, coll, docSel.value), data);
+                    setSuccess('✔ Document updated');
+                } else {
+                    const id = newIdInp.value.trim();
+                    if (id) {
+                        await setDoc(doc(db, coll, id), data);
+                        docSel.insertAdjacentHTML('beforeend', `<option>${id}</option>`);
+                        docSel.value = id;
+                    } else {
+                        const ref = await addDoc(collection(db, coll), data);
+                        docSel.insertAdjacentHTML('beforeend', `<option>${ref.id}</option>`);
+                        docSel.value = ref.id;
+                    }
+                    newIdRow.classList.add('hidden');
+                    setSuccess('✔ Document created');
+                }
+            } catch (e) {
+                setError('Save failed: ' + e.message);
+            }
+        };
+
+        /* ─── 7.  Helpers  ─────────────────────────────────────────── */
+        function coerce(v) {
+            if (v === 'true') return true;
+            if (v === 'false') return false;
+            if (!isNaN(v) && v !== '') return Number(v);
+            return v;
+        }
+        function setError(msg) { status.textContent = msg; status.className = 'text-red-600'; }
+        function setSuccess(msg) { status.textContent = msg; status.className = 'text-green-600'; }
+        function clearStatus() { status.textContent = ''; status.className = ''; }
+        function resetUI() {
+            docPick.classList.add('hidden');
+            form.classList.add('hidden');
+            docSel.innerHTML = '';
+            newIdRow.classList.add('hidden');
+            clearStatus();
+        }
+    </script>
+</body>
+</html>
