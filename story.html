@@ -50,6 +50,8 @@
     </div>
 
     <script type="module">
+        const INTRO_ENABLED = true;  // set to false to skip intro and go straight to the first scenario
+
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
         import {
             getFirestore,
@@ -433,8 +435,67 @@
                 app.append(card);
             }
 
+            function renderIntro() {
+                const app = document.getElementById('app');
+                app.innerHTML = '';
+
+                // 1) Story title
+                const titleEl = document.createElement('h1');
+                titleEl.textContent = data.title;                        // assume you loaded data.title from Firestore
+                titleEl.className = 'text-3xl font-bold mb-2';
+                app.append(titleEl);
+
+                // 2) Intro sentence
+                const descEl = document.createElement('p');
+                descEl.textContent = 'The following antibiotics play a key role in this case study:';
+                descEl.className = 'mb-4 text-gray-700';
+                app.append(descEl);
+
+                const introContainer = document.createElement('div');
+                introContainer.className = 'flex flex-col space-y-3';
+
+                // one “scenario-style” row per drug
+                drugNames.forEach(drug => {
+                    const row = document.createElement('div');
+                    row.className = 'flex';
+
+                    // big blue button (same as your scenario choice buttons)
+                    const drugBtn = document.createElement('button');
+                    drugBtn.className = 'flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded';
+                    drugBtn.textContent = drug;
+                    drugBtn.onclick = () => showDrugInfo(drug);
+
+                    row.append(drugBtn);
+
+                    introContainer.append(row);
+                });
+
+                // finally add your “I’m ready…” start button below
+                const startRow = document.createElement('div');
+                startRow.className = 'flex';
+
+                const startBtn = document.createElement('button');
+                startBtn.className = 'flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded';
+                startBtn.textContent = "I’m ready, let’s start";
+                startBtn.onclick = () => {
+                    current = Object.keys(scenarios)[0];
+                    renderStory();
+                };
+                startRow.append(startBtn);
+
+                introContainer.append(startRow);
+
+                app.append(introContainer);
+            }
+
+
+
             // Kick things off
-            renderStory();
+            if (INTRO_ENABLED) {
+                renderIntro();
+            } else {
+                renderStory();
+            }
         })();
     </script>
 </body>
