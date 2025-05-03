@@ -157,10 +157,10 @@
         document.getElementById('modal-title').append(svg(ShieldSVG), document.createTextNode(' '+title));
         document.getElementById('modal-content').innerHTML =
             `<ul class="list-disc ml-5 space-y-1">
-             <li><strong>Family:</strong> ${info.family-sum || '—'}</li>
-             <li><strong>Spectrum:</strong> ${info.spectrum-of-coverage-sum || '—'}</li>
-             <li><strong>PK:</strong> ${info.pk-sum || '—'}</li>
-             <li><strong>Toxicities:</strong> ${info.toxicity-sum || '—'}</li>
+             <li><strong>Family:</strong> ${info['family-sum'] || '—'}</li>
+             <li><strong>Spectrum:</strong> ${info['spectrum-of-coverage-sum'] || '—'}</li>
+             <li><strong>PK:</strong> ${info['pk-sum'] || '—'}</li>
+             <li><strong>Toxicities:</strong> ${info['toxicity-sum'] || '—'}</li>
            </ul>`;
         modal.classList.remove('hidden');
       }
