@@ -1,345 +1,382 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Story Engine</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-	  /* simple shake keyframes */
-	  @keyframes shake {
-		0%,100% { transform: translateX(0); }
-		10%,30%,50%,70%,90% { transform: translateX(-5px); }
-		20%,40%,60%,80% { transform: translateX(5px); }
-	  }
-	  .shake {
-		animation: shake 0.5s ease-in-out;
-	  }
-	</style>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8" />
+    <title>Story Engine</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* simple shake keyframes */
+        @keyframes shake {
+            0%,100% {
+                transform: translateX(0);
+            }
+
+            10%,30%,50%,70%,90% {
+                transform: translateX(-5px);
+            }
+
+            20%,40%,60%,80% {
+                transform: translateX(5px);
+            }
+        }
+
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-gray-100">
-  <div class="container mx-auto px-4 py-6 max-w-2xl">
-    <!-- Header with back-link and logo -->
-    <div class="flex justify-between items-center mb-4">
-      <a href="index.html" class="text-blue-600 hover:underline">← Back to Stories</a>
-      <img src="images/grushkush_logo.png" alt="GrushKush Logo" class="w-24 md:w-32 h-auto" />
+    <div class="container mx-auto px-4 py-6 max-w-2xl">
+        <!-- Header with back-link and logo -->
+        <div class="flex justify-between items-center mb-4">
+            <a href="index.html" class="text-blue-600 hover:underline">← Back to Stories</a>
+            <img src="images/grushkush_logo.png" alt="GrushKush Logo" class="w-24 md:w-32 h-auto" />
+        </div>
+
+        <div id="app" class="space-y-6"></div>
     </div>
 
-    <div id="app" class="space-y-6"></div>
-  </div>
-
-  <!-- Drug Info Modal -->
-  <div id="modal" class="fixed inset-0 hidden bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-xl p-4 w-11/12 max-w-md">
-      <div class="flex items-center mb-2">
-        <span id="modal-title" class="flex flex-1 text-lg font-semibold text-blue-800"></span>
-        <button id="modal-close" class="text-gray-500 hover:text-gray-800">✕</button>
-      </div>
-      <div id="modal-content" class="text-sm text-gray-800 max-h-60 overflow-y-auto"></div>
+    <!-- Drug Info Modal -->
+    <div id="modal" class="fixed inset-0 hidden bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl p-4 w-11/12 max-w-md">
+            <div class="flex items-center mb-2">
+                <span id="modal-title" class="flex flex-1 text-lg font-semibold text-blue-800"></span>
+                <button id="modal-close" class="text-gray-500 hover:text-gray-800">✕</button>
+            </div>
+            <div id="modal-content" class="text-sm text-gray-800 max-h-60 overflow-y-auto"></div>
+        </div>
     </div>
-  </div>
 
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
-    import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
+        import {
+            getFirestore,
+            collection,
+            doc,
+            getDoc,
+            getDocs,
+            query,
+            where,
+            orderBy
+        } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
 
-    // ---- YOUR FIREBASE CONFIG HERE ----
-    const firebaseConfig = {
-      apiKey: "AIzaSyClEgpGrVTXT2zQNNDBDg0TNX2F24k6oTg",
-      authDomain: "urushka99.firebaseapp.com",
-      projectId: "urushka99",
-      storageBucket: "urushka99.firebasestorage.app",
-      messagingSenderId: "954120822793",
-      appId: "1:954120822793:web:6c316b1b178081b56758d8",
-      measurementId: "G-5LCB9E7PL9"
-    };
-    // -----------------------------------
-
-    // Initialize Firebase and Firestore
-    const app = initializeApp(firebaseConfig);
-      const db = getFirestore(app);
-
-      const drugCache = new Map();                 // name → { …profile… } | null
-
-      async function fetchDrug(name) {
-          if (drugCache.has(name)) return drugCache.get(name);
-          try {
-              const snap = await getDoc(doc(db, 'drugs', name));
-              const data = snap.exists() ? snap.data() : null;
-              
-              drugCache.set(name, data);
-              return data;
-          } catch (e) {
-              console.error('Drug fetch failed', e);
-              drugCache.set(name, null);
-              return null;
-          }
-      }
-
-
-    (async function() {
-      // 1) Determine storyId from URL
-      const params  = new URLSearchParams(window.location.search);
-        let data;
-	  if (params.get('preview') === '1' && params.has('data')) {
-          // —— PREVIEW MODE ——
-
-          const dataParam = params.get('data');
-          // only now parse
-          try {
-              data = JSON.parse(dataParam);
-          } catch (e) {
-              document.getElementById('app').innerHTML =
-                  `<div class="text-red-600">Preview JSON is invalid: ${e.message}</div>`;
-          }
-	  } else {
-		// —— NORMAL MODE ——
-		const storyId = params.get('story') || 'no story';
-		const snap    = await getDoc(doc(db, 'stories', storyId));
-		if (!snap.exists()) {
-		  document.getElementById('app').innerHTML =
-			`<div class="text-red-600">Story “${storyId}” not found in Firestore.</div>`;
-		  return;
-		}
-		data = snap.data();
-
-        }
-        const scenarios = data.scenarios;
-
-        const drugNames = Array.from(
-            Object.values(data.scenarios || {})       // turn the object into an array
-                .reduce((acc, sc) => {
-                    (sc.options || []).forEach(o => {
-                        if (o.drugName) acc.add(o.drugName);   // Set keeps them unique
-                    });
-                    return acc;
-                }, new Set())                       // ← Set for uniqueness
-        );
-
-        /* --- canonical map:  "ciprofloxacin" → "Ciprofloxacin" --- */
-        const drugMap = new Map(drugNames.map(n => [n.toLowerCase(), n]));
-        const drugSet = new Set(drugMap.keys());          // fast membership test
-
-        const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const DRUG_REGEX =
-            new RegExp(`\\b(${drugNames.map(esc).join('|')})\\b`, 'gi'); // still global / i
-
-      const quiz      = data.quiz;
-        const summary = data.summary;
-
-        async function showDrugInfo(name) {
-            const info = await fetchDrug(name);
-            if (!info) {
-                alert(`Drug “${name}” is not yet in the database.`);
-                return;
-            }
-            // reuse your existing modal renderer
-            showModal(name, info);
-        }
-
-
-      // 3) Setup state & SVG utility
-      let current = 'OPT0', inQuiz = false, answers = {};
-      function svg(html) {
-        const t = document.createElement('template');
-        t.innerHTML = html.trim();
-        return t.content.firstChild;
-      }
-      const InfoSVG   = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 ml-1 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2.25c5.385 0 9.75 4.365 9.75 9.75S17.385 21.75 12 21.75 2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/></svg>`;
-      const ShieldSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m1-2a9 9 0 11-8 0v5a2 2 0 002 2h4a2 2 0 010 0V6z"/></svg>`;
-
-      // Modal controls
-      const modal = document.getElementById('modal');
-      document.getElementById('modal-close').onclick = () => modal.classList.add('hidden');
-      function showModal(title, info) {
-        document.getElementById('modal-title').textContent = '';
-        document.getElementById('modal-title').append(svg(ShieldSVG), document.createTextNode(' '+title));
-        document.getElementById('modal-content').innerHTML =
-            `<ul class="list-disc ml-5 space-y-1">
-             <li><strong>Family:</strong> ${info.Family || '—'}</li>
-             <li><strong>Spectrum:</strong> ${info.Spectrum || '—'}</li>
-             <li><strong>PK:</strong> ${info.PK || '—'}</li>
-             <li><strong>Toxicities:</strong> ${info.Toxicities || '—'}</li>
-           </ul>`;
-        modal.classList.remove('hidden');
-      }
-
-      // Render story
-      function renderStory() {
-        inQuiz = false;
-        const app = document.getElementById('app');
-        app.innerHTML = '';
-        const sc = scenarios[current];
-
-        // Story text card
-        const card = document.createElement('div');
-        card.className = 'bg-white p-6 rounded shadow text-lg whitespace-pre-wrap';
-		// —— failure styling —— 
-		if (sc.pathResult === 'failure') {
-		  // 1) add a red tint + red border
-		  card.classList.add('bg-red-50', 'border', 'border-red-400');
-		  // 2) make it shake once
-		  card.classList.add('shake');
-		  // 3) prepend a big ❌ banner
-		  const banner = document.createElement('div');
-		  banner.className = 'flex items-center bg-red-500 text-white px-4 py-2 rounded-t';
-		  banner.innerHTML = `<span class="text-xl mr-2">❌</span><strong>Incorrect choice</strong>`;
-		  card.prepend(banner);
-		}
-
-        /* ------------ 1. utilities prepared once ------------------- */
-          
-
-          // ---------- inline highlighting (no drugInfo JSON any more) ----------
-          const paragraph = document.createElement('p');
-          paragraph.className = 'mb-4 whitespace-pre-wrap';   // ← keep your old styling
-          card.append(paragraph);                             // add <p> to the card first
-
-          // highlight drug names inline   (inside the scenario loop where `card` exists)
-          sc.text.split(DRUG_REGEX).forEach(seg => {
-              const key = seg.toLowerCase();
-              if (drugSet.has(key)) {
-                  const canon = drugMap.get(key);                 // Firestore ID
-                  const btn = document.createElement('button');
-                  btn.className =
-                      'inline-flex items-center text-blue-600 hover:underline';
-                  btn.textContent = seg;                          // keep original casing
-                  btn.append(svg(InfoSVG));
-                  btn.onclick = () => showDrugInfo(canon);         // ← canonical name
-                  card.append(btn);
-              } else {
-                  card.append(document.createTextNode(seg));
-              }
-          });
-
-
-        // Options & Info buttons
-        const opts = document.createElement('div');
-        opts.className = 'flex flex-col space-y-3';
-		const startQuiz = sc.pathResult === 'success';
-        sc.options.forEach(o=>{
-          const row = document.createElement('div');
-          row.className = 'flex';
-          // option button
-          const b = document.createElement('button');
-          b.className = 'flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded';
-          b.textContent = o.text;
-          b.onclick = ()=> { current = o.id; renderStory(); };
-          row.append(b);
-          // info button if drugInfo exists
-            if (o.drugName) {
-                const ib = document.createElement('button');
-                ib.className = 'ml-2 inline-flex items-center border border-blue-500 hover:bg-blue-50 px-2 py-0.5 rounded';
-                ib.textContent = 'Info';
-                ib.prepend(svg(ShieldSVG));
-                ib.onclick = () => showDrugInfo(o.drugName);
-                row.append(ib);
-            }
-          opts.append(row);
-        });
-
-        // “Take Quiz” if end-of-story and quiz exists
-        if (startQuiz && quiz) {
-          const qbtn = document.createElement('button');
-          qbtn.textContent = 'Take Quiz';
-          qbtn.className = 'mt-4 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded';
-          qbtn.onclick = renderQuiz;
-          opts.append(qbtn);
-          }
-          app.append(card); 
-          app.append(opts);
-      }
-	  
-
-      // Render quiz
-      function renderQuiz() {
-        inQuiz = true; answers = {};
-        const app = document.getElementById('app');
-        app.innerHTML = '';
-        const form = document.createElement('form');
-        form.className = 'space-y-6 bg-white p-6 rounded shadow';
-
-        quiz.choices.forEach(q=>{
-          const block = document.createElement('div');
-          const qel = document.createElement('p');
-          qel.className = 'font-semibold';
-          qel.textContent = q.question;
-          block.append(qel);
-          q.options.forEach(opt=>{
-            const label = document.createElement('label');
-            label.className = 'inline-flex items-center mr-4';
-            const inp = document.createElement('input');
-            inp.type = 'radio'; inp.name = q.id; inp.value = opt; inp.className='mr-2';
-            label.append(inp, document.createTextNode(opt));
-            block.append(label);
-          });
-          form.append(block);
-        });
-
-        const submit = document.createElement('button');
-        submit.type = 'submit';
-        submit.className = 'bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded';
-        submit.textContent = 'Submit Quiz';
-        form.append(submit);
-
-        form.onsubmit = e=>{
-          e.preventDefault();
-          quiz.choices.forEach(q=>{
-            answers[q.id] = form[q.id].value;
-          });
-          renderQuizResults();
+        // ---- YOUR FIREBASE CONFIG HERE ----
+        const firebaseConfig = {
+            apiKey: "AIzaSyClEgpGrVTXT2zQNNDBDg0TNX2F24k6oTg",
+            authDomain: "urushka99.firebaseapp.com",
+            projectId: "urushka99",
+            storageBucket: "urushka99.firebasestorage.app",
+            messagingSenderId: "954120822793",
+            appId: "1:954120822793:web:6c316b1b178081b56758d8",
+            measurementId: "G-5LCB9E7PL9"
         };
-        app.append(form);
-      }
+        // -----------------------------------
 
-      // Render quiz results
-      function renderQuizResults() {
-        const app = document.getElementById('app');
-        app.innerHTML = '';
-        quiz.choices.forEach(q=>{
-          const block = document.createElement('div'); block.className='mb-4';
-          const qel = document.createElement('p'); qel.className='font-semibold';
-          qel.textContent = q.question; block.append(qel);
-          const user = answers[q.id], correct=q.correct;
-          const res = document.createElement('p');
-          if (user===correct) {
-            res.textContent = `✔ Correct (${user})`; res.className='text-green-600';
-          } else {
-            res.textContent = `✖ You chose "${user||'—'}", correct is "${correct}"`; res.className='text-red-600';
-          }
-          block.append(res); app.append(block);
-        });
-        if (summary) {
-          const sb = document.createElement('button');
-          sb.textContent = 'Show Summary';
-          sb.className = 'mt-2 bg-indigo-500 hover:bg-indigo-600 text-white py-2 px-4 rounded';
-          sb.onclick = renderSummary;
-          app.append(sb);
+        // Initialize Firebase and Firestore
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // load drug info ui-fields
+        let drugUIFields = [];
+        (async () => {
+            const q = query(
+                collection(db, "ui-fields"),
+                where("ui_part", "==", "drug"),
+                where("type", "==", "Summary"),
+                orderBy("order")
+            );
+            const snap = await getDocs(q);
+            drugUIFields = snap.docs.map(d => d.data());
+        })();
+
+
+        const drugCache = new Map();                 // name → { …profile… } | null
+
+        async function fetchDrug(name) {
+            if (drugCache.has(name)) return drugCache.get(name);
+            try {
+                const snap = await getDoc(doc(db, 'drugs', name));
+                const data = snap.exists() ? snap.data() : null;
+
+                drugCache.set(name, data);
+                return data;
+            } catch (e) {
+                console.error('Drug fetch failed', e);
+                drugCache.set(name, null);
+                return null;
+            }
         }
-      }
 
-      // Render summary
-      function renderSummary() {
-        const app = document.getElementById('app');
-        app.innerHTML = '';
-        const card = document.createElement('div');
-        card.className = 'bg-white p-6 rounded shadow space-y-2';
-        const h = document.createElement('h2');
-        h.className = 'text-xl font-semibold'; h.textContent = 'Key Summary Points';
-        card.append(h);
-        summary.points.forEach(pt=>{
-          const p = document.createElement('p');
-          p.className = 'flex items-start';
-          p.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>${pt}`;
-          card.append(p);
-        });
-        app.append(card);
-      }
 
-      // Kick things off
-      renderStory();
-    })();
-  </script>
+        (async function () {
+            // 1) Determine storyId from URL
+            const params = new URLSearchParams(window.location.search);
+            let data;
+            if (params.get('preview') === '1' && params.has('data')) {
+                // —— PREVIEW MODE ——
+
+                const dataParam = params.get('data');
+                // only now parse
+                try {
+                    data = JSON.parse(dataParam);
+                } catch (e) {
+                    document.getElementById('app').innerHTML =
+                        `<div class="text-red-600">Preview JSON is invalid: ${e.message}</div>`;
+                }
+            } else {
+                // —— NORMAL MODE ——
+                const storyId = params.get('story') || 'no story';
+                const snap = await getDoc(doc(db, 'stories', storyId));
+                if (!snap.exists()) {
+                    document.getElementById('app').innerHTML =
+                        `<div class="text-red-600">Story “${storyId}” not found in Firestore.</div>`;
+                    return;
+                }
+                data = snap.data();
+
+            }
+            const scenarios = data.scenarios;
+
+            const drugNames = Array.from(
+                Object.values(data.scenarios || {})       // turn the object into an array
+                    .reduce((acc, sc) => {
+                        (sc.options || []).forEach(o => {
+                            if (o.drugName) acc.add(o.drugName);   // Set keeps them unique
+                        });
+                        return acc;
+                    }, new Set())                       // ← Set for uniqueness
+            );
+
+            /* --- canonical map:  "ciprofloxacin" → "Ciprofloxacin" --- */
+            const drugMap = new Map(drugNames.map(n => [n.toLowerCase(), n]));
+            const drugSet = new Set(drugMap.keys());          // fast membership test
+
+            const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const DRUG_REGEX =
+                new RegExp(`\\b(${drugNames.map(esc).join('|')})\\b`, 'gi'); // still global / i
+
+            const quiz = data.quiz;
+            const summary = data.summary;
+
+            async function showDrugInfo(name) {
+                const info = await fetchDrug(name);
+                if (!info) {
+                    alert(`Drug “${name}” is not yet in the database.`);
+                    return;
+                }
+                // reuse your existing modal renderer
+                showModal(name, info);
+            }
+
+
+            // 3) Setup state & SVG utility
+            let current = 'OPT0', inQuiz = false, answers = {};
+            function svg(html) {
+                const t = document.createElement('template');
+                t.innerHTML = html.trim();
+                return t.content.firstChild;
+            }
+            const InfoSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 ml-1 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2.25c5.385 0 9.75 4.365 9.75 9.75S17.385 21.75 12 21.75 2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/></svg>`;
+            const ShieldSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m1-2a9 9 0 11-8 0v5a2 2 0 002 2h4a2 2 0 010 0V6z"/></svg>`;
+
+            // Modal controls
+            const modal = document.getElementById('modal');
+            document.getElementById('modal-close').onclick = () => modal.classList.add('hidden');
+            function showModal(title, info) {
+                // title is the drug name, info is the object from data.drugInfo[title]
+                const listItems = drugUIFields
+                    .map(f => {
+                        const val = info[f.data_field_id] ?? "";
+                        return `<li><strong>${f.name}:</strong> ${val}</li>`;
+                    })
+                    .join("");
+
+                document.getElementById("modal-title").textContent = title;
+                document.getElementById("modal-content").innerHTML =
+                    `<ul class="list-disc ml-5">
+                       ${listItems}
+                     </ul>`;
+                modal.classList.remove("hidden");
+            }
+
+
+            // Render story
+            function renderStory() {
+                inQuiz = false;
+                const app = document.getElementById('app');
+                app.innerHTML = '';
+                const sc = scenarios[current];
+
+                // Story text card
+                const card = document.createElement('div');
+                card.className = 'bg-white p-6 rounded shadow text-lg whitespace-pre-wrap';
+                // —— failure styling ——
+                if (sc.pathResult === 'failure') {
+                    // 1) add a red tint + red border
+                    card.classList.add('bg-red-50', 'border', 'border-red-400');
+                    // 2) make it shake once
+                    card.classList.add('shake');
+                    // 3) prepend a big ❌ banner
+                    const banner = document.createElement('div');
+                    banner.className = 'flex items-center bg-red-500 text-white px-4 py-2 rounded-t';
+                    banner.innerHTML = `<span class="text-xl mr-2">❌</span><strong>Incorrect choice</strong>`;
+                    card.prepend(banner);
+                }
+
+                /* ------------ 1. utilities prepared once ------------------- */
+
+
+                // ---------- inline highlighting (no drugInfo JSON any more) ----------
+                const paragraph = document.createElement('p');
+                paragraph.className = 'mb-4 whitespace-pre-wrap';   // ← keep your old styling
+                card.append(paragraph);                             // add <p> to the card first
+
+                // highlight drug names inline   (inside the scenario loop where `card` exists)
+                sc.text.split(DRUG_REGEX).forEach(seg => {
+                    const key = seg.toLowerCase();
+                    if (drugSet.has(key)) {
+                        const canon = drugMap.get(key);                 // Firestore ID
+                        const btn = document.createElement('button');
+                        btn.className =
+                            'inline-flex items-center text-blue-600 hover:underline';
+                        btn.textContent = seg;                          // keep original casing
+                        btn.append(svg(InfoSVG));
+                        btn.onclick = () => showDrugInfo(canon);         // ← canonical name
+                        card.append(btn);
+                    } else {
+                        card.append(document.createTextNode(seg));
+                    }
+                });
+
+
+                // Options & Info buttons
+                const opts = document.createElement('div');
+                opts.className = 'flex flex-col space-y-3';
+                const startQuiz = sc.pathResult === 'success';
+                sc.options.forEach(o => {
+                    const row = document.createElement('div');
+                    row.className = 'flex';
+                    // option button
+                    const b = document.createElement('button');
+                    b.className = 'flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded';
+                    b.textContent = o.text;
+                    b.onclick = () => { current = o.id; renderStory(); };
+                    row.append(b);
+                    // info button if drugInfo exists
+                    if (o.drugName) {
+                        const ib = document.createElement('button');
+                        ib.className = 'ml-2 inline-flex items-center border border-blue-500 hover:bg-blue-50 px-2 py-0.5 rounded';
+                        ib.textContent = 'Info';
+                        ib.prepend(svg(ShieldSVG));
+                        ib.onclick = () => showDrugInfo(o.drugName);
+                        row.append(ib);
+                    }
+                    opts.append(row);
+                });
+
+                // “Take Quiz” if end-of-story and quiz exists
+                if (startQuiz && quiz) {
+                    const qbtn = document.createElement('button');
+                    qbtn.textContent = 'Take Quiz';
+                    qbtn.className = 'mt-4 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded';
+                    qbtn.onclick = renderQuiz;
+                    opts.append(qbtn);
+                }
+                app.append(card);
+                app.append(opts);
+            }
+
+
+            // Render quiz
+            function renderQuiz() {
+                inQuiz = true; answers = {};
+                const app = document.getElementById('app');
+                app.innerHTML = '';
+                const form = document.createElement('form');
+                form.className = 'space-y-6 bg-white p-6 rounded shadow';
+
+                quiz.choices.forEach(q => {
+                    const block = document.createElement('div');
+                    const qel = document.createElement('p');
+                    qel.className = 'font-semibold';
+                    qel.textContent = q.question;
+                    block.append(qel);
+                    q.options.forEach(opt => {
+                        const label = document.createElement('label');
+                        label.className = 'inline-flex items-center mr-4';
+                        const inp = document.createElement('input');
+                        inp.type = 'radio'; inp.name = q.id; inp.value = opt; inp.className = 'mr-2';
+                        label.append(inp, document.createTextNode(opt));
+                        block.append(label);
+                    });
+                    form.append(block);
+                });
+
+                const submit = document.createElement('button');
+                submit.type = 'submit';
+                submit.className = 'bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded';
+                submit.textContent = 'Submit Quiz';
+                form.append(submit);
+
+                form.onsubmit = e => {
+                    e.preventDefault();
+                    quiz.choices.forEach(q => {
+                        answers[q.id] = form[q.id].value;
+                    });
+                    renderQuizResults();
+                };
+                app.append(form);
+            }
+
+            // Render quiz results
+            function renderQuizResults() {
+                const app = document.getElementById('app');
+                app.innerHTML = '';
+                quiz.choices.forEach(q => {
+                    const block = document.createElement('div'); block.className = 'mb-4';
+                    const qel = document.createElement('p'); qel.className = 'font-semibold';
+                    qel.textContent = q.question; block.append(qel);
+                    const user = answers[q.id], correct = q.correct;
+                    const res = document.createElement('p');
+                    if (user === correct) {
+                        res.textContent = `✔ Correct (${user})`; res.className = 'text-green-600';
+                    } else {
+                        res.textContent = `✖ You chose "${user || '—'}", correct is "${correct}"`; res.className = 'text-red-600';
+                    }
+                    block.append(res); app.append(block);
+                });
+                if (summary) {
+                    const sb = document.createElement('button');
+                    sb.textContent = 'Show Summary';
+                    sb.className = 'mt-2 bg-indigo-500 hover:bg-indigo-600 text-white py-2 px-4 rounded';
+                    sb.onclick = renderSummary;
+                    app.append(sb);
+                }
+            }
+
+            // Render summary
+            function renderSummary() {
+                const app = document.getElementById('app');
+                app.innerHTML = '';
+                const card = document.createElement('div');
+                card.className = 'bg-white p-6 rounded shadow space-y-2';
+                const h = document.createElement('h2');
+                h.className = 'text-xl font-semibold'; h.textContent = 'Key Summary Points';
+                card.append(h);
+                summary.points.forEach(pt => {
+                    const p = document.createElement('p');
+                    p.className = 'flex items-start';
+                    p.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>${pt}`;
+                    card.append(p);
+                });
+                app.append(card);
+            }
+
+            // Kick things off
+            renderStory();
+        })();
+    </script>
 </body>
 </html>
