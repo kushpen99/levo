@@ -597,9 +597,7 @@
             d.append(lbl, inp, del);
 
             // insert before “Add field” if it exists, otherwise at end
-            const addBtn = drugForm.querySelector('button[type="button"]');
-            if (addBtn) drugForm.insertBefore(d, addBtn);
-            else drugForm.append(d);
+            drugForm.append(d);
         }
 
 
