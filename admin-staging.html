@@ -185,52 +185,52 @@
                 <div id="drug-form" class="grid grid-cols-1 gap-4">
                     <!-- existing ones… -->
                     <div>
-                        <label class="block font-semibold mb-1">Family (ex)</label>
+                        <label for="drug-family-ex" class="block font-semibold mb-1">Family (ex)</label>
                         <input id="drug-family-ex" type="text" class="border rounded px-2 py-1 w-full">
                     </div>
                     <div>
-                        <label class="block font-semibold mb-1">Subclass (ex)</label>
+                        <label for="drug-subclass-ex" class="block font-semibold mb-1">Subclass (ex)</label>
                         <input id="drug-subclass-ex" type="text" class="border rounded px-2 py-1 w-full">
                     </div>
                     <div>
-                        <label class="block font-semibold mb-1">Mechanism of action (ex)</label>
+                        <label for="drug-mechanism-of-action-ex" class="block font-semibold mb-1">Mechanism of action (ex)</label>
                         <input id="drug-mechanism-of-action-ex" type="text" class="border rounded px-2 py-1 w-full">
                     </div>
                     <div>
-                        <label class="block font-semibold mb-1">Spectrum of coverage (ex)</label>
-                        <textarea id="drug-spectrum-of-coverage-ex" rows="2" class="border rounded px-2 py-1 w-full"></textarea>
+                        <label for="drug-spectrum-of-coverage-ex" class="block font-semibold mb-1">Spectrum of coverage (ex)</label>
+                        <input id="drug-spectrum-of-coverage-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
                     </div>
                     <div>
-                        <label class="block font-semibold mb-1">Major resistance mechanisms (ex)</label>
-                        <textarea id="drug-major-resistance-mechanisms-ex" rows="2" class="border rounded px-2 py-1 w-full"></textarea>
+                        <label for="drug-major-resistance-mechanisms-ex" class="block font-semibold mb-1">Major resistance mechanisms (ex)</label>
+                        <input id="drug-major-resistance-mechanisms-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
                     </div>
                     <div>
-                        <label class="block font-semibold mb-1">Pharmacodynamics (ex)</label>
-                        <textarea id="drug-pd-ex" rows="2" class="border rounded px-2 py-1 w-full"></textarea>
+                        <label for="drug-pd-ex" class="block font-semibold mb-1">Pharmacodynamics (ex)</label>
+                        <input id="drug-pd-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
                     </div>
                     <div>
-                        <label class="block font-semibold mb-1">PK (ex)</label>
-                        <textarea id="drug-pk-ex" rows="2" class="border rounded px-2 py-1 w-full"></textarea>
+                        <label for="drug-pk-ex" class="block font-semibold mb-1">PK (ex)</label>
+                        <input id="drug-pk-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
                     </div>
                     <div>
-                        <label class="block font-semibold mb-1">Toxicity (ex)</label>
-                        <textarea id="drug-toxicity-ex" rows="2" class="border rounded px-2 py-1 w-full"></textarea>
+                        <label for="drug-toxicity-ex" class="block font-semibold mb-1">Toxicity (ex)</label>
+                        <input id="drug-toxicity-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
                     </div>
                     <!-- now the “-sum” fields -->
                     <div>
-                        <label class="block font-semibold mb-1">Family (sum)</label>
+                        <label for="drug-toxicity-ex" class="block font-semibold mb-1">Family (sum)</label>
                         <input id="drug-family-sum" type="text" class="border rounded px-2 py-1 w-full">
                     </div>
                     <div>
-                        <label class="block font-semibold mb-1">Spectrum of coverage (sum)</label>
+                        <label for="drug-spectrum-of-coverage-sum" class="block font-semibold mb-1">Spectrum of coverage (sum)</label>
                         <input id="drug-spectrum-of-coverage-sum" type="text" class="border rounded px-2 py-1 w-full">
                     </div>
                     <div>
-                        <label class="block font-semibold mb-1">PK (sum)</label>
+                        <label for="drug-pk-sum" class="block font-semibold mb-1">PK (sum)</label>
                         <input id="drug-pk-sum" type="text" class="border rounded px-2 py-1 w-full">
                     </div>
                     <div>
-                        <label class="block font-semibold mb-1">Toxicity (sum)</label>
+                        <label for="rug-toxicity-sum" class="block font-semibold mb-1">Toxicity (sum)</label>
                         <input id="drug-toxicity-sum" type="text" class="border rounded px-2 py-1 w-full">
                     </div>
                 </div>
@@ -577,7 +577,7 @@
             // input
             const inp = document.createElement('input');
             inp.placeholder = 'field name';
-            inp.value = val;
+            inp.id = key;
             inp.type = 'text';
             inp.className = 'border rounded px-2 py-1 w-full';
 
@@ -592,7 +592,7 @@
             del.type = 'button';
             del.textContent = '🗑';
             del.className = 'text-red-600 hover:text-red-800';
-            del.onclick = () => fs.remove();
+            del.onclick = () => d.remove();
 
             d.append(lbl, inp, del);
 
@@ -662,12 +662,11 @@ ${ drugNameEl.value }
                 // 4) merge into the form, but don't overwrite non‐empty fields
                 Object.entries(aiData).forEach(([key, value]) => {
                     // look for an existing row whose key input === `key`
-                    const row = Array.from(drugForm.querySelectorAll('div')).find(el => {
-                        return el.querySelector('input').id === key;
-                    });
-                    if (row) {
-                        const valInput = row.querySelectorAll('input')[1];
-                        if (!valInput.value) valInput.value = value;
+                    const inputEL = document.getElementById(key);
+                    
+                    if (inputEL) {
+                        const valInput = inputEL;
+                        if (!inputEL.value || inputEL.value === '') inputEL.value = value;
                     } else {
                         // if it doesn't exist, add a new row
                         addDrugAiFieldRow(key, value);
