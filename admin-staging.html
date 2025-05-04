@@ -663,7 +663,7 @@ ${ drugNameEl.value }
                 Object.entries(aiData).forEach(([key, value]) => {
                     // look for an existing row whose key input === `key`
                     const row = Array.from(drugForm.querySelectorAll('div')).find(el => {
-                        return el.querySelector('label').value === key;
+                        return el.querySelector('input').id === key;
                     });
                     if (row) {
                         const valInput = row.querySelectorAll('input')[1];
