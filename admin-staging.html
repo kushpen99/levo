@@ -662,7 +662,14 @@ ${ drugNameEl.value }
                 // 4) merge into the form, but don't overwrite non‐empty fields
                 Object.entries(aiData).forEach(([key, value]) => {
                     // look for an existing row whose key input === `key`
+
+                    console.log("key: " + key);
+                    console.log("data: " + data);
+
+
                     const inputEL = document.getElementById(key);
+                    console.log("inputEL: " + inputEL.id);
+
                     
                     if (inputEL) {
                         const valInput = inputEL;
