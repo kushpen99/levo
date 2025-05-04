@@ -393,19 +393,19 @@
 
         const drugNameEl = document.getElementById('drug-name');
 
-        const drugFamilyExEl = document.getElementById('drug-family-ex');
-        const drugSubclassExEl = document.getElementById('drug-subclass-ex');
-        const drugMoAExEl = document.getElementById('drug-mechanism-of-action-ex');
-        const drugSpectrumExEl = document.getElementById('drug-spectrum-of-coverage-ex');
-        const drugMajorResExEl = document.getElementById('drug-major-resistance-mechanisms-ex');
-        const drugPdExEl = document.getElementById('drug-pd-ex');
-        const drugPkExEl2 = document.getElementById('drug-pk-ex');               // rename local var if needed
-        const drugToxExEl = document.getElementById('drug-toxicity-ex');
+        const drugFamilyExEl = document.getElementById('family-ex');
+        const drugSubclassExEl = document.getElementById('subclass-ex');
+        const drugMoAExEl = document.getElementById('mechanism-of-action-ex');
+        const drugSpectrumExEl = document.getElementById('spectrum-of-coverage-ex');
+        const drugMajorResExEl = document.getElementById('major-resistance-mechanisms-ex');
+        const drugPdExEl = document.getElementById('pd-ex');
+        const drugPkExEl2 = document.getElementById('pk-ex');               // rename local var if needed
+        const drugToxExEl = document.getElementById('toxicity-ex');
 
-        const drugFamilySumEl = document.getElementById('drug-family-sum');
-        const drugSpectrumSumEl = document.getElementById('drug-spectrum-of-coverage-sum');
-        const drugPkSumEl = document.getElementById('drug-pk-sum');
-        const drugToxicitySumEl = document.getElementById('drug-toxicity-sum');
+        const drugFamilySumEl = document.getElementById('family-sum');
+        const drugSpectrumSumEl = document.getElementById('spectrum-of-coverage-sum');
+        const drugPkSumEl = document.getElementById('pk-sum');
+        const drugToxicitySumEl = document.getElementById('toxicity-sum');
 
 
 
@@ -612,8 +612,7 @@ When given a drug name, fetch its pharmacologic and microbiologic data **only** 
 **Output must be valid JSON, with exactly these keys** (no extra fields):
 
 {
-  "drug_id":        "string",  // e.g. RxNorm ID or PubChem CID
-  "name":           "string",
+  "drug-name":      "string",
   "family-ex":      "string",  // extended description
   "subclass-ex":    "string",
   "mechanism-of-action-ex":         "string",
