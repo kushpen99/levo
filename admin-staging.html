@@ -168,6 +168,14 @@
                         class="hidden bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded">
                     🧠 Generate from AI (empty fields only)
                 </button>
+                <!-- Tailwind spinner, hidden by default -->
+                <svg id="drug-ai-spinner"
+                     class="hidden animate-spin h-5 w-5 text-green-600 ml-2"
+                     xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                    <path class="opacity-75" fill="currentColor"
+                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                </svg>
 
             </div>
 
@@ -186,39 +194,55 @@
                     <!-- existing ones… -->
                     <div>
                         <label for="family-ex" class="block font-semibold mb-1">Family (ex)</label>
-                        <input id="family-ex" type="text" class="border rounded px-2 py-1 w-full">
+                        <textarea id="family-ex" rows="3"
+                                  class="border rounded px-2 py-1 w-full text-sm">
+                        </textarea>
                     </div>
                     <div>
                         <label for="subclass-ex" class="block font-semibold mb-1">Subclass (ex)</label>
-                        <input id="subclass-ex" type="text" class="border rounded px-2 py-1 w-full">
+                        <textarea id="subclass-ex" rows="3"
+                                  class="border rounded px-2 py-1 w-full text-sm">
+                        </textarea>
                     </div>
                     <div>
                         <label for="mechanism-of-action-ex" class="block font-semibold mb-1">Mechanism of action (ex)</label>
-                        <input id="mechanism-of-action-ex" type="text" class="border rounded px-2 py-1 w-full">
+                        <textarea id="mechanism-of-action-ex" rows="3"
+                                  class="border rounded px-2 py-1 w-full text-sm">
+                        </textarea>
                     </div>
                     <div>
                         <label for="spectrum-of-coverage-ex" class="block font-semibold mb-1">Spectrum of coverage (ex)</label>
-                        <input id="spectrum-of-coverage-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
+                        <textarea id="spectrum-of-coverage-ex" rows="3"
+                                  class="border rounded px-2 py-1 w-full text-sm">
+                        </textarea>
                     </div>
                     <div>
                         <label for="major-resistance-mechanisms-ex" class="block font-semibold mb-1">Major resistance mechanisms (ex)</label>
-                        <input id="major-resistance-mechanisms-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
+                        <textarea id="major-resistance-mechanisms-ex" rows="3"
+                                  class="border rounded px-2 py-1 w-full text-sm">
+                        </textarea>
                     </div>
                     <div>
                         <label for="pd-ex" class="block font-semibold mb-1">Pharmacodynamics (ex)</label>
-                        <input id="pd-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
+                        <textarea id="pd-ex" rows="3"
+                                  class="border rounded px-2 py-1 w-full text-sm">
+                        </textarea>
                     </div>
                     <div>
                         <label for="pk-ex" class="block font-semibold mb-1">PK (ex)</label>
-                        <input id="pk-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
+                        <textarea id="pk-ex" rows="3"
+                                  class="border rounded px-2 py-1 w-full text-sm">
+                        </textarea>
                     </div>
                     <div>
                         <label for="toxicity-ex" class="block font-semibold mb-1">Toxicity (ex)</label>
-                        <input id="toxicity-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
+                        <textarea id="toxicity-ex" rows="3"
+                                  class="border rounded px-2 py-1 w-full text-sm">
+                        </textarea>
                     </div>
                     <!-- now the “-sum” fields -->
                     <div>
-                        <label for="toxicity-ex" class="block font-semibold mb-1">Family (sum)</label>
+                        <label for="family-sum" class="block font-semibold mb-1">Family (sum)</label>
                         <input id="family-sum" type="text" class="border rounded px-2 py-1 w-full">
                     </div>
                     <div>
@@ -387,6 +411,8 @@
         const drugSelect = document.getElementById('drug-select');
         const newDrugBtn = document.getElementById('new-drug-btn');
         const drugAiBtn = document.getElementById('drug-ai-btn');
+        const drugAispinner = document.getElementById('drug-ai-spinner');
+
         const drugEditor = document.getElementById('drug-editor');
         const drugAiStatus = document.getElementById('drug-ai-status');
         const drugForm = document.getElementById('drug-form');
@@ -604,6 +630,7 @@
         async function generateDrugInfoByAI() {
             clearDrugAiStatus();
             drugAiBtn.disabled = true;
+            drugAispinner.classList.remove('hidden');
             try {
                 // 1) build your prompt however you like—here’s a placeholder:
                 const prompt = `You are an expert clinical pharmacologist and researcher.  
@@ -667,8 +694,6 @@ ${ drugNameEl.value }
 
 
                     const inputEL = document.getElementById(key);
-                    console.log("inputEL: " + inputEL.id);
-
                     
                     if (inputEL) {
                         console.log("inputEL: " + inputEL.id);
@@ -685,6 +710,7 @@ ${ drugNameEl.value }
                 setDrugAiError('AI generation failed: ' + err.message);
             } finally {
                 drugAiBtn.disabled = false;
+                drugAispinner.classList.add('hidden');
             }
         }
 
