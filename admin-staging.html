@@ -560,6 +560,49 @@
             setDrugStatus('');
         }
 
+        // ——————————————————————————————————————————————————
+        //  Helpers for your dynamic form
+        // ——————————————————————————————————————————————————
+
+        /**
+         * Inserts one <fieldset> into your form, with:
+         *  • an input for the key name  
+         *  • an input for the value  
+         *  • a delete button
+         */
+        function addDrugAiFieldRow(key = '', val = '') {
+            
+            const d = document.createElement('div');
+            
+            // input
+            const inp = document.createElement('input');
+            inp.placeholder = 'field name';
+            inp.value = val;
+            inp.type = 'text';
+            inp.className = 'border rounded px-2 py-1 w-full';
+
+            // label
+            const lbl = document.createElement('lavel');
+            lbl.placeholder = 'value';
+            vallblInp.value = key;
+            lbl.className = 'block font-semibold mb-1';
+
+            // delete button
+            const del = document.createElement('button');
+            del.type = 'button';
+            del.textContent = '🗑';
+            del.className = 'text-red-600 hover:text-red-800';
+            del.onclick = () => fs.remove();
+
+            d.append(lbl, inp, del);
+
+            // insert before “Add field” if it exists, otherwise at end
+            const addBtn = drugForm.querySelector('button[type="button"]');
+            if (addBtn) drugForm.insertBefore(d, addBtn);
+            else drugForm.append(d);
+        }
+
+
         async function generateDrugInfoByAI() {
             clearDrugAiStatus();
             drugAiBtn.disabled = true;
@@ -629,7 +672,7 @@ ${ drugNameEl.value }
                         if (!valInput.value) valInput.value = value;
                     } else {
                         // if it doesn't exist, add a new row
-                        addFieldRow(key, value);
+                        addDrugAiFieldRow(key, value);
                     }
                 });
 
