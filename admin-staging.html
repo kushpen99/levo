@@ -582,7 +582,7 @@
             inp.className = 'border rounded px-2 py-1 w-full';
 
             // label
-            const lbl = document.createElement('lavel');
+            const lbl = document.createElement('label');
             lbl.placeholder = 'value';
             lbl.value = key;
             lbl.className = 'block font-semibold mb-1';
@@ -662,8 +662,8 @@ ${ drugNameEl.value }
                 // 4) merge into the form, but don't overwrite non‐empty fields
                 Object.entries(aiData).forEach(([key, value]) => {
                     // look for an existing row whose key input === `key`
-                    const row = Array.from(drugForm.querySelectorAll('fieldset')).find(fs => {
-                        return fs.querySelector('input').value === key;
+                    const row = Array.from(drugForm.querySelectorAll('div')).find(el => {
+                        return el.querySelector('label').value === key;
                     });
                     if (row) {
                         const valInput = row.querySelectorAll('input')[1];
