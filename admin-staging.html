@@ -185,53 +185,53 @@
                 <div id="drug-form" class="grid grid-cols-1 gap-4">
                     <!-- existing ones… -->
                     <div>
-                        <label for="drug-family-ex" class="block font-semibold mb-1">Family (ex)</label>
-                        <input id="drug-family-ex" type="text" class="border rounded px-2 py-1 w-full">
+                        <label for="family-ex" class="block font-semibold mb-1">Family (ex)</label>
+                        <input id="family-ex" type="text" class="border rounded px-2 py-1 w-full">
                     </div>
                     <div>
-                        <label for="drug-subclass-ex" class="block font-semibold mb-1">Subclass (ex)</label>
-                        <input id="drug-subclass-ex" type="text" class="border rounded px-2 py-1 w-full">
+                        <label for="subclass-ex" class="block font-semibold mb-1">Subclass (ex)</label>
+                        <input id="subclass-ex" type="text" class="border rounded px-2 py-1 w-full">
                     </div>
                     <div>
-                        <label for="drug-mechanism-of-action-ex" class="block font-semibold mb-1">Mechanism of action (ex)</label>
-                        <input id="drug-mechanism-of-action-ex" type="text" class="border rounded px-2 py-1 w-full">
+                        <label for="mechanism-of-action-ex" class="block font-semibold mb-1">Mechanism of action (ex)</label>
+                        <input id="mechanism-of-action-ex" type="text" class="border rounded px-2 py-1 w-full">
                     </div>
                     <div>
-                        <label for="drug-spectrum-of-coverage-ex" class="block font-semibold mb-1">Spectrum of coverage (ex)</label>
-                        <input id="drug-spectrum-of-coverage-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
+                        <label for="spectrum-of-coverage-ex" class="block font-semibold mb-1">Spectrum of coverage (ex)</label>
+                        <input id="spectrum-of-coverage-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
                     </div>
                     <div>
-                        <label for="drug-major-resistance-mechanisms-ex" class="block font-semibold mb-1">Major resistance mechanisms (ex)</label>
-                        <input id="drug-major-resistance-mechanisms-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
+                        <label for="major-resistance-mechanisms-ex" class="block font-semibold mb-1">Major resistance mechanisms (ex)</label>
+                        <input id="major-resistance-mechanisms-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
                     </div>
                     <div>
-                        <label for="drug-pd-ex" class="block font-semibold mb-1">Pharmacodynamics (ex)</label>
-                        <input id="drug-pd-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
+                        <label for="pd-ex" class="block font-semibold mb-1">Pharmacodynamics (ex)</label>
+                        <input id="pd-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
                     </div>
                     <div>
-                        <label for="drug-pk-ex" class="block font-semibold mb-1">PK (ex)</label>
-                        <input id="drug-pk-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
+                        <label for="pk-ex" class="block font-semibold mb-1">PK (ex)</label>
+                        <input id="pk-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
                     </div>
                     <div>
-                        <label for="drug-toxicity-ex" class="block font-semibold mb-1">Toxicity (ex)</label>
-                        <input id="drug-toxicity-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
+                        <label for="toxicity-ex" class="block font-semibold mb-1">Toxicity (ex)</label>
+                        <input id="toxicity-ex" rows="2" class="border rounded px-2 py-1 w-full"></input>
                     </div>
                     <!-- now the “-sum” fields -->
                     <div>
-                        <label for="drug-toxicity-ex" class="block font-semibold mb-1">Family (sum)</label>
-                        <input id="drug-family-sum" type="text" class="border rounded px-2 py-1 w-full">
+                        <label for="toxicity-ex" class="block font-semibold mb-1">Family (sum)</label>
+                        <input id="family-sum" type="text" class="border rounded px-2 py-1 w-full">
                     </div>
                     <div>
-                        <label for="drug-spectrum-of-coverage-sum" class="block font-semibold mb-1">Spectrum of coverage (sum)</label>
-                        <input id="drug-spectrum-of-coverage-sum" type="text" class="border rounded px-2 py-1 w-full">
+                        <label for="spectrum-of-coverage-sum" class="block font-semibold mb-1">Spectrum of coverage (sum)</label>
+                        <input id="spectrum-of-coverage-sum" type="text" class="border rounded px-2 py-1 w-full">
                     </div>
                     <div>
-                        <label for="drug-pk-sum" class="block font-semibold mb-1">PK (sum)</label>
-                        <input id="drug-pk-sum" type="text" class="border rounded px-2 py-1 w-full">
+                        <label for="pk-sum" class="block font-semibold mb-1">PK (sum)</label>
+                        <input id="pk-sum" type="text" class="border rounded px-2 py-1 w-full">
                     </div>
                     <div>
-                        <label for="rug-toxicity-sum" class="block font-semibold mb-1">Toxicity (sum)</label>
-                        <input id="drug-toxicity-sum" type="text" class="border rounded px-2 py-1 w-full">
+                        <label for="toxicity-sum" class="block font-semibold mb-1">Toxicity (sum)</label>
+                        <input id="toxicity-sum" type="text" class="border rounded px-2 py-1 w-full">
                     </div>
                 </div>
 
@@ -672,9 +672,10 @@ ${ drugNameEl.value }
 
                     
                     if (inputEL) {
-                        const valInput = inputEL;
+                        console.log("inputEL: " + inputEL.id);
                         if (!inputEL.value || inputEL.value === '') inputEL.value = value;
                     } else {
+                        console.log("inputEL: null");
                         // if it doesn't exist, add a new row
                         addDrugAiFieldRow(key, value);
                     }
