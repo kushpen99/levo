@@ -86,7 +86,28 @@
           const a  = document.createElement('a');
           a.href = `story.html?story=${encodeURIComponent(id)}`;
           a.textContent = data.title;
-          a.className = 'block bg-white shadow hover:shadow-md rounded-lg px-5 py-4 text-lg sm:text-xl text-blue-600 hover:text-blue-700 transition';
+          a.className = 'block shadow hover:shadow-md rounded-lg px-5 py-4 text-lg sm:text-xl text-blue-600 hover:text-blue-700 transition';
+
+          // Set background color based on data.color
+          let bg = '';
+          switch ((data.color || '').toLowerCase()) {
+            case 'red':
+              bg = 'bg-red-100';
+              break;
+            case 'green':
+              bg = 'bg-green-100';
+              break;
+            case 'blue':
+              bg = 'bg-blue-100';
+              break;
+            case 'yellow':
+              bg = 'bg-yellow-100';
+              break;
+            default:
+              bg = 'bg-white';
+          }
+          a.className = `${bg} block shadow hover:shadow-md rounded-lg px-5 py-4 text-lg sm:text-xl text-blue-600 hover:text-blue-700 transition`;
+
           li.append(a);
           storyList.append(li);
         });
