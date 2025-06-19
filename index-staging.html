@@ -1,0 +1,112 @@
+<!-- index.html (Portal Page) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stories Portal</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-100">
+  <div class="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex justify-between items-center mb-4">
+      <h1 class="text-3xl sm:text-4xl font-bold mb-6 text-center">📖 Story Portal</h1>
+      <img src="images/grushkush_logo.png" alt="GrushKush Logo" class="w-24 md:w-32 h-auto" />
+    </div>
+
+    <!-- Type filter buttons -->
+    <div class="flex flex-col sm:flex-row gap-2 mb-6" id="type-filter-buttons">
+      <button class="type-btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full sm:w-auto" data-type="Antibiotics&Bugs">Antibiotics&Bugs</button>
+      <button class="type-btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full sm:w-auto" data-type="Endocarditis">Endocarditis</button>
+      <button class="type-btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full sm:w-auto" data-type="Immunocompromised host">Immunocompromised host</button>
+    </div>
+    <div id="type-prompt" class="mb-4 text-gray-600">Choose a story type above.</div>
+    <ul id="story-list" class="space-y-4">
+      <!-- story links injected here -->
+    </ul>
+  </div>
+  <!-- Use module script to allow imports -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
+    import { getFirestore, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
+
+    // ---- YOUR FIREBASE CONFIG HERE ----
+    const firebaseConfig = {
+      apiKey: "AIzaSyClEgpGrVTXT2zQNNDBDg0TNX2F24k6oTg",
+      authDomain: "urushka99.firebaseapp.com",
+      projectId: "urushka99",
+      storageBucket: "urushka99.firebasestorage.app",
+      messagingSenderId: "954120822793",
+      appId: "1:954120822793:web:6c316b1b178081b56758d8",
+      measurementId: "G-5LCB9E7PL9"
+    };
+    // -----------------------------------
+
+    // Initialize Firebase and Firestore
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    const storyList = document.getElementById('story-list');
+    const typePrompt = document.getElementById('type-prompt');
+    const typeButtons = document.querySelectorAll('.type-btn');
+    let selectedType = null;
+
+    function clearHighlight() {
+      typeButtons.forEach(btn => btn.classList.remove('bg-blue-700'));
+    }
+
+    async function loadStoriesByType(type) {
+      storyList.innerHTML = '';
+      typePrompt.textContent = '';
+      if (!type) {
+        storyList.innerHTML = '';
+        typePrompt.textContent = 'Choose a story type above.';
+        return;
+      }
+      typePrompt.textContent = 'Loading…';
+      try {
+        const storiesQuery = query(
+          collection(db, 'stories'),
+          where('status', '==', 'published'),
+          where('type', '==', type)
+        );
+        const snapshot = await getDocs(storiesQuery);
+        typePrompt.textContent = '';
+        if (snapshot.empty) {
+          storyList.innerHTML = '<li class="text-gray-600">No stories found for this type.</li>';
+          return;
+        }
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const id = doc.id;
+          const li = document.createElement('li');
+          const a  = document.createElement('a');
+          a.href = `story.html?story=${encodeURIComponent(id)}`;
+          a.textContent = data.title;
+          a.className = 'block bg-white shadow hover:shadow-md rounded-lg px-5 py-4 text-lg sm:text-xl text-blue-600 hover:text-blue-700 transition';
+          li.append(a);
+          storyList.append(li);
+        });
+      } catch (err) {
+        console.error('Failed to load stories:', err);
+        storyList.innerHTML = '<li class="text-red-600">Could not load stories.</li>';
+      }
+    }
+
+    typeButtons.forEach(btn => {
+      btn.onclick = () => {
+        clearHighlight();
+        btn.classList.add('bg-blue-700');
+        selectedType = btn.dataset.type;
+        loadStoriesByType(selectedType);
+      };
+    });
+
+    // Initial state: prompt to choose
+    loadStoriesByType(null);
+  </script>
+</body>
+</html>

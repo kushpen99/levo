@@ -81,14 +81,38 @@
                 <label for="story-id" class="font-semibold block mb-1">Story ID</label>
                 <input id="story-id" type="text" class="border rounded px-3 py-2 w-full" />
             </div>
-            <div>
-                <label for="story-status" class="font-semibold block mb-1">Status</label>
-                <select id="story-status" class="border rounded px-3 py-2 w-auto inline-block">
-                    <option value="draft">Draft</option>
-                    <option value="review">Review</option>
-                    <option value="published">Published</option>
-                    <option value="archived">Archived</option>
-                </select>
+            <div class="flex space-x-4">
+                <!-- Type dropdown -->
+                <div>
+                    <label for="story-type" class="font-semibold block mb-1">Type</label>
+                    <select id="story-type" class="border rounded px-3 py-2 w-auto inline-block">
+                        <option value="">Unset</option>
+                        <option value="Antibiotics&Bugs">Antibiotics&Bugs</option>
+                        <option value="Endocarditis">Endocarditis</option>
+                        <option value="Immunocompromised host">Immunocompromised host</option>
+                    </select>
+                </div>
+                <!-- Color picker -->
+                <div>
+                    <label class="font-semibold block mb-1">Color</label>
+                    <div id="color-picker" class="flex space-x-2">
+                        <button class="color-swatch rounded-full w-8 h-8 border-2 border-transparent" data-color="Red" style="background-color: #ef4444;"></button>
+                        <button class="color-swatch rounded-full w-8 h-8 border-2 border-transparent" data-color="Green" style="background-color: #22c55e;"></button>
+                        <button class="color-swatch rounded-full w-8 h-8 border-2 border-transparent" data-color="Blue" style="background-color: #3b82f6;"></button>
+                        <button class="color-swatch rounded-full w-8 h-8 border-2 border-transparent" data-color="Yellow" style="background-color: #fde047;"></button>
+                    </div>
+                    <input type="hidden" id="story-color" />
+                </div>
+                <!-- Status dropdown -->
+                <div>
+                    <label for="story-status" class="font-semibold block mb-1">Status</label>
+                    <select id="story-status" class="border rounded px-3 py-2 w-auto inline-block">
+                        <option value="draft">Draft</option>
+                        <option value="review">Review</option>
+                        <option value="published">Published</option>
+                        <option value="archived">Archived</option>
+                    </select>
+                </div>
             </div>
             <!-- 🌟 Collapsible JSON Section -->
             <div id="json-section" class="space-y-1">
@@ -119,7 +143,7 @@
                 </button>
                 <button id="preview-btn"
                         class="flex items-center bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-                    <!-- standard “eye” icon SVG from Heroicons -->
+                    <!-- standard "eye" icon SVG from Heroicons -->
                     <svg xmlns="http://www.w3.org/2000/svg"
                          class="w-5 h-5 mr-2"
                          fill="none" viewBox="0 0 24 24"
@@ -240,7 +264,7 @@
                                   class="border rounded px-2 py-1 w-full text-sm">
                         </textarea>
                     </div>
-                    <!-- now the “-sum” fields -->
+                    <!-- now the "-sum" fields -->
                     <div>
                         <label for="family-sum" class="block font-semibold mb-1">Family (sum)</label>
                         <input id="family-sum" type="text" class="border rounded px-2 py-1 w-full">
@@ -319,7 +343,7 @@
 
             const p = getDoc(doc(db, 'drugs', name))
                 .then(snap => snap.exists())
-                .catch(() => false);             // network / perm error → “missing”
+                .catch(() => false);             // network / perm error → "missing"
             drugCache.set(name, p);
             console.log("drugExists: p")
             return p;
@@ -339,7 +363,7 @@
                 'flex items-center justify-center ' +               // center the glyph
                 'w-7 h-7 rounded-full shadow-sm ' +                 // 28 × 28 px circle
                 'bg-white border border-blue-500 ' +                // outline
-                'text-blue-600 font-semibold text-lg leading-none ' + // bigger, bold “＋”
+                'text-blue-600 font-semibold text-lg leading-none ' + // bigger, bold "＋"
                 'hover:bg-blue-50';
             btn.onclick = e => {
                 e.stopPropagation();
@@ -386,6 +410,9 @@
         const storySelect = document.getElementById('story-select');
         const storyIdInput = document.getElementById('story-id');
         const statusSelect = document.getElementById('story-status');
+        const typeSelect = document.getElementById('story-type');
+        const colorPicker = document.getElementById('color-picker');
+        const colorInput = document.getElementById('story-color');
         const toggleJsonBtn = document.getElementById('toggle-json-btn');
         const jsonContainer = document.getElementById('json-container');
         const storyJsonArea = document.getElementById('story-json');
@@ -517,10 +544,10 @@
         async function deleteDrug() {
             const id = drugSelect.value;
             if (!id) return;
-            const ok = confirm(`Delete drug “${id}” permanently?`);
+            const ok = confirm(`Delete drug "${id}" permanently?`);
             if (!ok) return;
             await deleteDoc(doc(db, 'drugs', id));
-            setDrugStatus(`Drug “${id}” deleted`, 'text-green-600');
+            setDrugStatus(`Drug "${id}" deleted`, 'text-green-600');
             resetDrugEditor();
             await loadDrugs();
             invalidateDrugCache(id);
@@ -622,7 +649,7 @@
 
             d.append(lbl, inp, del);
 
-            // insert before “Add field” if it exists, otherwise at end
+            // insert before "Add field" if it exists, otherwise at end
             drugForm.append(d);
         }
 
@@ -632,7 +659,7 @@
             drugAiBtn.disabled = true;
             drugAispinner.classList.remove('hidden');
             try {
-                // 1) build your prompt however you like—here’s a placeholder:
+                // 1) build your prompt however you like—here's a placeholder:
                 const prompt = `You are an expert clinical pharmacologist and researcher.  
 When given a drug name, fetch its pharmacologic and microbiologic data **only** from authoritative, publicly-available sources (e.g. PubChem, DrugBank, FDA drug labels, WHO Essential Medicines List, up-to-date peer-reviewed literature).  
 
@@ -685,7 +712,7 @@ ${ drugNameEl.value }
                 }
                 const aiData = JSON.parse(txt);
 
-                // 4) merge into the form, but don't overwrite non‐empty fields
+                // 4) merge into the form, but don't overwrite non-empty fields
                 Object.entries(aiData).forEach(([key, value]) => {
                     // look for an existing row whose key input === `key`
 
@@ -758,6 +785,8 @@ ${ drugNameEl.value }
             try {
                 const full = JSON.parse(storyJsonArea.value);
                 statusSelect.value = full.status || 'Draft';
+                typeSelect.value = full.type || '';
+                updateColorSwatchFromValue(full.color || '');
             } catch {/* ignore if JSON invalid */ }
         };
 
@@ -776,6 +805,8 @@ ${ drugNameEl.value }
             try {
                 const full = JSON.parse(storyJsonArea.value);
                 statusSelect.value = full.status || 'Draft';
+                typeSelect.value = full.type || '';
+                updateColorSwatchFromValue(full.color || '');
             } catch {/* ignore if JSON invalid */ }
         };
 
@@ -791,6 +822,17 @@ ${ drugNameEl.value }
             setupPresentation();
         };
 
+        typeSelect.onchange = () => {
+            let full;
+            try {
+                full = JSON.parse(storyJsonArea.value);
+            } catch {
+                return;
+            }
+            full.type = typeSelect.value;
+            storyJsonArea.value = JSON.stringify(full, null, 2);
+            setupPresentation();
+        };
 
         toggleJsonBtn.onclick = () => {
             const isNowHidden = jsonContainer.classList.toggle('hidden');
@@ -1010,7 +1052,7 @@ ${ drugNameEl.value }
                     td.className = 'border px-2 py-1';
 
                     const ta = document.createElement('textarea');
-                    // start single‐line high
+                    // start single-line high
                     ta.rows = 1;
                     ta.value = val;
                     ta.className = 'border rounded px-1 py-0.5 w-full resize-none overflow-hidden';
@@ -1019,7 +1061,7 @@ ${ drugNameEl.value }
                     // when focused, expand...
                     ta.addEventListener('focus', () => {
                         ta.rows = expandedRows;
-                        // auto‐grow to content
+                        // auto-grow to content
                         ta.style.height = 'auto';
                         ta.style.height = ta.scrollHeight + 'px';
                     });
@@ -1050,7 +1092,7 @@ ${ drugNameEl.value }
 
             /**
               * Builds a <td> with:
-              *  - “Edit…” button
+              *  - "Edit…" button
               *  - hidden .options-editor panel
               */
             function createOptionsCell(sid, optionsArr) {
@@ -1205,7 +1247,7 @@ ${ drugNameEl.value }
                     });
                 }
 
-                // 3) “Add Option” button
+                // 3) "Add Option" button
                 const addBtn = document.createElement('button');
                 addBtn.textContent = '+ Add Option';
                 addBtn.className = 'bg-blue-500 hover:bg-blue-600 text-white text-sm px-2 py-1 rounded';
@@ -1350,7 +1392,7 @@ ${ drugNameEl.value }
             if (!id || !raw) return showStatus('Story ID and JSON required.', 'text-red-600');
             let obj; try { obj = JSON.parse(raw); } catch { return showStatus('Invalid JSON.', 'text-red-600'); }
             const ref = doc(db, 'stories', id); const snap = await getDoc(ref);
-            const save = { ...obj, updatedAt: serverTimestamp(), createdAt: snap.exists() ? snap.data().createdAt : serverTimestamp() };
+            const save = { ...obj, updatedAt: serverTimestamp(), createdAt: snap.exists() ? snap.data().createdAt : serverTimestamp(), type: typeSelect.value, color: colorInput.value };
             await setDoc(ref, save);
             showStatus(`Story "${id}" saved.`, 'text-green-600'); loadStories();
         };
@@ -1405,7 +1447,7 @@ ${ drugNameEl.value }
 
         /* ------------------------- CREATE STORY ----------------------------------- */
 
-        // 1. Toggle the form when “Create New Story” is clicked
+        // 1. Toggle the form when "Create New Story" is clicked
         createBtn.onclick = () => {
             if (!storySelect.value) {
                 alert('Please select an existing story first – it will be used as an example.');
@@ -1441,8 +1483,8 @@ ${ drugNameEl.value }
                            - status (string - initial value: draft)
                            - createdAt, updatedAt (timestamp objects)
                            - scenarios (object of scenario-objects)
-                           - summary (object with a “points” array)
-                           - quiz (object with a “choices” array)
+                           - summary (object with a "points" array)
+                           - quiz (object with a "choices" array)
 
 2. **Each scenario** must have keys in this order:
                            - name (string)
@@ -1471,7 +1513,7 @@ ${ drugNameEl.value }
 **Now** create a **brand new interactive case-study story JSON** with:
 - **Title** based on: Subject: ${subject} and on Additional instructions (if any): ${instr || 'none'}
 
-                                        Output **only** the new story’s JSON, ready for Mermaid rendering.
+                                        Output **only** the new story's JSON, ready for Mermaid rendering.
                                           `.trim();
 
             // 4️⃣ UI feedback
@@ -1496,7 +1538,7 @@ ${ drugNameEl.value }
                 try {
                     data = JSON.parse(raw);
                 } catch {
-                    // if it wasn’t JSON, show the whole response
+                    // if it wasn't JSON, show the whole response
                     throw new Error(`Invalid JSON response:\n${raw}`);
                 }
 
@@ -1551,6 +1593,34 @@ ${ drugNameEl.value }
                 submitBtn.disabled = false;
             }
         };
+
+        function setColor(color) {
+            colorInput.value = color;
+            // Highlight the selected swatch
+            colorPicker.querySelectorAll('.color-swatch').forEach(btn => {
+                btn.style.borderColor = (btn.dataset.color === color) ? '#000' : 'transparent';
+            });
+            // Update JSON
+            let full;
+            try { full = JSON.parse(storyJsonArea.value); } catch { return; }
+            full.color = color;
+            storyJsonArea.value = JSON.stringify(full, null, 2);
+            setupPresentation();
+        }
+
+        // Swatch click handler
+        colorPicker.querySelectorAll('.color-swatch').forEach(btn => {
+            btn.onclick = () => setColor(btn.dataset.color);
+        });
+
+        // When loading a story, set the swatch
+        function updateColorSwatchFromValue(val) {
+            colorInput.value = val || '';
+            colorPicker.querySelectorAll('.color-swatch').forEach(btn => {
+                btn.style.borderColor = (btn.dataset.color === val) ? '#000' : 'transparent';
+            });
+        }
+
     </script>
 </body>
 </html>
