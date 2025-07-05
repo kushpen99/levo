@@ -76,6 +76,12 @@
                 </select>
             </div>
 
+            <!-- story title -->
+            <div>
+                <label for="story-title" class="font-semibold block mb-1">Story Title</label>
+                <input id="story-title" type="text" class="border rounded px-3 py-2 w-full" placeholder="Enter story title..." />
+            </div>
+
             <!-- story id / json -->
             <div>
                 <label for="story-id" class="font-semibold block mb-1">Story ID</label>
@@ -398,6 +404,7 @@
 
         const storySelect = document.getElementById('story-select');
         const storyIdInput = document.getElementById('story-id');
+        const storyTitleInput = document.getElementById('story-title');
         const statusSelect = document.getElementById('story-status');
         const typeSelect = document.getElementById('story-type');
         const toggleJsonBtn = document.getElementById('toggle-json-btn');
@@ -771,18 +778,17 @@ ${ drugNameEl.value }
             setupPresentation();
             try {
                 const full = JSON.parse(storyJsonArea.value);
+                storyTitleInput.value = full.title || '';
                 statusSelect.value = full.status || 'Draft';
                 typeSelect.value = full.type || '';
             } catch {/* ignore if JSON invalid */ }
         };
 
         storyJsonArea.oninput = () => {
-
             if (suppressPresentation) {        // ← skip redraw during quiet updates
                 suppressPresentation = false;
                 return;
             }
-
             try {
                 JSON.parse(storyJsonArea.value);
             }
@@ -790,9 +796,22 @@ ${ drugNameEl.value }
             setupPresentation();
             try {
                 const full = JSON.parse(storyJsonArea.value);
+                storyTitleInput.value = full.title || '';
                 statusSelect.value = full.status || 'Draft';
                 typeSelect.value = full.type || '';
             } catch {/* ignore if JSON invalid */ }
+        };
+
+        storyTitleInput.oninput = () => {
+            let full;
+            try {
+                full = JSON.parse(storyJsonArea.value);
+            } catch {
+                return;
+            }
+            full.title = storyTitleInput.value;
+            storyJsonArea.value = JSON.stringify(full, null, 2);
+            setupPresentation();
         };
 
         statusSelect.onchange = () => {
