@@ -21,15 +21,40 @@
             <button id="sign-out-btn" class="bg-red-500  hover:bg-red-600 text-white px-4 py-2 rounded ml-2 hidden">Sign out</button>
         </div>
 
+        <div id="welcome-view" class="hidden">
+            <div class="flex flex-col items-center space-y-2">
+                    <button id="create-story-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded">➕ Create New Story</button>
+                    <div id="create-story-options" class="hidden flex flex-col space-y-2">
+                        <button id="create-from-scratch" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">From Scratch</button>
+                        <button id="create-with-ai" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">With AI</button>
+                    </div>
+            </div>
+            <div id="stories-table-section" class="bg-white p-6 rounded shadow mt-4">
+                <h3 class="text-xl font-semibold mb-2 text-center">Stories</h3>
+                <div class="overflow-x-auto">
+                    <table id="stories-table" class="min-w-full table-auto border-collapse">
+                        <thead class="text-xs">
+                            <tr class="bg-gray-100">
+                                <th class="border px-2 py-1 cursor-pointer" data-col="id">Story ID <span class="sort-icon"></span><div class="filter-dropdown" data-filter="id"></div></th>
+                                <th class="border px-2 py-1 cursor-pointer" data-col="title">Title <span class="sort-icon"></span><div class="filter-dropdown" data-filter="title"></div></th>
+                                <th class="border px-2 py-1 cursor-pointer" data-col="type">Type <span class="sort-icon"></span><div class="filter-dropdown" data-filter="type"></div></th>
+                                <th class="border px-2 py-1 cursor-pointer" data-col="status">Status <span class="sort-icon"></span><div class="filter-dropdown" data-filter="status"></div></th>
+                                <th class="border px-2 py-1 cursor-pointer" data-col="updatedAt">Last Updated <span class="sort-icon"></span><div class="filter-dropdown" data-filter="updatedAt"></div></th>
+                                <th class="border px-2 py-1">Edit</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-xs">
+                            <!-- Rows will be populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- MAIN UI ----------------------------------------------------------- -->
         <div id="admin-ui" class="hidden bg-white p-6 rounded shadow space-y-4">
             <!-- 1️⃣ Create-story button + hidden form -->
             <div class="mb-4">
-                <button id="create-story-btn"
-                        class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded">
-                    ➕ Create New Story
-                </button>
-
                 <!-- hidden until clicked -->
                 <div id="create-story-form" class="mt-4 p-4 bg-gray-50 rounded shadow hidden">
                     <div class="mb-3">
@@ -69,11 +94,12 @@
             </div>
 
             <!-- story select -->
+            <!-- DROPDOWN REMOVED -->
+
+            <!-- story title -->
             <div>
-                <label for="story-select" class="font-semibold block mb-1">Existing Stories</label>
-                <select id="story-select" class="border rounded px-3 py-2 w-full">
-                    <option value="">-- Select a story --</option>
-                </select>
+                <label for="story-title" class="font-semibold block mb-1">Story Title</label>
+                <input id="story-title" type="text" class="border rounded px-3 py-2 w-full" placeholder="Enter story title..." />
             </div>
 
             <!-- story id / json -->
@@ -91,17 +117,6 @@
                         <option value="Endocarditis">Endocarditis</option>
                         <option value="Immunocompromised host">Immunocompromised host</option>
                     </select>
-                </div>
-                <!-- Color picker -->
-                <div>
-                    <label class="font-semibold block mb-1">Color</label>
-                    <div id="color-picker" class="flex space-x-2">
-                        <button class="color-swatch rounded-full w-8 h-8 border-2 border-transparent" data-color="Red" style="background-color: #ef4444;"></button>
-                        <button class="color-swatch rounded-full w-8 h-8 border-2 border-transparent" data-color="Green" style="background-color: #22c55e;"></button>
-                        <button class="color-swatch rounded-full w-8 h-8 border-2 border-transparent" data-color="Blue" style="background-color: #3b82f6;"></button>
-                        <button class="color-swatch rounded-full w-8 h-8 border-2 border-transparent" data-color="Yellow" style="background-color: #fde047;"></button>
-                    </div>
-                    <input type="hidden" id="story-color" />
                 </div>
                 <!-- Status dropdown -->
                 <div>
@@ -327,6 +342,12 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // ================== STORIES TABLE FILTER/SORT STATE ===================
+        // Move these to the top so all functions can access them
+        let allStories = [];
+        let filteredStories = [];
+        let filters = { id: '', title: '', type: '', status: '', updatedAt: '' };
+        let sortState = { col: 'updatedAt', dir: 'desc' }; // Default: newest first
 
         /* ───────── DRUG-NAME VALIDATION ───────── */
 
@@ -406,20 +427,19 @@
         const signInBtn = document.getElementById('sign-in-btn');
         const signOutBtn = document.getElementById('sign-out-btn');
         const adminUI = document.getElementById('admin-ui');
+        const welcomeView = document.getElementById('welcome-view');
 
-        const storySelect = document.getElementById('story-select');
         const storyIdInput = document.getElementById('story-id');
+        const storyTitleInput = document.getElementById('story-title');
         const statusSelect = document.getElementById('story-status');
         const typeSelect = document.getElementById('story-type');
-        const colorPicker = document.getElementById('color-picker');
-        const colorInput = document.getElementById('story-color');
         const toggleJsonBtn = document.getElementById('toggle-json-btn');
         const jsonContainer = document.getElementById('json-container');
         const storyJsonArea = document.getElementById('story-json');
         const uploadBtn = document.getElementById('upload-btn');
         const deleteBtn = document.getElementById('delete-btn');
         const previewBtn = document.getElementById('preview-btn');
-        const createBtn = document.getElementById('create-story-btn');
+        let createBtn = document.getElementById('create-story-btn');
         const createForm = document.getElementById('create-story-form');
         const subjectInput = document.getElementById('new-story-subject');
         const instrInput = document.getElementById('new-story-instr');
@@ -480,27 +500,40 @@
         signInBtn.onclick = () => signInWithPopup(auth, new GoogleAuthProvider()).catch(e => showStatus(e.message, 'text-red-600'));
         signOutBtn.onclick = () => signOut(auth);
 
+        const storiesTableSection = document.getElementById('stories-table-section');
+        const storiesTableBody = document.querySelector('#stories-table tbody');
+        const drugsArea = document.getElementById('drugs-area');
+
         onAuthStateChanged(auth, user => {
             const logged = !!user;
             signInBtn.classList.toggle('hidden', logged);
             signOutBtn.classList.toggle('hidden', !logged);
-            adminUI.classList.toggle('hidden', !logged);
+            // Hide all views by default
+            adminUI.classList.add('hidden');
+            welcomeView.classList.add('hidden');
+            drugsArea.classList.add('hidden');
             if (logged) {
+                // Show welcome view, hide admin UI
+                welcomeView.classList.remove('hidden');
+                // Optionally, you can personalize the welcome message here
+                // document.querySelector('#welcome-section h2').textContent = `Welcome, ${user.displayName || 'Admin'}!`;
                 loadStories();
                 loadDrugs();
+                loadStoriesTable();
             }
         });
+        
 
         /* --------------------- Firestore helpers -------------------------- */
         async function loadStories() {
-            storySelect.innerHTML = '<option value="">-- Select a story --</option>';
+            storyIdInput.innerHTML = '<option value="">-- Select a story --</option>';
             const snap = await getDocs(collection(db, 'stories'));
             snap.forEach(docSnap => {
                 const opt = document.createElement('option');
                 opt.value = docSnap.id;
                 const d = docSnap.data();
                 opt.textContent = d.title || d.name || docSnap.id;
-                storySelect.append(opt);
+                storyIdInput.append(opt);
             });
         }
 
@@ -773,30 +806,27 @@ ${ drugNameEl.value }
 
 
         /* --------------------------- UI logic ----------------------------- */
-        storySelect.onchange = async () => {
-            const id = storySelect.value;
+        storyIdInput.onchange = async () => {
+            const id = storyIdInput.value;
             if (!id) return hidePresentation();
             const snap = await getDoc(doc(db, 'stories', id));
             if (!snap.exists()) return hidePresentation();
             const data = snap.data();
-            storyIdInput.value = id;
             storyJsonArea.value = orderKeys(data);
             setupPresentation();
             try {
                 const full = JSON.parse(storyJsonArea.value);
+                storyTitleInput.value = full.title || '';
                 statusSelect.value = full.status || 'Draft';
                 typeSelect.value = full.type || '';
-                updateColorSwatchFromValue(full.color || '');
             } catch {/* ignore if JSON invalid */ }
         };
 
         storyJsonArea.oninput = () => {
-
             if (suppressPresentation) {        // ← skip redraw during quiet updates
                 suppressPresentation = false;
                 return;
             }
-
             try {
                 JSON.parse(storyJsonArea.value);
             }
@@ -804,10 +834,22 @@ ${ drugNameEl.value }
             setupPresentation();
             try {
                 const full = JSON.parse(storyJsonArea.value);
+                storyTitleInput.value = full.title || '';
                 statusSelect.value = full.status || 'Draft';
                 typeSelect.value = full.type || '';
-                updateColorSwatchFromValue(full.color || '');
             } catch {/* ignore if JSON invalid */ }
+        };
+
+        storyTitleInput.oninput = () => {
+            let full;
+            try {
+                full = JSON.parse(storyJsonArea.value);
+            } catch {
+                return;
+            }
+            full.title = storyTitleInput.value;
+            storyJsonArea.value = JSON.stringify(full, null, 2);
+            setupPresentation();
         };
 
         statusSelect.onchange = () => {
@@ -1392,14 +1434,14 @@ ${ drugNameEl.value }
             if (!id || !raw) return showStatus('Story ID and JSON required.', 'text-red-600');
             let obj; try { obj = JSON.parse(raw); } catch { return showStatus('Invalid JSON.', 'text-red-600'); }
             const ref = doc(db, 'stories', id); const snap = await getDoc(ref);
-            const save = { ...obj, updatedAt: serverTimestamp(), createdAt: snap.exists() ? snap.data().createdAt : serverTimestamp(), type: typeSelect.value, color: colorInput.value };
+            const save = { ...obj, updatedAt: serverTimestamp(), createdAt: snap.exists() ? snap.data().createdAt : serverTimestamp(), type: typeSelect.value };
             await setDoc(ref, save);
             showStatus(`Story "${id}" saved.`, 'text-green-600'); loadStories();
         };
         /* ------------------------- DELETE ----------------------------------- */
         // ---------- Delete Story ----------
         deleteBtn.onclick = async () => {
-            const id = storySelect.value.trim();
+            const id = storyIdInput.value.trim();
             if (!id) {
                 alert('Please select a story first.');
                 return;
@@ -1419,7 +1461,6 @@ ${ drugNameEl.value }
                 // Clear form
                 storyIdInput.value = '';
                 storyJsonArea.value = '';
-                storySelect.value = '';
 
                 // Hide presentation pane
                 hidePresentation();
@@ -1448,179 +1489,341 @@ ${ drugNameEl.value }
         /* ------------------------- CREATE STORY ----------------------------------- */
 
         // 1. Toggle the form when "Create New Story" is clicked
+        createBtn = document.getElementById('create-story-btn');
+        const createStoryOptions = document.getElementById('create-story-options');
+        const createFromScratchBtn = document.getElementById('create-from-scratch');
+        const createWithAiBtn = document.getElementById('create-with-ai');
+        const createStoryModal = document.getElementById('create-story-modal');
+        const aiStorySubject = document.getElementById('ai-story-subject');
+        const aiStoryInstr = document.getElementById('ai-story-instr');
+        const aiStorySubmit = document.getElementById('ai-story-submit');
+        const aiStoryCancel = document.getElementById('ai-story-cancel');
+        const aiStorySpinner = document.getElementById('ai-story-spinner');
+        const aiStoryStatus = document.getElementById('ai-story-status');
+
         createBtn.onclick = () => {
-            if (!storySelect.value) {
-                alert('Please select an existing story first – it will be used as an example.');
-                return;
-            }
-            createForm.classList.toggle('hidden');
+            createStoryOptions.classList.toggle('hidden');
         };
 
+        createFromScratchBtn.onclick = () => {
+            createStoryOptions.classList.add('hidden');
+            welcomeView.classList.add('hidden');
+            adminUI.classList.remove('hidden');
+            drugsArea.classList.remove('hidden');
+            // Initialize story fields for a new story with required structure
+            const now = new Date();
+            const seconds = Math.floor(now.getTime() / 1000);
+            const nanoseconds = (now.getTime() % 1000) * 1e6;
+            const scratchJson = {
+                title: '',
+                status: 'draft',
+                createdAt: { seconds, nanoseconds },
+                updatedAt: { seconds, nanoseconds },
+                scenarios: {
+                    OPT0: {
+                        name: 'Intro',
+                        text: '',
+                        options: [],
+                        pathResult: 'undetermined'
+                    }
+                },
+                summary: { points: [] },
+                quiz: { choices: [] },
+                color: 'Red',
+                type: 'Antibiotics&Bugs'
+            };
+            storyJsonArea.value = JSON.stringify(scratchJson, null, 2);
+            try {
+                storyIdInput.value = '';
+                storyTitleInput.value = '';
+                statusSelect.value = 'draft';
+                typeSelect.value = 'Antibiotics&Bugs';
+            } catch {}
+            setupPresentation();
+        };
 
-        submitBtn.onclick = async () => {
-            // 1️⃣ Make sure an example story is loaded
-            if (!storySelect.value) {
-                alert('Please select an existing story to use as an example first.');
+        createWithAiBtn.onclick = () => {
+            createStoryOptions.classList.add('hidden');
+            createStoryModal.classList.remove('hidden');
+            aiStorySubject.value = '';
+            aiStoryInstr.value = '';
+            aiStoryStatus.textContent = '';
+        };
+        aiStoryCancel.onclick = () => {
+            createStoryModal.classList.add('hidden');
+        };
+        aiStorySubmit.onclick = async () => {
+            aiStoryStatus.textContent = '';
+            aiStorySpinner.classList.remove('hidden');
+            aiStorySubmit.disabled = true;
+            // Fetch the first published story as example
+            const snap = await getDocs(collection(db, 'stories'));
+            let exampleJson = '';
+            snap.forEach(docSnap => {
+                const d = docSnap.data();
+                if (!exampleJson && d.status === 'published') {
+                    exampleJson = JSON.stringify(d, null, 2);
+                }
+            });
+            if (!exampleJson) {
+                aiStoryStatus.textContent = 'No published story found for example.';
+                aiStorySpinner.classList.add('hidden');
+                aiStorySubmit.disabled = false;
                 return;
             }
-
-            // 2️⃣ Gather inputs
-            const subject = subjectInput.value.trim();
-            const instr = instrInput.value.trim();
-            const exampleJson = storyJsonArea.value;
-
-            // 3️⃣ Build the LLM prompt (use your template here)
-            const prompt = `
-                                        You are an assistant that generates interactive case-study stories for medical students, helping them learn the correct treatment pathways.
-                                        These stories are represented as JSON following our established schema. Here is an example of an existing story (for reference):
-                                        \`\`\`
-                                        ${exampleJson}
-                                        \`\`\`
-
-                                        Using this schema:
-1. **Top-level keys** in order:
-                           - title (string)
-                           - status (string - initial value: draft)
-                           - createdAt, updatedAt (timestamp objects)
-                           - scenarios (object of scenario-objects)
-                           - summary (object with a "points" array)
-                           - quiz (object with a "choices" array)
-
-2. **Each scenario** must have keys in this order:
-                           - name (string)
-                           - text (string)
-                           - pathResult (string. one of the values:
-                                undetermined - for paths still in progress,
-                                success - for paths ending positively,
-                                failure - for paths ending negatively)
-                           - options (array of option-objects)
-
-3. **Each option** must have:
-                           - text (string)
-                           - id (string matching one of the scenario keys)
-                           - drugName(string, the name of the chosen drug if this option represents a drug choice, starts with a capital letter)
-
-
-5. **Mermaid compliance**:
-                           - Scenario IDs become graph node IDs.
-                           - Option texts must be short, single-line labels without unsupported Unicode.
-
-** There always must be an OPT0 scenario which is the starting point**
-** Scenario with pathResult=success must always have an empty options array**
-** Scenario with pathResult=failure must always have one option with the text Back which is getting the user back to the scenario he came from**
----
-
-**Now** create a **brand new interactive case-study story JSON** with:
-- **Title** based on: Subject: ${subject} and on Additional instructions (if any): ${instr || 'none'}
-
-                                        Output **only** the new story's JSON, ready for Mermaid rendering.
-                                          `.trim();
-
-            // 4️⃣ UI feedback
-            spinner.classList.remove('hidden');
-            submitBtn.disabled = true;
-            newStoryStatus.textContent = 'Generating new story…';
-            newStoryStatus.className = 'text-gray-700';
-
+            const subject = aiStorySubject.value.trim();
+            const instr = aiStoryInstr.value.trim();
+            const prompt = `You are an assistant that generates interactive case-study stories for medical students, helping them learn the correct treatment pathways.\nThese stories are represented as JSON following our established schema. Here is an example of an existing story (for reference):\n\n\\n${exampleJson}\n\\n\nUsing this schema:\n1. **Top-level keys** in order:\n   - title (string)\n   - status (string - initial value: draft)\n   - createdAt, updatedAt (timestamp objects)\n   - scenarios (object of scenario-objects)\n   - summary (object with a \"points\" array)\n   - quiz (object with a \"choices\" array)\n2. **Each scenario** must have keys in this order:\n   - name (string)\n   - text (string)\n   - pathResult (string. one of the values: undetermined, success, failure)\n   - options (array of option-objects)\n3. **Each option** must have:\n   - text (string)\n   - id (string matching one of the scenario keys)\n   - drugName(string, the name of the chosen drug if this option represents a drug choice, starts with a capital letter)\n5. **Mermaid compliance**:\n   - Scenario IDs become graph node IDs.\n   - Option texts must be short, single-line labels without unsupported Unicode.\n** There always must be an OPT0 scenario which is the starting point**\n** Scenario with pathResult=success must always have an empty options array**\n** Scenario with pathResult=failure must always have one option with the text Back which is getting the user back to the scenario he came from**\n---\n**Now** create a **brand new interactive case-study story JSON** with:\n- **Title** based on: Subject: ${subject} and on Additional instructions (if any): ${instr || 'none'}\n\nOutput **only** the new story's JSON, ready for Mermaid rendering.`;
             try {
-                // 5️⃣ Call your serverless function
                 const res = await fetch(chatEndpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ prompt })
                 });
-
-                // 6️⃣ Read the body exactly once as text
                 const raw = await res.text();
-
-                // 7️⃣ Try to parse JSON out of it
                 let data;
                 try {
                     data = JSON.parse(raw);
                 } catch {
-                    // if it wasn't JSON, show the whole response
                     throw new Error(`Invalid JSON response:\n${raw}`);
                 }
-
-                // 8️⃣ Check for HTTP errors
                 if (!res.ok) {
                     const msg = data.error || JSON.stringify(data);
                     throw new Error(`API error ${res.status}: ${msg}\n${data.stack || ''}`);
                 }
-
-                // 9️⃣ Pull out your `reply`
-                const reply = data.reply;
-
-
-                // 6️⃣ Load into the textarea & re-render
-                // Clean up code fences, if present
+                let reply = data.reply;
                 let cleaned = reply.trim();
                 if (cleaned.startsWith('```')) {
-                    cleaned = cleaned
-                        .replace(/^```(?:json)?\s*/, '')  // remove opening ``` or ```json
-                        .replace(/```$/, '');             // remove trailing ```
+                    cleaned = cleaned.replace(/^```(?:json)?\s*/, '').replace(/```$/, '');
                 }
-                // put JSON in textarea
+                // Open main panel and fill fields
+                createStoryModal.classList.add('hidden');
+                welcomeView.classList.add('hidden');
+                adminUI.classList.remove('hidden');
+                drugsArea.classList.remove('hidden');
                 storyJsonArea.value = cleaned;
-                // derive a slug from the new title and set it as the Story ID
                 try {
                     const newStory = JSON.parse(cleaned);
                     const title = newStory.title || '';
-                    // lowercase, then replace every non-a–z or 0–9 with a hyphen
-                    const slug = title
-                        .toLowerCase()
-                        .replace(/[^a-z0-9]/g, '-')
-                        // collapse multiple hyphens
-                        .replace(/-+/g, '-')
-                        // trim hyphens off ends
-                        .replace(/(^-|-$)/g, '');
+                    const slug = title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/(^-|-$)/g, '');
                     storyIdInput.value = slug;
-                } catch (e) {
-                    console.warn('Could not parse new story JSON for title → ID slug', e);
-                }
-
+                    storyTitleInput.value = newStory.title || '';
+                    statusSelect.value = newStory.status || 'draft';
+                    typeSelect.value = newStory.type || '';
+                } catch {}
                 setupPresentation();
-
-                // 7️⃣ Hide form + success message
-                createForm.classList.add('hidden');
-                newStoryStatus.textContent = '✅ New story loaded!';
-                newStoryStatus.className = 'text-green-600';
             } catch (e) {
-                newStoryStatus.textContent = `Error: ${e.message}`;
-                newStoryStatus.className = 'text-red-600 mt-2';
+                aiStoryStatus.textContent = `Error: ${e.message}`;
             } finally {
-                spinner.classList.add('hidden');
-                submitBtn.disabled = false;
+                aiStorySpinner.classList.add('hidden');
+                aiStorySubmit.disabled = false;
             }
         };
 
-        function setColor(color) {
-            colorInput.value = color;
-            // Highlight the selected swatch
-            colorPicker.querySelectorAll('.color-swatch').forEach(btn => {
-                btn.style.borderColor = (btn.dataset.color === color) ? '#000' : 'transparent';
+        // Function to load stories into the table
+        async function loadStoriesTable() {
+            storiesTableBody.innerHTML = '';
+            allStories = [];
+            const snap = await getDocs(collection(db, 'stories'));
+            snap.forEach(docSnap => {
+                const d = docSnap.data();
+                // Format updatedAt as human-friendly string
+                let updatedAtDisplay = '';
+                if (d.updatedAt && typeof d.updatedAt === 'object' && d.updatedAt.seconds) {
+                    const date = new Date(d.updatedAt.seconds * 1000);
+                    updatedAtDisplay = date.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                }
+                allStories.push({
+                    id: docSnap.id,
+                    title: d.title || '',
+                    type: d.type || '',
+                    status: d.status || '',
+                    updatedAt: d.updatedAt?.seconds || 0,
+                    updatedAtDisplay
+                });
             });
-            // Update JSON
-            let full;
-            try { full = JSON.parse(storyJsonArea.value); } catch { return; }
-            full.color = color;
-            storyJsonArea.value = JSON.stringify(full, null, 2);
-            setupPresentation();
+            updateStoriesTable();
+            
+            // Initialize sort icons after table is loaded
+            renderSortIcons();
         }
 
-        // Swatch click handler
-        colorPicker.querySelectorAll('.color-swatch').forEach(btn => {
-            btn.onclick = () => setColor(btn.dataset.color);
+        // ================== STORIES TABLE FILTER/SORT ===================
+        // Move all filter/sort functions above loadStoriesTable
+
+        // --- Utility: get unique values for a column ---
+        function getUniqueValues(arr, key) {
+            if (key === 'updatedAt') {
+                // Use human-friendly date for filter dropdown
+                const vals = arr.map(s => s.updatedAtDisplay || '').filter(Boolean);
+                return Array.from(new Set(vals)).sort();
+            }
+            const vals = arr.map(s => s[key] || '').filter(Boolean);
+            return Array.from(new Set(vals)).sort();
+        }
+
+        // --- Render filter dropdowns ---
+        function renderFilterDropdowns() {
+            ['id', 'title', 'type', 'status', 'updatedAt'].forEach(col => {
+                const dropdown = document.querySelector(`.filter-dropdown[data-filter="${col}"]`);
+                if (!dropdown) return;
+                dropdown.innerHTML = '';
+                dropdown.className = 'filter-dropdown relative';
+                const btn = document.createElement('button');
+                btn.className = 'bg-white border border-gray-300 rounded px-2 py-1 text-xs hover:bg-gray-100 w-full text-left';
+                btn.textContent = filters[col] ? `Filter: ${filters[col]}` : 'Filter';
+                btn.onclick = e => {
+                    e.stopPropagation();
+                    showDropdownMenu(col, dropdown, btn);
+                };
+                dropdown.appendChild(btn);
+            });
+        }
+
+        function showDropdownMenu(col, dropdown, btn) {
+            // Remove any existing menu
+            document.querySelectorAll('.filter-menu').forEach(m => m.remove());
+            const menu = document.createElement('div');
+            menu.className = 'filter-menu absolute left-0 mt-1 bg-white border border-gray-300 rounded shadow z-50 w-40 max-h-60 overflow-auto';
+            const opts = getUniqueValues(allStories, col);
+            // 'Clear' option
+            const clear = document.createElement('div');
+            clear.className = 'px-3 py-2 hover:bg-gray-100 cursor-pointer text-gray-500';
+            clear.textContent = 'Clear filter';
+            clear.onclick = () => { filters[col] = ''; updateStoriesTable(); menu.remove(); };
+            menu.appendChild(clear);
+            opts.forEach(val => {
+                const opt = document.createElement('div');
+                opt.className = 'px-3 py-2 hover:bg-blue-100 cursor-pointer';
+                opt.textContent = val;
+                opt.onclick = () => { filters[col] = val; updateStoriesTable(); menu.remove(); };
+                menu.appendChild(opt);
+            });
+            // Position below button
+            dropdown.appendChild(menu);
+            // Close on click outside
+            setTimeout(() => {
+                document.addEventListener('click', function handler(e) {
+                    if (!menu.contains(e.target) && e.target !== btn) {
+                        menu.remove();
+                        document.removeEventListener('click', handler);
+                    }
+                });
+            }, 10);
+        }
+
+        // --- Sorting ---
+        function renderSortIcons() {
+            ['id', 'title', 'type', 'status', 'updatedAt'].forEach(col => {
+                const th = document.querySelector(`th[data-col="${col}"]`);
+                const icon = th.querySelector('.sort-icon');
+                if (sortState.col === col) {
+                    icon.innerHTML = sortState.dir === 'asc' ? '▲' : (sortState.dir === 'desc' ? '▼' : '↕');
+                    icon.className = 'sort-icon inline-block ml-1 text-xs text-blue-600';
+                } else {
+                    icon.innerHTML = '↕';
+                    icon.className = 'sort-icon inline-block ml-1 text-xs text-gray-400';
+                }
+            });
+        }
+
+        function handleSort(col) {
+            if (sortState.col === col) {
+                if (sortState.dir === 'asc') sortState.dir = 'desc';
+                else if (sortState.dir === 'desc') sortState.dir = '';
+                else sortState.dir = 'asc';
+            } else {
+                sortState.col = col;
+                sortState.dir = 'asc';
+            }
+            updateStoriesTable();
+        }
+
+        // --- Main table update ---
+        function updateStoriesTable() {
+            // 1. Filter
+            filteredStories = allStories.filter(story => {
+                return (!filters.id || story.id === filters.id)
+                    && (!filters.title || story.title === filters.title)
+                    && (!filters.type || story.type === filters.type)
+                    && (!filters.status || story.status === filters.status)
+                    && (!filters.updatedAt || story.updatedAtDisplay === filters.updatedAt);
+            });
+            // 2. Sort
+            if (sortState.col && sortState.dir) {
+                filteredStories.sort((a, b) => {
+                    let vA = a[sortState.col] || '';
+                    let vB = b[sortState.col] || '';
+                    // For updatedAt, sort numerically
+                    if (sortState.col === 'updatedAt') {
+                        vA = a.updatedAt;
+                        vB = b.updatedAt;
+                        return sortState.dir === 'asc' ? vA - vB : vB - vA;
+                    }
+                    vA = (vA || '').toString().toLowerCase();
+                    vB = (vB || '').toString().toLowerCase();
+                    if (vA < vB) return sortState.dir === 'asc' ? -1 : 1;
+                    if (vA > vB) return sortState.dir === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+            // 3. Render rows
+            storiesTableBody.innerHTML = '';
+            filteredStories.forEach(story => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="border px-2 py-1">${story.id}</td><td class="border px-2 py-1">${story.title || ''}</td><td class="border px-2 py-1">${story.type || ''}</td><td class="border px-2 py-1">${story.status || ''}</td><td class=\"border px-2 py-1 whitespace-nowrap\">${story.updatedAtDisplay || ''}</td>`;
+                const editTd = document.createElement('td');
+                editTd.className = 'border px-4 py-2 text-center';
+                const editBtn = document.createElement('button');
+                editBtn.textContent = 'Edit';
+                editBtn.className = 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded';
+                editBtn.addEventListener('click', () => {
+                    welcomeView.classList.add('hidden');
+                    adminUI.classList.remove('hidden');
+                    drugsArea.classList.remove('hidden');
+                    storyIdInput.value = story.id;
+                    const event = new Event('change');
+                    storyIdInput.dispatchEvent(event);
+                });
+                editTd.appendChild(editBtn);
+                tr.appendChild(editTd);
+                storiesTableBody.appendChild(tr);
+            });
+            renderFilterDropdowns();
+            renderSortIcons();
+        }
+
+        // --- Header click events for sorting ---
+        document.querySelectorAll('#stories-table th[data-col]').forEach(th => {
+            th.addEventListener('click', e => {
+                // Prevent sort if clicking filter dropdown
+                if (e.target.closest('.filter-dropdown')) return;
+                handleSort(th.getAttribute('data-col'));
+            });
         });
 
-        // When loading a story, set the swatch
-        function updateColorSwatchFromValue(val) {
-            colorInput.value = val || '';
-            colorPicker.querySelectorAll('.color-swatch').forEach(btn => {
-                btn.style.borderColor = (btn.dataset.color === val) ? '#000' : 'transparent';
-            });
-        }
+        // Initialize sort icons when page loads
+        renderSortIcons();
 
     </script>
+        <div id="create-story-modal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden">
+          <div class="bg-white p-6 rounded shadow w-full max-w-md">
+            <h2 class="text-xl font-semibold mb-4">Create Story with AI</h2>
+            <div class="mb-3">
+              <label for="ai-story-subject" class="block font-semibold mb-1">Story Subject</label>
+              <input id="ai-story-subject" type="text" class="border rounded px-3 py-2 w-full" placeholder="e.g. ESBL Case" />
+            </div>
+            <div class="mb-3">
+              <label for="ai-story-instr" class="block font-semibold mb-1">Additional Instructions <span class="text-gray-500">(optional)</span></label>
+              <textarea id="ai-story-instr" rows="3" class="border rounded px-3 py-2 w-full" placeholder="Give extra context…"></textarea>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button id="ai-story-submit" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">Generate</button>
+              <button id="ai-story-cancel" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">Cancel</button>
+              <span id="ai-story-spinner" class="hidden ml-2">⏳</span>
+            </div>
+            <p id="ai-story-status" class="mt-2 text-gray-700"></p>
+          </div>
+        </div>
 </body>
 </html>
