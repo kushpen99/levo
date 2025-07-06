@@ -1833,7 +1833,10 @@ ${ drugNameEl.value }
             <div class="flex items-center space-x-2">
               <button id="ai-story-submit" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">Generate</button>
               <button id="ai-story-cancel" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">Cancel</button>
-              <span id="ai-story-spinner" class="hidden ml-2">⏳</span>
+              <svg id="ai-story-spinner" class="hidden animate-spin h-5 w-5 text-green-600 ml-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
             </div>
             <p id="ai-story-status" class="mt-2 text-gray-700"></p>
           </div>
