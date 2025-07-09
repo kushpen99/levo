@@ -1,0 +1,55 @@
+<!-- admin-modals-staging.html -->
+<!-- Contains modal HTML for admin-staging.html -->
+
+<!-- Scenario Edit Modal -->
+<div id="scenario-edit-modal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden">
+  <div class="bg-white p-6 rounded shadow w-full max-w-md">
+    <h2 class="text-xl font-semibold mb-4">Edit Scenario</h2>
+    <div class="mb-3">
+      <label for="scenario-edit-name" class="block font-semibold mb-1">Name</label>
+      <input id="scenario-edit-name" type="text" class="border rounded px-3 py-2 w-full" />
+    </div>
+    <div class="mb-3">
+      <label for="scenario-edit-text" class="block font-semibold mb-1">Text</label>
+      <textarea id="scenario-edit-text" rows="3" class="border rounded px-3 py-2 w-full"></textarea>
+    </div>
+    <div class="mb-3">
+      <label for="scenario-edit-pathResult" class="block font-semibold mb-1">Path Result</label>
+      <select id="scenario-edit-pathResult" class="border rounded px-3 py-2 w-full">
+        <option value="undetermined">Undetermined</option>
+        <option value="success">Success</option>
+        <option value="failure">Failure</option>
+      </select>
+    </div>
+    <div class="mb-4" id="scenario-options-section"></div>
+    <div class="flex items-center space-x-2 mb-2">
+      <button id="scenario-edit-save" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">Save</button>
+      <button id="scenario-edit-cancel" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">Cancel</button>
+      <button id="scenario-edit-delete" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded ml-auto">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Story Modal -->
+<div id="create-story-modal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden">
+  <div class="bg-white p-6 rounded shadow w-full max-w-md">
+    <h2 class="text-xl font-semibold mb-4">Create Story with AI</h2>
+    <div class="mb-3">
+      <label for="ai-story-subject" class="block font-semibold mb-1">Story Subject</label>
+      <input id="ai-story-subject" type="text" class="border rounded px-3 py-2 w-full" placeholder="e.g. ESBL Case" />
+    </div>
+    <div class="mb-3">
+      <label for="ai-story-instr" class="block font-semibold mb-1">Additional Instructions <span class="text-gray-500">(optional)</span></label>
+      <textarea id="ai-story-instr" rows="3" class="border rounded px-3 py-2 w-full" placeholder="Give extra context…"></textarea>
+    </div>
+    <div class="flex items-center space-x-2">
+      <button id="ai-story-submit" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">Generate</button>
+      <button id="ai-story-cancel" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">Cancel</button>
+      <svg id="ai-story-spinner" class="hidden animate-spin h-5 w-5 text-green-600 ml-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+      </svg>
+    </div>
+    <p id="ai-story-status" class="mt-2 text-gray-700"></p>
+  </div>
+</div> 

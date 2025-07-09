@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Story Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Mermaid -->
+    <script src="https://unpkg.com/mermaid@9.4.3/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({ startOnLoad: false });</script>
+    <link rel="stylesheet" href="../styles.css">
+    <!-- Add Cytoscape.js CDN -->
+    <script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
+    <!-- Add Cytoscape Edgehandles extension -->
+    <script src="https://unpkg.com/cytoscape-edgehandles@4.0.1/cytoscape-edgehandles.min.js"></script>
+    <style>
+      #cy-editor {
+        position: relative !important;
+        z-index: 1 !important;
+        overflow: visible !important;
+      }
+      .eh-handle {
+        display: block !important;
+        z-index: 9999 !important;
+        background: #3b82f6 !important;
+        border: 2px solid #fff !important;
+        width: 14px !important;
+        height: 14px !important;
+        border-radius: 50% !important;
+        box-shadow: 0 0 2px #0002;
+      }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-6">
+        <h1 class="text-2xl font-bold mb-4">📋 Story Admin</h1>
+
+        <!-- AUTH -------------------------------------------------------------- -->
+        <div class="mb-6" id="auth-section">
+            <button id="sign-in-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">Sign in with Google</button>
+            <button id="sign-out-btn" class="bg-red-500  hover:bg-red-600 text-white px-4 py-2 rounded ml-2 hidden">Sign out</button>
+        </div>
+
+        <div id="welcome-view" class="hidden">
+            <div class="flex flex-col items-center space-y-2">
+                    <button id="create-story-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded">➕ Create New Story</button>
+                    <div id="create-story-options" class="hidden flex flex-col space-y-2">
+                        <button id="create-from-scratch" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">From Scratch</button>
+                        <button id="create-with-ai" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">With AI</button>
+                    </div>
+            </div>
+            <div id="stories-table-section" class="bg-white p-6 rounded shadow mt-4">
+                <h3 class="text-xl font-semibold mb-2 text-center">Stories</h3>
+                <div class="overflow-x-auto">
+                    <table id="stories-table" class="min-w-full table-auto border-collapse">
+                        <thead class="text-xs">
+                            <tr class="bg-gray-100">
+                                <th class="border px-2 py-1 cursor-pointer" data-col="id">Story ID <span class="sort-icon"></span><div class="filter-dropdown" data-filter="id"></div></th>
+                                <th class="border px-2 py-1 cursor-pointer" data-col="title">Title <span class="sort-icon"></span><div class="filter-dropdown" data-filter="title"></div></th>
+                                <th class="border px-2 py-1 cursor-pointer" data-col="type">Type <span class="sort-icon"></span><div class="filter-dropdown" data-filter="type"></div></th>
+                                <th class="border px-2 py-1 cursor-pointer" data-col="status">Status <span class="sort-icon"></span><div class="filter-dropdown" data-filter="status"></div></th>
+                                <th class="border px-2 py-1 cursor-pointer" data-col="updatedAt">Last Updated <span class="sort-icon"></span><div class="filter-dropdown" data-filter="updatedAt"></div></th>
+                                <th class="border px-2 py-1">Edit</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-xs">
+                            <!-- Rows will be populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN UI ----------------------------------------------------------- -->
+        <div id="admin-ui" class="hidden bg-white p-6 rounded shadow space-y-4">
+            <button id="back-to-welcome-btn" class="mb-4 bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1 rounded text-xs">← Back</button>
+            <!-- 1️⃣ Create-story button + hidden form -->
+            <div class="mb-4">
+                <!-- hidden until clicked -->
+                <div id="create-story-form" class="mt-4 p-4 bg-gray-50 rounded shadow hidden">
+                    <div class="mb-3">
+                        <label for="new-story-subject" class="block font-semibold mb-1">Story Subject</label>
+                        <input id="new-story-subject" type="text"
+                               class="border rounded px-3 py-2 w-full"
+                               placeholder="e.g. ESBL Case" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="new-story-instr" class="block font-semibold mb-1">
+                            Additional Instructions <span class="text-gray-500">(optional)</span>
+                        </label>
+                        <textarea id="new-story-instr" rows="3"
+                                  class="border rounded px-3 py-2 w-full"
+                                  placeholder="Give extra context…"></textarea>
+                    </div>
+                    <!-- Submit + spinner -->
+                    <div class="flex items-center">
+                        <button id="new-story-submit"
+                                class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
+                            <span id="new-story-submit-text">Submit</span>
+                        </button>
+                        <!-- Tailwind spinner, hidden by default -->
+                        <svg id="new-story-spinner"
+                             class="hidden animate-spin h-5 w-5 text-green-600 ml-2"
+                             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                            <path class="opacity-75" fill="currentColor"
+                                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                        </svg>
+                    </div>
+
+                    <!-- per-form status message -->
+                    <p id="new-story-status" class="mt-2 text-gray-700"></p>
+
+                </div>
+            </div>
+
+            <!-- story select -->
+            <!-- DROPDOWN REMOVED -->
+
+            <!-- story title -->
+            <div>
+                <label for="story-title" class="font-semibold block mb-1">Story Title</label>
+                <input id="story-title" type="text" class="border rounded px-3 py-2 w-full" placeholder="Enter story title..." />
+            </div>
+
+            <!-- story id / json -->
+            <div>
+                <label for="story-id" class="font-semibold block mb-1">Story ID</label>
+                <input id="story-id" type="text" class="border rounded px-3 py-2 w-full" />
+            </div>
+            <div class="flex space-x-4">
+                <!-- Type dropdown -->
+                <div>
+                    <label for="story-type" class="font-semibold block mb-1">Type</label>
+                    <select id="story-type" class="border rounded px-3 py-2 w-auto inline-block">
+                        <option value="">Unset</option>
+                        <option value="Antibiotics&Bugs">Antibiotics&Bugs</option>
+                        <option value="Endocarditis">Endocarditis</option>
+                        <option value="Immunocompromised host">Immunocompromised host</option>
+                    </select>
+                </div>
+                <!-- Status dropdown -->
+                <div>
+                    <label for="story-status" class="font-semibold block mb-1">Status</label>
+                    <select id="story-status" class="border rounded px-3 py-2 w-auto inline-block">
+                        <option value="draft">Draft</option>
+                        <option value="review">Review</option>
+                        <option value="published">Published</option>
+                        <option value="archived">Archived</option>
+                    </select>
+                </div>
+            </div>
+            <!-- 🌟 Collapsible JSON Section -->
+            <div id="json-section" class="space-y-1">
+                <div class="flex items-center space-x-2 mb-1">
+                    <label for="story-json" class="font-semibold">Story JSON</label>
+                    <button id="toggle-json-btn"
+                            class="text-blue-600 hover:underline text-sm">
+                        Show
+                    </button>
+                </div>
+                <div id="json-container" class="hidden">
+                    <textarea id="story-json"
+                              rows="15"
+                              class="border rounded px-3 py-2 font-mono w-full text-sm"></textarea>
+                </div>
+            </div>
+            <!-- Cytoscape Graph Editor -->
+            <div id="scenario-views" class="my-6"></div>
+
+            <div class="flex space-x-2">
+                <button id="upload-btn"
+                        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
+                    Save Story
+                </button>
+
+                <!-- New Delete button -->
+                <button id="delete-btn"
+                        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+                    Delete Story
+                </button>
+                <button id="preview-btn"
+                        class="flex items-center bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                    <!-- standard "eye" icon SVG from Heroicons -->
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="w-5 h-5 mr-2"
+                         fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    Preview
+                </button>
+
+            </div>
+            <p id="status-msg" class="mt-2"></p>
+
+            <!-- PRESENTATION CONTROLS -->
+            <div id="presentation-controls" class="hidden mt-6">
+                <label for="presentation-select" class="font-semibold mr-2">View:</label>
+                <select id="presentation-select" class="border rounded px-2 py-1"></select>
+            </div>
+            <div id="presentation-area" class="hidden bg-white p-4 rounded shadow mt-4 overflow-auto">
+                <div id="presentation-content" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <!-- 💊 DRUGS ADMIN --------------------------------------------------- -->
+        <div id="drugs-area" class="mt-8">
+            <h2 class="text-lg font-bold mb-2">💊 Drugs</h2>
+
+            <!-- toolbar -->
+            <div class="flex items-center mb-3 space-x-3">
+                <label for="drug-select" class="font-semibold">Existing drugs</label>
+                <select id="drug-select" class="border rounded px-2 py-1 min-w-[12rem]">
+                    <option value="">-- select --</option>
+                </select>
+
+                <button id="new-drug-btn"
+                        class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded">
+                    + New Drug
+                </button>
+                <button id="drug-ai-btn"
+                        class="hidden bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded">
+                    🧠 Generate from AI (empty fields only)
+                </button>
+                <!-- Tailwind spinner, hidden by default -->
+                <svg id="drug-ai-spinner"
+                     class="hidden animate-spin h-5 w-5 text-green-600 ml-2"
+                     xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                    <path class="opacity-75" fill="currentColor"
+                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                </svg>
+
+            </div>
+
+            <!-- editor -->
+            <div id="drug-editor" class="hidden bg-gray-50 p-4 rounded shadow space-y-3">
+                <div id="drug-ai-status" class="hidden">
+                    
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Drug Name (ID)</label>
+                    <input id="drug-name" type="text"
+                           class="border rounded px-2 py-1 w-full">
+                </div>
+
+                <div id="drug-form" class="grid grid-cols-1 gap-4">
+                    <!-- existing ones… -->
+                    <div>
+                        <label for="family-ex" class="block font-semibold mb-1">Family (ex)</label>
+                        <textarea id="family-ex" rows="3"
+                                  class="border rounded px-2 py-1 w-full text-sm">
+                        </textarea>
+                    </div>
+                    <div>
+                        <label for="subclass-ex" class="block font-semibold mb-1">Subclass (ex)</label>
+                        <textarea id="subclass-ex" rows="3"
+                                  class="border rounded px-2 py-1 w-full text-sm">
+                        </textarea>
+                    </div>
+                    <div>
+                        <label for="mechanism-of-action-ex" class="block font-semibold mb-1">Mechanism of action (ex)</label>
+                        <textarea id="mechanism-of-action-ex" rows="3"
+                                  class="border rounded px-2 py-1 w-full text-sm">
+                        </textarea>
+                    </div>
+                    <div>
+                        <label for="spectrum-of-coverage-ex" class="block font-semibold mb-1">Spectrum of coverage (ex)</label>
+                        <textarea id="spectrum-of-coverage-ex" rows="3"
+                                  class="border rounded px-2 py-1 w-full text-sm">
+                        </textarea>
+                    </div>
+                    <div>
+                        <label for="major-resistance-mechanisms-ex" class="block font-semibold mb-1">Major resistance mechanisms (ex)</label>
+                        <textarea id="major-resistance-mechanisms-ex" rows="3"
+                                  class="border rounded px-2 py-1 w-full text-sm">
+                        </textarea>
+                    </div>
+                    <div>
+                        <label for="pd-ex" class="block font-semibold mb-1">Pharmacodynamics (ex)</label>
+                        <textarea id="pd-ex" rows="3"
+                                  class="border rounded px-2 py-1 w-full text-sm">
+                        </textarea>
+                    </div>
+                    <div>
+                        <label for="pk-ex" class="block font-semibold mb-1">PK (ex)</label>
+                        <textarea id="pk-ex" rows="3"
+                                  class="border rounded px-2 py-1 w-full text-sm">
+                        </textarea>
+                    </div>
+                    <div>
+                        <label for="toxicity-ex" class="block font-semibold mb-1">Toxicity (ex)</label>
+                        <textarea id="toxicity-ex" rows="3"
+                                  class="border rounded px-2 py-1 w-full text-sm">
+                        </textarea>
+                    </div>
+                    <!-- now the "-sum" fields -->
+                    <div>
+                        <label for="family-sum" class="block font-semibold mb-1">Family (sum)</label>
+                        <input id="family-sum" type="text" class="border rounded px-2 py-1 w-full">
+                    </div>
+                    <div>
+                        <label for="spectrum-of-coverage-sum" class="block font-semibold mb-1">Spectrum of coverage (sum)</label>
+                        <input id="spectrum-of-coverage-sum" type="text" class="border rounded px-2 py-1 w-full">
+                    </div>
+                    <div>
+                        <label for="pk-sum" class="block font-semibold mb-1">PK (sum)</label>
+                        <input id="pk-sum" type="text" class="border rounded px-2 py-1 w-full">
+                    </div>
+                    <div>
+                        <label for="toxicity-sum" class="block font-semibold mb-1">Toxicity (sum)</label>
+                        <input id="toxicity-sum" type="text" class="border rounded px-2 py-1 w-full">
+                    </div>
+                </div>
+
+
+                <div class="flex space-x-2">
+                    <button id="drug-save-btn"
+                            class="bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded">
+                        Save
+                    </button>
+                    <button id="drug-delete-btn"
+                            class="bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded hidden">
+                        Delete
+                    </button>
+                    <button id="drug-cancel-btn"
+                            class="bg-gray-300 hover:bg-gray-400 px-4 py-1 rounded">
+                        Cancel
+                    </button>
+                </div>
+
+                <p id="drug-status" class="text-sm"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    
+        <div id="create-story-modal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden">
+          <div class="bg-white p-6 rounded shadow w-full max-w-md">
+            <h2 class="text-xl font-semibold mb-4">Create Story with AI</h2>
+            <div class="mb-3">
+              <label for="ai-story-subject" class="block font-semibold mb-1">Story Subject</label>
+              <input id="ai-story-subject" type="text" class="border rounded px-3 py-2 w-full" placeholder="e.g. ESBL Case" />
+            </div>
+            <div class="mb-3">
+              <label for="ai-story-instr" class="block font-semibold mb-1">Additional Instructions <span class="text-gray-500">(optional)</span></label>
+              <textarea id="ai-story-instr" rows="3" class="border rounded px-3 py-2 w-full" placeholder="Give extra context…"></textarea>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button id="ai-story-submit" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">Generate</button>
+              <button id="ai-story-cancel" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">Cancel</button>
+              <svg id="ai-story-spinner" class="hidden animate-spin h-5 w-5 text-green-600 ml-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
+            </div>
+            <p id="ai-story-status" class="mt-2 text-gray-700"></p>
+          </div>
+        </div>
+        <script type="module" src="js/main.js"></script>
+
+</body>
+</html>
