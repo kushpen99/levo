@@ -593,6 +593,7 @@ aiStorySubmit.onclick = async () => {
             statusSelect.value = newStory.status || 'draft';
             typeSelect.value = newStory.type || '';
         } catch {}
+        storyJsonArea.dispatchEvent(new Event('input', { bubbles: true }));
         setupPresentation();
     } catch (e) {
         aiStoryStatus.textContent = `Error: ${e.message}`;
