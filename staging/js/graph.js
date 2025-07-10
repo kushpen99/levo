@@ -12,6 +12,82 @@ let gCyContainer = null, gJsonTextarea = null;
 let connectMode   = false;
 let connectSource = null;
 
+ // ———————————————————————————————
+//  Connect-Option modal (hidden by default)
+// ———————————————————————————————
+const connectOptionModalHtml = `
+<div id="connect-option-modal"
+     class="fixed inset-0 bg-black/30 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded shadow p-6 w-96 space-y-4">
+    <h2 class="text-xl font-semibold">New Option</h2>
+
+    <div>
+      <label class="block text-sm font-medium mb-1" for="opt-text">
+        Link text
+      </label>
+      <input id="opt-text" type="text"
+             class="border rounded w-full px-3 py-2"
+             placeholder="e.g. Start antibiotics">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium mb-1" for="opt-drug">
+        Drug (optional)
+      </label>
+      <input id="opt-drug" type="text"
+             class="border rounded w-full px-3 py-2"
+             placeholder="e.g. ceftriaxone">
+    </div>
+
+    <div class="flex justify-end gap-2">
+      <button id="opt-cancel"
+              class="px-3 py-1 rounded bg-gray-300 hover:bg-gray-400">
+        Cancel
+      </button>
+      <button id="opt-save"
+              class="px-3 py-1 rounded bg-blue-500 hover:bg-blue-600 text-white">
+        Add
+      </button>
+    </div>
+  </div>
+</div>`;
+
+if (!document.getElementById('connect-option-modal')) {
+  document.body.insertAdjacentHTML('beforeend', connectOptionModalHtml);
+}
+
+function showConnectOptionModal(onSave) {
+  const modal = document.getElementById('connect-option-modal');
+  const txt   = document.getElementById('opt-text');
+  const drug  = document.getElementById('opt-drug');
+  const btnOk = document.getElementById('opt-save');
+  const btnNo = document.getElementById('opt-cancel');
+
+  txt.value  = '';
+  drug.value = '';
+  modal.classList.remove('hidden');
+  txt.focus();
+
+  /* — live red/green colouring + “＋” shortcut — */
+  drug.oninput = () => window.paintDrugInput(drug);     // from drugHelpers.js
+  window.paintDrugInput(drug);                          // initialise
+
+  function close() {
+    modal.classList.add('hidden');
+    btnOk.onclick = btnNo.onclick = drug.oninput = null;
+  }
+
+  btnOk.onclick = () => {
+    const textVal  = txt.value.trim();
+    const drugVal  = drug.value.trim();
+    if (!textVal) { txt.focus(); return; }
+    onSave({ text: textVal, drug: drugVal || undefined });
+    close();
+  };
+  btnNo.onclick = close;
+}
+
+
 function openScenarioEditModal(scenarioId, scenarioData) {
   const modal = document.getElementById('scenario-edit-modal');
   const nameInput = document.getElementById('scenario-edit-name');
@@ -233,16 +309,29 @@ function openScenarioEditModal(scenarioId, scenarioData) {
         } else {
           const sourceId = connectSource;
           const targetId = node.id();
-          if (sourceId === targetId) { alert('Cannot connect to itself'); return; }
+          if (sourceId === targetId) { 
+            node.animate({ position: node.position() }, {
+              duration: 100, style: { 'border-color': '#ef4444' }
+            });
+            return; 
+          }
 
           let full;
           try { full = JSON.parse(gJsonTextarea.value); } catch { return; }
           if (!full.scenarios[sourceId] || !full.scenarios[targetId]) return;
 
           full.scenarios[sourceId].options = full.scenarios[sourceId].options || [];
-          const text = prompt('Option text:', '');
-          if (text === null) return;
-          full.scenarios[sourceId].options.push({ text, id: targetId });
+          
+          showConnectOptionModal(({ text, drug }) => {
+            full.scenarios[sourceId].options = full.scenarios[sourceId].options || [];
+            const option = { text, id: targetId };
+            if (drug) option.drug = drug;              // only store if user typed one
+            full.scenarios[sourceId].options.push(option);
+          
+            gJsonTextarea.value = JSON.stringify(full, null, 2);
+            renderCytoscapeGraph(full);
+          });
+
           gJsonTextarea.value = JSON.stringify(full, null, 2);
           renderCytoscapeGraph(full);
 
@@ -430,6 +519,8 @@ if (!document.getElementById('scenario-edit-modal')) {
  if (!document.getElementById('add-scenario-modal')) {
    document.body.insertAdjacentHTML('beforeend', addScenarioModalHtml);
  }
+
+
 
  function showAddScenarioModal(onSave) {
   const modal   = document.getElementById('add-scenario-modal');
