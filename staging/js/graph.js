@@ -12,6 +12,137 @@ let gCyContainer = null, gJsonTextarea = null;
 let connectMode   = false;
 let connectSource = null;
 
+function openScenarioEditModal(scenarioId, scenarioData) {
+  const modal = document.getElementById('scenario-edit-modal');
+  const nameInput = document.getElementById('scenario-edit-name');
+  const textInput = document.getElementById('scenario-edit-text');
+  const pathResultInput = document.getElementById('scenario-edit-pathResult');
+  nameInput.value = scenarioData.name || '';
+  textInput.value = scenarioData.text || '';
+  pathResultInput.value = scenarioData.pathResult || 'undetermined';
+  modal.classList.remove('hidden');
+
+  // Render options management
+  const optionsSection = document.getElementById('scenario-options-section');
+  let full;
+  try { full = JSON.parse(gJsonTextarea.value); } catch { full = null; }
+  // Build a map of id -> name for all scenarios
+  const scenarioNameMap = full ? Object.fromEntries(Object.entries(full.scenarios).map(([id, sc]) => [id, sc.name || id])) : {};
+  const allScenarioIds = full ? Object.keys(full.scenarios).filter(id => id !== scenarioId) : [];
+  optionsSection.innerHTML = '';
+  // List current options
+  const optionsList = document.createElement('div');
+  optionsList.className = 'space-y-2';
+  (scenarioData.options || []).forEach((opt, idx) => {
+    const row = document.createElement('div');
+    row.className = 'flex items-center space-x-2';
+    // Option text
+    const textInp = document.createElement('input');
+    textInp.type = 'text';
+    textInp.value = opt.text || '';
+    textInp.className = 'border rounded px-2 py-1 w-1/2';
+    textInp.oninput = e => {
+      opt.text = textInp.value;
+      let full2;
+      try { full2 = JSON.parse(gJsonTextarea.value); } catch { return; }
+      full2.scenarios[scenarioId].options[idx].text = textInp.value;
+      jsonTextarea.value = JSON.stringify(full2, null, 2);
+      renderCytoscapeGraph(full2);
+    };
+    row.appendChild(textInp);
+    // Target scenario dropdown (show names, value is id)
+    const targetSel = document.createElement('select');
+    targetSel.className = 'border rounded px-2 py-1 w-1/3';
+    allScenarioIds.forEach(id => {
+      const optEl = document.createElement('option');
+      optEl.value = id;
+      optEl.textContent = scenarioNameMap[id] ? `${scenarioNameMap[id]} (${id})` : id;
+      if (opt.id === id) optEl.selected = true;
+      targetSel.appendChild(optEl);
+    });
+    targetSel.onchange = e => {
+      opt.id = targetSel.value;
+      let full2;
+      try { full2 = JSON.parse(gJsonTextarea.value); } catch { return; }
+      full2.scenarios[scenarioId].options[idx].id = targetSel.value;
+      jsonTextarea.value = JSON.stringify(full2, null, 2);
+      renderCytoscapeGraph(full2);
+    };
+    row.appendChild(targetSel);
+    // Delete option button
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '🗑';
+    delBtn.className = 'text-red-600 hover:text-red-800 px-2';
+    delBtn.onclick = () => {
+      let full2;
+      try { full2 = JSON.parse(gJsonTextarea.value); } catch { return; }
+      full2.scenarios[scenarioId].options.splice(idx, 1);
+      jsonTextarea.value = JSON.stringify(full2, null, 2);
+      renderCytoscapeGraph(full2);
+      openScenarioEditModal(scenarioId, full2.scenarios[scenarioId]); // re-render modal
+    };
+    row.appendChild(delBtn);
+    optionsList.appendChild(row);
+  });
+  optionsSection.appendChild(optionsList);
+  // Add Option button
+  const addOptBtn = document.createElement('button');
+  addOptBtn.textContent = '+ Add Option';
+  addOptBtn.className = 'bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded mt-2';
+  addOptBtn.onclick = () => {
+    if (!allScenarioIds.length) return;
+    let full2;
+    try { full2 = JSON.parse(gJsonTextarea.value); } catch { return; }
+    full2.scenarios[scenarioId].options = full2.scenarios[scenarioId].options || [];
+    full2.scenarios[scenarioId].options.push({ text: 'Option', id: allScenarioIds[0] });
+    jsonTextarea.value = JSON.stringify(full2, null, 2);
+    renderCytoscapeGraph(full2);
+    openScenarioEditModal(scenarioId, full2.scenarios[scenarioId]); // re-render modal
+  };
+  optionsSection.appendChild(addOptBtn);
+
+  // Save handler
+  const saveBtn = document.getElementById('scenario-edit-save');
+  const cancelBtn = document.getElementById('scenario-edit-cancel');
+  const deleteBtn = document.getElementById('scenario-edit-delete');
+  function closeModal() {
+    modal.classList.add('hidden');
+    saveBtn.onclick = null;
+    cancelBtn.onclick = null;
+    deleteBtn.onclick = null;
+  }
+  saveBtn.onclick = () => {
+    // Update the JSON
+    let full;
+    try { full = JSON.parse(gJsonTextarea.value); } catch { closeModal(); return; }
+    if (!full.scenarios[scenarioId]) { closeModal(); return; }
+    full.scenarios[scenarioId].name = nameInput.value;
+    full.scenarios[scenarioId].text = textInput.value;
+    full.scenarios[scenarioId].pathResult = pathResultInput.value;
+    jsonTextarea.value = JSON.stringify(full, null, 2);
+    renderCytoscapeGraph(full);
+    closeModal();
+  };
+  cancelBtn.onclick = closeModal;
+  deleteBtn.onclick = () => {
+    if (!confirm('Delete this scenario and all its connections?')) return;
+    let full;
+    try { full = JSON.parse(gJsonTextarea.value); } catch { closeModal(); return; }
+    if (!full.scenarios[scenarioId]) { closeModal(); return; }
+    // Remove all options pointing to this scenario
+    Object.values(full.scenarios).forEach(sc => {
+      if (Array.isArray(sc.options)) {
+        sc.options = sc.options.filter(opt => opt.id !== scenarioId);
+      }
+    });
+    // Remove the scenario itself
+    delete full.scenarios[scenarioId];
+    jsonTextarea.value = JSON.stringify(full, null, 2);
+    renderCytoscapeGraph(full);
+    closeModal();
+  };
+}
+
 /* --------------------------------------------------------------- */
   /* 3. Main render-function                                         */
   /* --------------------------------------------------------------- */
@@ -164,6 +295,8 @@ let connectSource = null;
     bfs.run();
   }
 
+  
+
 /* ------------------------------------------------------------------ */
 /*  PUBLIC factory – host injects <div id="cy-editor"> and the        */
 /*  <textarea id="story-json"> so this module never touches document. */
@@ -191,7 +324,7 @@ if (cyContainer && !document.getElementById('add-scenario-btn')) {
 
   addBtn.onclick = () => {
     let full;
-    try { full = JSON.parse(jsonTextarea.value); } catch { return; }
+    try { full = JSON.parse(gJsonTextarea.value); } catch { return; }
 
     full.scenarios = full.scenarios || {};
 
@@ -323,139 +456,6 @@ if (!document.getElementById('scenario-edit-modal')) {
   btnCancel.onclick = close;
 }
 
-  
-
-function openScenarioEditModal(scenarioId, scenarioData) {
-  const modal = document.getElementById('scenario-edit-modal');
-  const nameInput = document.getElementById('scenario-edit-name');
-  const textInput = document.getElementById('scenario-edit-text');
-  const pathResultInput = document.getElementById('scenario-edit-pathResult');
-  nameInput.value = scenarioData.name || '';
-  textInput.value = scenarioData.text || '';
-  pathResultInput.value = scenarioData.pathResult || 'undetermined';
-  modal.classList.remove('hidden');
-
-  // Render options management
-  const optionsSection = document.getElementById('scenario-options-section');
-  let full;
-  try { full = JSON.parse(jsonTextarea.value); } catch { full = null; }
-  // Build a map of id -> name for all scenarios
-  const scenarioNameMap = full ? Object.fromEntries(Object.entries(full.scenarios).map(([id, sc]) => [id, sc.name || id])) : {};
-  const allScenarioIds = full ? Object.keys(full.scenarios).filter(id => id !== scenarioId) : [];
-  optionsSection.innerHTML = '';
-  // List current options
-  const optionsList = document.createElement('div');
-  optionsList.className = 'space-y-2';
-  (scenarioData.options || []).forEach((opt, idx) => {
-    const row = document.createElement('div');
-    row.className = 'flex items-center space-x-2';
-    // Option text
-    const textInp = document.createElement('input');
-    textInp.type = 'text';
-    textInp.value = opt.text || '';
-    textInp.className = 'border rounded px-2 py-1 w-1/2';
-    textInp.oninput = e => {
-      opt.text = textInp.value;
-      let full2;
-      try { full2 = JSON.parse(jsonTextarea.value); } catch { return; }
-      full2.scenarios[scenarioId].options[idx].text = textInp.value;
-      jsonTextarea.value = JSON.stringify(full2, null, 2);
-      renderCytoscapeGraph(full2);
-    };
-    row.appendChild(textInp);
-    // Target scenario dropdown (show names, value is id)
-    const targetSel = document.createElement('select');
-    targetSel.className = 'border rounded px-2 py-1 w-1/3';
-    allScenarioIds.forEach(id => {
-      const optEl = document.createElement('option');
-      optEl.value = id;
-      optEl.textContent = scenarioNameMap[id] ? `${scenarioNameMap[id]} (${id})` : id;
-      if (opt.id === id) optEl.selected = true;
-      targetSel.appendChild(optEl);
-    });
-    targetSel.onchange = e => {
-      opt.id = targetSel.value;
-      let full2;
-      try { full2 = JSON.parse(jsonTextarea.value); } catch { return; }
-      full2.scenarios[scenarioId].options[idx].id = targetSel.value;
-      jsonTextarea.value = JSON.stringify(full2, null, 2);
-      renderCytoscapeGraph(full2);
-    };
-    row.appendChild(targetSel);
-    // Delete option button
-    const delBtn = document.createElement('button');
-    delBtn.textContent = '🗑';
-    delBtn.className = 'text-red-600 hover:text-red-800 px-2';
-    delBtn.onclick = () => {
-      let full2;
-      try { full2 = JSON.parse(jsonTextarea.value); } catch { return; }
-      full2.scenarios[scenarioId].options.splice(idx, 1);
-      jsonTextarea.value = JSON.stringify(full2, null, 2);
-      renderCytoscapeGraph(full2);
-      openScenarioEditModal(scenarioId, full2.scenarios[scenarioId]); // re-render modal
-    };
-    row.appendChild(delBtn);
-    optionsList.appendChild(row);
-  });
-  optionsSection.appendChild(optionsList);
-  // Add Option button
-  const addOptBtn = document.createElement('button');
-  addOptBtn.textContent = '+ Add Option';
-  addOptBtn.className = 'bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded mt-2';
-  addOptBtn.onclick = () => {
-    if (!allScenarioIds.length) return;
-    let full2;
-    try { full2 = JSON.parse(jsonTextarea.value); } catch { return; }
-    full2.scenarios[scenarioId].options = full2.scenarios[scenarioId].options || [];
-    full2.scenarios[scenarioId].options.push({ text: 'Option', id: allScenarioIds[0] });
-    jsonTextarea.value = JSON.stringify(full2, null, 2);
-    renderCytoscapeGraph(full2);
-    openScenarioEditModal(scenarioId, full2.scenarios[scenarioId]); // re-render modal
-  };
-  optionsSection.appendChild(addOptBtn);
-
-  // Save handler
-  const saveBtn = document.getElementById('scenario-edit-save');
-  const cancelBtn = document.getElementById('scenario-edit-cancel');
-  const deleteBtn = document.getElementById('scenario-edit-delete');
-  function closeModal() {
-    modal.classList.add('hidden');
-    saveBtn.onclick = null;
-    cancelBtn.onclick = null;
-    deleteBtn.onclick = null;
-  }
-  saveBtn.onclick = () => {
-    // Update the JSON
-    let full;
-    try { full = JSON.parse(jsonTextarea.value); } catch { closeModal(); return; }
-    if (!full.scenarios[scenarioId]) { closeModal(); return; }
-    full.scenarios[scenarioId].name = nameInput.value;
-    full.scenarios[scenarioId].text = textInput.value;
-    full.scenarios[scenarioId].pathResult = pathResultInput.value;
-    jsonTextarea.value = JSON.stringify(full, null, 2);
-    renderCytoscapeGraph(full);
-    closeModal();
-  };
-  cancelBtn.onclick = closeModal;
-  deleteBtn.onclick = () => {
-    if (!confirm('Delete this scenario and all its connections?')) return;
-    let full;
-    try { full = JSON.parse(jsonTextarea.value); } catch { closeModal(); return; }
-    if (!full.scenarios[scenarioId]) { closeModal(); return; }
-    // Remove all options pointing to this scenario
-    Object.values(full.scenarios).forEach(sc => {
-      if (Array.isArray(sc.options)) {
-        sc.options = sc.options.filter(opt => opt.id !== scenarioId);
-      }
-    });
-    // Remove the scenario itself
-    delete full.scenarios[scenarioId];
-    jsonTextarea.value = JSON.stringify(full, null, 2);
-    renderCytoscapeGraph(full);
-    closeModal();
-  };
-}
-
   /* --------------------------------------------------------------- */
   /* 2.2 “Connect” toolbar button (added once)                        */
   /* --------------------------------------------------------------- */
@@ -482,8 +482,8 @@ function openScenarioEditModal(scenarioId, scenarioData) {
     });
   }
 
-  function rerender(data) {            // local alias
-    renderCytoscapeGraph(cyContainer, jsonTextarea, data);
+  function rerender(data) {
+    renderCytoscapeGraph(data);   
   }
 
   /* ---------------------------------------------------------------- */
