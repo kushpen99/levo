@@ -11,14 +11,24 @@
     <script>mermaid.initialize({ startOnLoad: false });</script>
     <link rel="stylesheet" href="../styles.css">
     <!-- Add Cytoscape.js CDN -->
-    <script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
+    <script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>    <!-- ❶ -->
+    <script src="https://unpkg.com/elkjs/lib/elk.bundled.js"></script>                   <!-- ❷ -->
+    <script src="https://unpkg.com/cytoscape-elk@2.0.2/dist/cytoscape-elk.js"></script>  <!-- ❸ -->
+    <script>
+        cytoscape.use( cytoscapeElk );         // ❹ ← this MUST run *once* and before any cy = cytoscape()
+    </script>
     <!-- Add Cytoscape Edgehandles extension -->
     <script src="https://unpkg.com/cytoscape-edgehandles@4.0.1/cytoscape-edgehandles.min.js"></script>
+    
+
     <style>
       #cy-editor {
         position: relative !important;
         z-index: 1 !important;
         overflow: visible !important;
+        image-rendering: -webkit-optimize-contrast;  /* Chrome / Safari */
+        image-rendering: crisp-edges;                /* Firefox */
+        transform: translateZ(0);                    /* forces GPU antialiasing */
       }
       .eh-handle {
         display: block !important;
@@ -151,21 +161,6 @@
                     </select>
                 </div>
             </div>
-            <!-- 🌟 Collapsible JSON Section -->
-            <div id="json-section" class="space-y-1">
-                <div class="flex items-center space-x-2 mb-1">
-                    <label for="story-json" class="font-semibold">Story JSON</label>
-                    <button id="toggle-json-btn"
-                            class="text-blue-600 hover:underline text-sm">
-                        Show
-                    </button>
-                </div>
-                <div id="json-container" class="hidden">
-                    <textarea id="story-json"
-                              rows="15"
-                              class="border rounded px-3 py-2 font-mono w-full text-sm"></textarea>
-                </div>
-            </div>
             <!-- Cytoscape Graph Editor -->
             <div id="scenario-views" class="my-6"></div>
 
@@ -209,6 +204,21 @@
             </div>
             <div id="presentation-area" class="hidden bg-white p-4 rounded shadow mt-4 overflow-auto">
                 <div id="presentation-content" class="space-y-4"></div>
+            </div>
+			<!-- 🌟 Collapsible JSON Section -->
+            <div id="json-section" class="space-y-1">
+                <div class="flex items-center space-x-2 mb-1">
+                    <label for="story-json" class="font-semibold">Story JSON</label>
+                    <button id="toggle-json-btn"
+                            class="text-blue-600 hover:underline text-sm">
+                        Show
+                    </button>
+                </div>
+                <div id="json-container" class="hidden">
+                    <textarea id="story-json"
+                              rows="15"
+                              class="border rounded px-3 py-2 font-mono w-full text-sm"></textarea>
+                </div>
             </div>
         </div>
 

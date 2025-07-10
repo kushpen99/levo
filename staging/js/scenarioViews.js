@@ -29,7 +29,7 @@ export function mountScenarioViews({ wrapperDiv, jsonTextarea }) {
   /* 1 📦 create two inner holders (siblings) */
   const graphHolder  = document.createElement('div');
     graphHolder.style.width  = '100%';
-    graphHolder.style.height = '400px';
+    graphHolder.style.height = '600px';
     graphHolder.style.border = '1px solid #ddd';
     graphHolder.style.borderRadius = '8px';
 

@@ -98,84 +98,100 @@ function openScenarioEditModal(scenarioId, scenarioData) {
   pathResultInput.value = scenarioData.pathResult || 'undetermined';
   modal.classList.remove('hidden');
 
-  // Render options management
-  const optionsSection = document.getElementById('scenario-options-section');
-  let full;
-  try { full = JSON.parse(gJsonTextarea.value); } catch { full = null; }
-  // Build a map of id -> name for all scenarios
-  const scenarioNameMap = full ? Object.fromEntries(Object.entries(full.scenarios).map(([id, sc]) => [id, sc.name || id])) : {};
-  const allScenarioIds = full ? Object.keys(full.scenarios).filter(id => id !== scenarioId) : [];
+  
+  
+
+const optionsSection = document.getElementById('scenario-options-section');
+let   fullDraft      = JSON.parse(JSON.stringify(JSON.parse(gJsonTextarea.value)));
+const draftSc        = fullDraft.scenarios[scenarioId];
+
+function redrawOptions () {
+  /* 0️⃣  wipe the container */
   optionsSection.innerHTML = '';
-  // List current options
-  const optionsList = document.createElement('div');
-  optionsList.className = 'space-y-2';
-  (scenarioData.options || []).forEach((opt, idx) => {
+
+  /* 1️⃣  fresh helpers every redraw ------------------------------ */
+  const scenarioNameMap = Object.fromEntries(
+    Object.entries(fullDraft.scenarios)
+          .map(([id, sc]) => [id, sc.name || id])
+  );
+  const allScenarioIds = Object.keys(fullDraft.scenarios)
+                               .filter(id => id !== scenarioId);
+
+  /* 2️⃣  build the rows ----------------------------------------- */
+  const list = document.createElement('div');
+  list.className = 'space-y-2';
+
+  (draftSc.options || []).forEach((opt, idx) => {
     const row = document.createElement('div');
     row.className = 'flex items-center space-x-2';
-    // Option text
+
+    /* --- Text input ------------------------------------------- */
     const textInp = document.createElement('input');
-    textInp.type = 'text';
+    textInp.type  = 'text';
     textInp.value = opt.text || '';
     textInp.className = 'border rounded px-2 py-1 w-1/2';
-    textInp.oninput = e => {
-      opt.text = textInp.value;
-      let full2;
-      try { full2 = JSON.parse(gJsonTextarea.value); } catch { return; }
-      full2.scenarios[scenarioId].options[idx].text = textInp.value;
-      jsonTextarea.value = JSON.stringify(full2, null, 2);
-      renderCytoscapeGraph(full2);
-    };
+    textInp.oninput = () => { opt.text = textInp.value; };
     row.appendChild(textInp);
-    // Target scenario dropdown (show names, value is id)
-    const targetSel = document.createElement('select');
-    targetSel.className = 'border rounded px-2 py-1 w-1/3';
+
+    /* --- Target dropdown -------------------------------------- */
+    const sel = document.createElement('select');
+    sel.className = 'border rounded px-2 py-1 w-1/3';
     allScenarioIds.forEach(id => {
-      const optEl = document.createElement('option');
-      optEl.value = id;
-      optEl.textContent = scenarioNameMap[id] ? `${scenarioNameMap[id]} (${id})` : id;
-      if (opt.id === id) optEl.selected = true;
-      targetSel.appendChild(optEl);
+      const o = new Option(
+        scenarioNameMap[id] ? `${scenarioNameMap[id]} (${id})` : id,
+        id,
+        false,
+        id === opt.id            // selected?
+      );
+      sel.append(o);
     });
-    targetSel.onchange = e => {
-      opt.id = targetSel.value;
-      let full2;
-      try { full2 = JSON.parse(gJsonTextarea.value); } catch { return; }
-      full2.scenarios[scenarioId].options[idx].id = targetSel.value;
-      jsonTextarea.value = JSON.stringify(full2, null, 2);
-      renderCytoscapeGraph(full2);
+    sel.onchange = () => { opt.id = sel.value; };
+    row.appendChild(sel);
+
+    /* --- Drug field ------------------------------------------- */
+    const drugInp = document.createElement('input');
+    drugInp.type  = 'text';
+    drugInp.value = opt.drug || '';
+    drugInp.placeholder = 'Drug';
+    drugInp.className = 'border rounded px-2 py-1 w-1/3';
+    drugInp.oninput = () => {            // just update draft
+      opt.drug = drugInp.value.trim();
+      window.paintDrugInput(drugInp);    // colour + “＋” shortcut
     };
-    row.appendChild(targetSel);
-    // Delete option button
-    const delBtn = document.createElement('button');
-    delBtn.textContent = '🗑';
-    delBtn.className = 'text-red-600 hover:text-red-800 px-2';
-    delBtn.onclick = () => {
-      let full2;
-      try { full2 = JSON.parse(gJsonTextarea.value); } catch { return; }
-      full2.scenarios[scenarioId].options.splice(idx, 1);
-      jsonTextarea.value = JSON.stringify(full2, null, 2);
-      renderCytoscapeGraph(full2);
-      openScenarioEditModal(scenarioId, full2.scenarios[scenarioId]); // re-render modal
-    };
-    row.appendChild(delBtn);
-    optionsList.appendChild(row);
+    window.paintDrugInput(drugInp);      // first run
+    row.appendChild(drugInp);
+
+    /* --- Delete btn ------------------------------------------ */
+    const del = document.createElement('button');
+    del.textContent = '🗑';
+    del.className   = 'text-red-600 hover:text-red-800 px-2';
+    del.onclick     = () => { draftSc.options.splice(idx, 1); redrawOptions(); };
+    row.appendChild(del);
+
+    list.appendChild(row);
   });
-  optionsSection.appendChild(optionsList);
-  // Add Option button
-  const addOptBtn = document.createElement('button');
-  addOptBtn.textContent = '+ Add Option';
-  addOptBtn.className = 'bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded mt-2';
-  addOptBtn.onclick = () => {
-    if (!allScenarioIds.length) return;
-    let full2;
-    try { full2 = JSON.parse(gJsonTextarea.value); } catch { return; }
-    full2.scenarios[scenarioId].options = full2.scenarios[scenarioId].options || [];
-    full2.scenarios[scenarioId].options.push({ text: 'Option', id: allScenarioIds[0] });
-    jsonTextarea.value = JSON.stringify(full2, null, 2);
-    renderCytoscapeGraph(full2);
-    openScenarioEditModal(scenarioId, full2.scenarios[scenarioId]); // re-render modal
+
+  optionsSection.appendChild(list);
+
+  /* 3️⃣  “Add Option” button ------------------------------------ */
+  const addBtn = document.createElement('button');
+  addBtn.textContent = '+ Add Option';
+  addBtn.className =
+    'bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded mt-2';
+  addBtn.onclick = () => {
+    if (!allScenarioIds.length) {
+      alert('Add another scenario first – nowhere to link to.');
+      return;
+    }
+    draftSc.options = draftSc.options || [];
+    draftSc.options.push({ text: 'Option', id: allScenarioIds[0] });
+    redrawOptions();                       // redraw only
   };
-  optionsSection.appendChild(addOptBtn);
+  optionsSection.appendChild(addBtn);
+}
+
+/* call once right after you define the function */
+redrawOptions();
 
   // Save handler
   const saveBtn = document.getElementById('scenario-edit-save');
@@ -188,17 +204,18 @@ function openScenarioEditModal(scenarioId, scenarioData) {
     deleteBtn.onclick = null;
   }
   saveBtn.onclick = () => {
-    // Update the JSON
-    let full;
-    try { full = JSON.parse(gJsonTextarea.value); } catch { closeModal(); return; }
-    if (!full.scenarios[scenarioId]) { closeModal(); return; }
-    full.scenarios[scenarioId].name = nameInput.value;
-    full.scenarios[scenarioId].text = textInput.value;
-    full.scenarios[scenarioId].pathResult = pathResultInput.value;
-    jsonTextarea.value = JSON.stringify(full, null, 2);
-    renderCytoscapeGraph(full);
-    closeModal();
+        // write back the pieces the user may have edited
+        draftSc.name       = nameInput.value;
+        draftSc.text       = textInput.value;
+        draftSc.pathResult = pathResultInput.value;
+    
+        /* 2️⃣ commit draft to real JSON + redraw once */
+        gJsonTextarea.value = JSON.stringify(fullDraft, null, 2);
+        renderCytoscapeGraph(fullDraft);
+        if (window.redrawMermaid) window.redrawMermaid();
+        closeModal();
   };
+
   cancelBtn.onclick = closeModal;
   deleteBtn.onclick = () => {
     if (!confirm('Delete this scenario and all its connections?')) return;
@@ -213,7 +230,7 @@ function openScenarioEditModal(scenarioId, scenarioData) {
     });
     // Remove the scenario itself
     delete full.scenarios[scenarioId];
-    jsonTextarea.value = JSON.stringify(full, null, 2);
+    gJsonTextarea.value = JSON.stringify(full, null, 2);
     renderCytoscapeGraph(full);
     closeModal();
   };
@@ -251,7 +268,7 @@ function openScenarioEditModal(scenarioId, scenarioData) {
     const cy = (window.cy = cytoscape({
       container: c,
       elements,
-      pixelRatio: 'auto',
+      pixelRatio: undefined,
       minZoom: 0.2,
       maxZoom: 2,
       style: [
@@ -262,7 +279,7 @@ function openScenarioEditModal(scenarioId, scenarioData) {
             'background-color': '#fff',
             color: '#111',
             'font-family': 'Trebuchet MS, Verdana, Arial, sans-serif',
-            'font-size': 16,
+            'font-size': 14,
             'text-valign': 'center',
             'text-halign': 'center',
             shape: 'roundrectangle',
@@ -286,12 +303,21 @@ function openScenarioEditModal(scenarioId, scenarioData) {
             'target-arrow-shape': 'triangle',
             width: 2, 'line-color': '#bbb', 'target-arrow-color': '#bbb',
             'font-size': 14,
-            'text-background-color': '#fff',
-            'text-background-opacity': 1,
-            'text-background-padding': 2
-          }}
+          }},
+          /* ★ START node (id === OPT0) — bright star shape */
+          { selector: '.start-node',
+            style: {
+              shape            : 'roundrectangle',   // keep same shape
+              'background-color' : '#facc15',        // gold  (Tailwind “yellow-400”)
+              'border-color'     : '#b45309',        // darker gold/brown border
+              'border-width'     : 2  
+            }
+          }
       ]
     }));
+
+    /* mark entry node */
+    cy.$('#OPT0').addClass('start-node');
 
     /* --------------- node tap = edit or connect ------------------ */
     const connectBtn = document.getElementById('connect-scenario-btn');
@@ -360,28 +386,43 @@ function openScenarioEditModal(scenarioId, scenarioData) {
     }).update();
 
     // Layout
-    const bfs = cy.layout({
-      name: 'breadthfirst',
-      directed: true,
-      padding: 20,
-      spacingFactor: 1.5,
-      orientation: 'horizontal',
-      animate: false
-    });
-    bfs.on('layoutstop', () => {
-      const n = cy.nodes().length;
-      if (n === 1) {
-        /* One node → bounding box is 0×0, so fit() misbehaves.
-          Use a fixed zoom that fills the editor nicely. */
-        cy.zoom(1);    // or 1.2 if you like it bigger
-        cy.center();
-      } else {
-        /* Two or more nodes → fit works correctly */
-        cy.fit(cy.elements(), 40);   // 40-px padding looks good
-        cy.center();
+    /* ---------- ELK “layered” layout: minimises crossings ---------- */
+    const layout = cy.layout({
+      name: 'elk',
+      padding: 40,                 // space around the graph
+      fit: true,                   // zoom/centre afterwards
+      elk: {
+        algorithm  : 'layered',    // hierarchical, left→right
+        'elk.direction' : 'RIGHT',
+        /* nicer looking edge routing */
+        'elk.layered.edgeRouting' : 'ORTHOGONAL',
+        'elk.layered.nodePlacement.strategy'  : 'NETWORK_SIMPLEX',
+
+        /* Spacing tweeks so edges do not overlap text */
+        'elk.spacing.nodeNode'                : 100,   // between nodes in same layer
+        'elk.layered.spacing.nodeNodeBetweenLayers': 110,
+
+        /* ask ELK to try harder on crossings */
+        'elk.layered.crossingMinimization.strategy' : 'LAYER_SWEEP',
       }
     });
-    bfs.run();
+
+    layout.one('layoutstart', () => {
+      const start = cy.getElementById('OPT0');
+      if (start && start.nonempty()) {
+        /* pick any coordinates you like; these work well for LEFT→RIGHT */
+        start.position({ x: 80, y: 200 });
+        start.lock();              // prevents further movement
+      }
+    });
+
+    layout.run();
+
+    layout.promiseOn('layoutstop').then(() => {
+      const start = cy.$('#OPT0');
+      start.unlock();
+      start.grabify();
+    });
   }
 
   
@@ -430,7 +471,7 @@ if (cyContainer && !document.getElementById('add-scenario-btn')) {
           pathResult: 'undetermined'
       };
       
-      jsonTextarea.value = JSON.stringify(full, null, 2);
+      gJsonTextarea.value = JSON.stringify(full, null, 2);
       renderCytoscapeGraph(full);
       if (window.redrawMermaid) window.redrawMermaid();
     });
@@ -571,9 +612,52 @@ if (!document.getElementById('scenario-edit-modal')) {
           : 'Connect';
       if (window.cy) window.cy.nodes().removeClass('connect-source');
     });
+
+       
+    /* ─────────────── NEW: Zoom-buttons right after “Connect” ─────────────── */
+    const makeBtn = (id, label, title) => {
+    const b = document.createElement('button');
+    b.id         = id;
+    b.textContent= label;
+    b.title      = title;
+    b.className  =
+      'graph-tools mb-2 bg-gray-200 hover:bg-gray-300 text-gray-900 ' +
+      'font-semibold px-3 py-1 rounded';
+    return b;
+  };
+
+  const zoomInBtn  = makeBtn('zoom-in-btn',  '＋', 'Zoom in');
+  const zoomOutBtn = makeBtn('zoom-out-btn', '－', 'Zoom out');
+
+  /* insert them right after the Connect button */
+  connectBtn.after(zoomInBtn, zoomOutBtn);
+
+  /* ---- handlers ------------------------------------------------------- */
+  const ZOOM_STEP = 1.2;                 // 20 % per click feels nice
+
+  const safeZoom = factor => {
+    if (!window.cy) return;
+    const cy   = window.cy;
+    const zoom = cy.zoom() * factor;
+    /* clamp to the limits you set when you created cy */
+    cy.zoom(Math.max(cy.minZoom(), Math.min(cy.maxZoom(), zoom)));
+    cy.center();                        // keep graph in view
+  };
+
+  zoomInBtn.onclick  = () => safeZoom(ZOOM_STEP);
+  zoomOutBtn.onclick = () => safeZoom(1 / ZOOM_STEP);
+    
   }
 
   function rerender(data) {
+    if (!data) {
+      try {
+        data = JSON.parse(gJsonTextarea?.value || '{}');
+      } catch {
+        // malformed JSON → don’t change the graph
+        return;
+      }
+    }
     renderCytoscapeGraph(data);   
   }
 

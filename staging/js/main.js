@@ -53,6 +53,8 @@ const views = mountScenarioViews({
   jsonTextarea: storyJsonArea
 });
 
+window.views = views; 
+
 /* any change to the textarea (typed or programmatic) = redraw current view */
 storyJsonArea.addEventListener('input', () => views.redrawAll());
 

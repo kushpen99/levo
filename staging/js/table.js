@@ -167,7 +167,15 @@ storyIdInput.onchange = async () => {
         storyTitleInput.value = full.title || '';
         statusSelect.value = full.status || 'Draft';
         typeSelect.value = full.type || '';
-        renderCytoscapeGraph(full); // <-- render graph
+
+        if (window.cy) {
+            const running = window.cy.layouting && window.cy.layouting();
+            if (running) running.stop();
+            window.cy.destroy();
+            window.cy = null;
+        }
+          
+        views.redrawAll();
     } catch {/* ignore if JSON invalid */ }
 };
 
@@ -186,7 +194,7 @@ storyJsonArea.oninput = () => {
         storyTitleInput.value = full.title || '';
         statusSelect.value = full.status || 'Draft';
         typeSelect.value = full.type || '';
-        renderCytoscapeGraph(full); // <-- render graph
+        views.redrawAll();
     } catch {/* ignore if JSON invalid */ }
 };
 
@@ -510,12 +518,14 @@ createFromScratchBtn.onclick = () => {
   
     /* -------------- STEP 3 ­– wipe the previous graph -------------- */
     if (window.cy) {
-      window.cy.destroy();          // removes old Cytoscape instance
-      window.cy = null;
+        const running = window.cy.layouting && window.cy.layouting(); // v 2.x
+        if (running) running.stop();          // abort animation / promise
+        window.cy.destroy();          // removes old Cytoscape instance
+        window.cy = null;
     }
   
     /* -------------- draw the blank graph once -------------- */
-    renderCytoscapeGraph(scratchJson);
+    views.redrawAll();
   
     /* sync the “Story ID / Title / Type” small fields */
     storyIdInput.value    = '';

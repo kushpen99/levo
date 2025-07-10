@@ -152,7 +152,9 @@ function initDrugHelpers(db) {
   }
 
   function hideAddDrugShortcut(inputEl) {
-    inputEl.parentElement.querySelector('.add-drug-btn')?.remove();
+    const host = inputEl.parentElement;
+    if (!host) return;                          // guard against detached element
+      host.querySelector('.add-drug-btn')?.remove();  
   }
 
   /**
