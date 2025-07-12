@@ -128,6 +128,38 @@
             <!-- story select -->
             <!-- DROPDOWN REMOVED -->
 
+            <!-- TOP ACTION BUTTONS -->
+            <div class="flex space-x-2 mb-4">
+                <button id="upload-btn-top"
+                        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
+                    Save Story
+                </button>
+
+                <button id="delete-btn-top"
+                        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+                    Delete Story
+                </button>
+                <button id="preview-btn-top"
+                        class="flex items-center bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                    <!-- standard "eye" icon SVG from Heroicons -->
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="w-5 h-5 mr-2"
+                         fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    Preview
+                </button>
+            </div>
+            <p id="status-msg-top" class="mt-2"></p>
+
             <!-- story title -->
             <div>
                 <label for="story-title" class="font-semibold block mb-1">Story Title</label>
@@ -164,43 +196,9 @@
             <!-- Cytoscape Graph Editor -->
             <div id="scenario-views" class="my-6"></div>
 
-            <div class="flex space-x-2">
-                <button id="upload-btn"
-                        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
-                    Save Story
-                </button>
-
-                <!-- New Delete button -->
-                <button id="delete-btn"
-                        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
-                    Delete Story
-                </button>
-                <button id="preview-btn"
-                        class="flex items-center bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-                    <!-- standard "eye" icon SVG from Heroicons -->
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                         class="w-5 h-5 mr-2"
-                         fill="none" viewBox="0 0 24 24"
-                         stroke="currentColor">
-                        <path stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    Preview
-                </button>
-
-            </div>
-            <p id="status-msg" class="mt-2"></p>
-
             <!-- PRESENTATION CONTROLS -->
             <div id="presentation-controls" class="hidden mt-6">
-                <label for="presentation-select" class="font-semibold mr-2">View:</label>
-                <select id="presentation-select" class="border rounded px-2 py-1"></select>
+                <!-- Dropdown removed - always showing both quiz and summary editors -->
             </div>
             <div id="presentation-area" class="hidden bg-white p-4 rounded shadow mt-4 overflow-auto">
                 <div id="presentation-content" class="space-y-4"></div>
@@ -220,6 +218,38 @@
                               class="border rounded px-3 py-2 font-mono w-full text-sm"></textarea>
                 </div>
             </div>
+
+            <!-- BOTTOM ACTION BUTTONS -->
+            <div class="flex space-x-2 mt-4">
+                <button id="upload-btn-bottom"
+                        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
+                    Save Story
+                </button>
+
+                <button id="delete-btn-bottom"
+                        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+                    Delete Story
+                </button>
+                <button id="preview-btn-bottom"
+                        class="flex items-center bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                    <!-- standard "eye" icon SVG from Heroicons -->
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="w-5 h-5 mr-2"
+                         fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    Preview
+                </button>
+            </div>
+            <p id="status-msg-bottom" class="mt-2"></p>
         </div>
 
         <!-- 💊 DRUGS ADMIN --------------------------------------------------- -->

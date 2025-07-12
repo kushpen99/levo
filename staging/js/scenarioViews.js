@@ -13,9 +13,19 @@ console.log('[scenarioViews.js] module evaluated');
  */
 export function mountScenarioViews({ wrapperDiv, jsonTextarea }) {
 
-  /* 0 ⚙️ build the dropdown */
+  /* 0 ⚙️ build the title and dropdown */
+  const headerContainer = document.createElement('div');
+  headerContainer.className = 'flex items-center justify-between mb-4';
+
+  // Title
+  const title = document.createElement('h3');
+  title.className = 'text-lg font-semibold text-purple-600';
+  title.textContent = 'Scenario Editor';
+  headerContainer.appendChild(title);
+
+  // Dropdown on the right
   const toolbar = document.createElement('div');
-  toolbar.className = 'flex items-center mb-2 space-x-2';
+  toolbar.className = 'flex items-center space-x-2';
 
   const sel = document.createElement('select');
   sel.className = 'border rounded px-2 py-1';
@@ -24,7 +34,8 @@ export function mountScenarioViews({ wrapperDiv, jsonTextarea }) {
     '<option value="table">Table view</option>';
 
   toolbar.append(sel);
-  wrapperDiv.append(toolbar);
+  headerContainer.appendChild(toolbar);
+  wrapperDiv.append(headerContainer);
 
   /* 1 📦 create two inner holders (siblings) */
   const graphHolder  = document.createElement('div');

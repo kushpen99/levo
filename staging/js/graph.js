@@ -442,42 +442,87 @@ export function mountGraphEditor({
 
 
   /* ------------------------------------------------------------------ */
-/*  2.1 “Add Scenario” button – only once                                 */
+/*  2.1 Group graph tool buttons in a flex container for spacing      */
 /* ------------------------------------------------------------------ */
-if (cyContainer && !document.getElementById('add-scenario-btn')) {
+if (cyContainer && !document.getElementById('graph-tools-container')) {
+  const buttonContainer = document.createElement('div');
+  buttonContainer.id = 'graph-tools-container';
+  buttonContainer.className = 'flex space-x-2 mb-4';
+  cyContainer.parentElement.insertBefore(buttonContainer, cyContainer);
+
+  // Add Scenario button
   const addBtn = document.createElement('button');
   addBtn.id = 'add-scenario-btn';
   addBtn.textContent = 'Add Scenario';
   addBtn.className =
-    'graph-tools mb-2 bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded';
-  cyContainer.parentElement.insertBefore(addBtn, cyContainer);
-
+    'graph-tools bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded';
   addBtn.onclick = () => {
     let full;
     try { full = JSON.parse(gJsonTextarea.value); } catch { return; }
-
     full.scenarios = full.scenarios || {};
-
     showAddScenarioModal(name => {
-      // ← everything that used to be inside the old handler now lives here
-      
       const existingIds = Object.keys(full.scenarios);
       const id = generateScenarioId(name, existingIds);
-      
       full.scenarios[id] = {
          name,
           text: '',
           options: [],
           pathResult: 'undetermined'
       };
-      
       gJsonTextarea.value = JSON.stringify(full, null, 2);
       renderCytoscapeGraph(full);
       if (window.redrawMermaid) window.redrawMermaid();
     });
-    return;            // bail out – all work happens in the callback
-
+    return;
   };
+  buttonContainer.appendChild(addBtn);
+
+  // Connect button
+  if (!document.getElementById('connect-scenario-btn')) {
+    const connectBtn = document.createElement('button');
+    connectBtn.id   = 'connect-scenario-btn';
+    connectBtn.textContent = 'Connect';
+    connectBtn.className =
+      'graph-tools bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded transition-colors';
+    connectBtn.addEventListener('click', () => {
+      connectMode   = !connectMode;
+      connectSource = null;
+      connectBtn.classList.toggle('bg-green-700', connectMode);
+      connectBtn.classList.toggle('bg-green-500', !connectMode);
+      connectBtn.textContent =
+        connectMode
+          ? 'Connecting… (click source, then target)'
+          : 'Connect';
+      if (window.cy) window.cy.nodes().removeClass('connect-source');
+    });
+    buttonContainer.appendChild(connectBtn);
+
+    // Zoom buttons
+    const makeBtn = (id, label, title) => {
+      const b = document.createElement('button');
+      b.id         = id;
+      b.textContent= label;
+      b.title      = title;
+      b.className  =
+        'graph-tools bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold px-3 py-1 rounded';
+      return b;
+    };
+    const zoomInBtn  = makeBtn('zoom-in-btn',  '＋', 'Zoom in');
+    const zoomOutBtn = makeBtn('zoom-out-btn', '－', 'Zoom out');
+    buttonContainer.appendChild(zoomInBtn);
+    buttonContainer.appendChild(zoomOutBtn);
+    // Zoom handlers
+    const ZOOM_STEP = 1.2;
+    const safeZoom = factor => {
+      if (!window.cy) return;
+      const cy   = window.cy;
+      const zoom = cy.zoom() * factor;
+      cy.zoom(Math.max(cy.minZoom(), Math.min(cy.maxZoom(), zoom)));
+      cy.center();
+    };
+    zoomInBtn.onclick  = () => safeZoom(ZOOM_STEP);
+    zoomOutBtn.onclick = () => safeZoom(1 / ZOOM_STEP);
+  }
 }
 
 function generateScenarioId(name, existingIds) {

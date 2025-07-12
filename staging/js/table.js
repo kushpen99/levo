@@ -252,24 +252,14 @@ function setupPresentation() {
     let data;
     try { data = JSON.parse(storyJsonArea.value); } catch { return hidePresentation(); }
 
-    // keep whatever was selected before the re-render
-    const prev = currentMode ?? presSelect.value;
-
-    presSelect.innerHTML = '';
-
-    const views = [];
-    if (data.quiz) views.push(['quiz', 'Quiz']);
-    if (data.summary) views.push(['summary', 'Summary']);
-    if (!views.length) return hidePresentation();
-    views.forEach(([val, label]) => {
-        const o = new Option(label, val);
-        presSelect.append(o);
-    });
-    presControls.classList.remove('hidden');
+    // Always show presentation area if quiz or summary exists
+    const hasQuiz = !!data.quiz;
+    const hasSummary = !!data.summary;
+    
+    if (!hasQuiz && !hasSummary) return hidePresentation();
+    
+    // Always show the presentation area (no dropdown needed)
     presArea.classList.remove('hidden');
-    presSelect.onchange = renderPresentation;
-    // restore previous main view if still available, else default
-    presSelect.value = views.some(v => v[0] === prev) ? prev : views[0][0];
     renderPresentation();
 }
 
@@ -277,28 +267,83 @@ function renderPresentation() {
     let data;
     try { data = JSON.parse(storyJsonArea.value); } catch { return; }
     presContent.innerHTML = '';
-    const mode = presSelect.value;
-    currentMode = mode;                 // <-- remember
-    if (mode === 'graph') renderGraphView(data);
-    else if (mode === 'drugInfo') renderDrugInfo(data);
-    else if (mode === 'quiz') renderQuiz(data);
-    else if (mode === 'summary') renderSummary(data);
+    
+    // Create buttons to add quiz/summary if they don't exist
+    const addButtonsContainer = document.createElement('div');
+    addButtonsContainer.className = 'mb-6 flex space-x-4';
+    
+    if (!data.quiz) {
+        const addQuizBtn = document.createElement('button');
+        addQuizBtn.textContent = '+ Add Quiz';
+        addQuizBtn.className = 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded';
+        addQuizBtn.onclick = () => {
+            const full = JSON.parse(storyJsonArea.value);
+            full.quiz = { choices: [] };
+            storyJsonArea.value = JSON.stringify(full, null, 2);
+            renderPresentation();
+        };
+        addButtonsContainer.appendChild(addQuizBtn);
+    }
+    
+    if (!data.summary) {
+        const addSummaryBtn = document.createElement('button');
+        addSummaryBtn.textContent = '+ Add Summary';
+        addSummaryBtn.className = 'bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded';
+        addSummaryBtn.onclick = () => {
+            const full = JSON.parse(storyJsonArea.value);
+            full.summary = { points: [] };
+            storyJsonArea.value = JSON.stringify(full, null, 2);
+            renderPresentation();
+        };
+        addButtonsContainer.appendChild(addSummaryBtn);
+    }
+    
+    if (addButtonsContainer.children.length > 0) {
+        presContent.appendChild(addButtonsContainer);
+    }
+    
+    // Always render both quiz and summary editors if they exist
+    if (data.quiz) {
+        const quizSection = document.createElement('div');
+        quizSection.className = 'mb-8';
+        
+        const quizTitle = document.createElement('h3');
+        quizTitle.className = 'text-lg font-semibold mb-4 text-blue-600';
+        quizTitle.textContent = 'Quiz Editor';
+        quizSection.appendChild(quizTitle);
+        
+        renderQuiz(data, quizSection);
+        presContent.appendChild(quizSection);
+    }
+    
+    if (data.summary) {
+        const summarySection = document.createElement('div');
+        summarySection.className = 'mb-8';
+        
+        const summaryTitle = document.createElement('h3');
+        summaryTitle.className = 'text-lg font-semibold mb-4 text-green-600';
+        summaryTitle.textContent = 'Summary Editor';
+        summarySection.appendChild(summaryTitle);
+        
+        renderSummary(data, summarySection);
+        presContent.appendChild(summarySection);
+    }
 }
 
 
 /* --------------------- OTHER RENDERERS ------------------------------ */
-function renderSummary(data) {
+function renderSummary(data, container = presContent) {
     const ta = document.createElement('textarea');
     ta.className = 'border rounded px-2 py-1 w-full h-32';
     ta.value = (data.summary?.points || []).join('\n');
     ta.oninput = () => { const full = JSON.parse(storyJsonArea.value); full.summary = { points: ta.value.split('\n') }; storyJsonArea.value = JSON.stringify(full, null, 2); };
-    presContent.append(ta);
+    container.append(ta);
 }
 
-function renderQuiz(data) {
+function renderQuiz(data, container = presContent) {
     const add = document.createElement('button'); add.textContent = 'Add Question'; add.className = 'mb-2 bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded';
     add.onclick = () => { const full = JSON.parse(storyJsonArea.value); full.quiz = full.quiz || { choices: [] }; full.quiz.choices.push({ id: `Q${full.quiz.choices.length + 1}`, question: '', options: [], correct: '' }); storyJsonArea.value = JSON.stringify(full, null, 2); renderPresentation(); };
-    presContent.append(add);
+    container.append(add);
     const table = document.createElement('table'); table.className = 'table-auto w-full border-collapse'; table.innerHTML = `<thead><tr class='bg-gray-50'><th class='border px-2 py-1'>#</th><th class='border px-2 py-1'>ID</th><th class='border px-2 py-1'>Question</th><th class='border px-2 py-1'>Options (comma)</th><th class='border px-2 py-1'>Correct</th><th class='border px-2 py-1'>Remove</th></tr></thead>`;
     const tbody = document.createElement('tbody');
     (data.quiz?.choices || []).forEach((c, i) => {
@@ -312,7 +357,7 @@ function renderQuiz(data) {
         const rm = document.createElement('button'); rm.textContent = '🗑'; rm.onclick = () => { const full = JSON.parse(storyJsonArea.value); full.quiz.choices.splice(i, 1); storyJsonArea.value = JSON.stringify(full, null, 2); renderPresentation(); }; td.append(rm); tr.append(td);
         tbody.append(tr);
     });
-    table.append(tbody); presContent.append(table);
+    table.append(tbody); container.append(table);
     function tdPlain(t) { const td = document.createElement('td'); td.className = 'border px-2 py-1'; td.textContent = t; return td; }
     function tdInput(v, cb, cls = '') { const td = document.createElement('td'); td.className = `border px-2 py-1 ${cls}`; const inp = document.createElement('input'); inp.type = 'text'; inp.value = v; inp.className = 'border rounded px-1 py-0.5 w-full'; inp.oninput = () => cb(inp.value); td.append(inp); return td; }
     function update(i, k, v) { const full = JSON.parse(storyJsonArea.value); full.quiz.choices[i][k] = v; storyJsonArea.value = JSON.stringify(full, null, 2); }
@@ -400,23 +445,68 @@ function orderOptionFields(opt) {
 
 
 function hidePresentation() { presControls.classList.add('hidden'); presArea.classList.add('hidden'); presContent.innerHTML = ''; }
-function showStatus(msg, cls = '') { statusMsg.textContent = msg; statusMsg.className = cls; }
+
+// Status message elements
+const statusMsgTop = document.getElementById('status-msg-top');
+const statusMsgBottom = document.getElementById('status-msg-bottom');
+
+function showStatusTop(msg, cls = '') { 
+    statusMsgTop.textContent = msg; 
+    statusMsgTop.className = cls; 
+    // Clear bottom status
+    statusMsgBottom.textContent = '';
+    statusMsgBottom.className = '';
+}
+
+function showStatusBottom(msg, cls = '') { 
+    statusMsgBottom.textContent = msg; 
+    statusMsgBottom.className = cls; 
+    // Clear top status
+    statusMsgTop.textContent = '';
+    statusMsgTop.className = '';
+}
+
+// Keep the old function for backward compatibility
+function showStatus(msg, cls = '') { 
+    // Default to showing in top status
+    showStatusTop(msg, cls); 
+}
 
 /* ------------------------- SAVE ----------------------------------- */
-uploadBtn.onclick = async () => {
+// Note: Original buttons removed, using top and bottom buttons instead
+
+/* ------------------------- DELETE ----------------------------------- */
+// Note: Original buttons removed, using top and bottom buttons instead
+
+/* ----------------------- PREVIEW STORY -------------------------------------*/
+// Note: Original buttons removed, using top and bottom buttons instead
+
+/* ----------------------- DUPLICATE BUTTON HANDLERS -------------------------------------*/
+
+// Top buttons
+const uploadBtnTop = document.getElementById('upload-btn-top');
+const deleteBtnTop = document.getElementById('delete-btn-top');
+const previewBtnTop = document.getElementById('preview-btn-top');
+
+// Bottom buttons
+const uploadBtnBottom = document.getElementById('upload-btn-bottom');
+const deleteBtnBottom = document.getElementById('delete-btn-bottom');
+const previewBtnBottom = document.getElementById('preview-btn-bottom');
+
+// Top button handlers
+uploadBtnTop.onclick = async () => {
     const id = storyIdInput.value.trim(); const raw = storyJsonArea.value;
-    if (!id || !raw) return showStatus('Story ID and JSON required.', 'text-red-600');
-    let obj; try { obj = JSON.parse(raw); } catch { return showStatus('Invalid JSON.', 'text-red-600'); }
+    if (!id || !raw) return showStatusTop('Story ID and JSON required.', 'text-red-600');
+    let obj; try { obj = JSON.parse(raw); } catch { return showStatusTop('Invalid JSON.', 'text-red-600'); }
     const ref = fb.doc(fb.db, 'stories', id); 
     const snap = await fb.getDoc(ref);
     const save = { ...obj, updatedAt: fb.serverTimestamp(), createdAt: snap.exists() ? snap.data().createdAt : fb.serverTimestamp(), type: typeSelect.value };
     await fb.setDoc(ref, save);
-    showStatus(`Story "${id}" saved.`, 'text-green-600'); 
+    showStatusTop(`Story "${id}" saved.`, 'text-green-600'); 
     loadStories();
 };
-/* ------------------------- DELETE ----------------------------------- */
-// ---------- Delete Story ----------
-deleteBtn.onclick = async () => {
+
+deleteBtnTop.onclick = async () => {
     const id = storyIdInput.value.trim();
     if (!id) {
         alert('Please select a story first.');
@@ -432,7 +522,7 @@ deleteBtn.onclick = async () => {
         await fb.deleteDoc(fb.doc(fb.db, 'stories', id));
 
         // 3) Update UI + feedback
-        showStatus(`Story "${id}" deleted.`, 'text-green-600');
+        showStatusTop(`Story "${id}" deleted.`, 'text-green-600');
 
         // Clear form
         storyIdInput.value = '';
@@ -444,13 +534,68 @@ deleteBtn.onclick = async () => {
         // Refresh the drop-down list
         loadStories();
     } catch (e) {
-        showStatus(e.message, 'text-red-600');
+        showStatusTop(e.message, 'text-red-600');
     }
 };
 
-/* ----------------------- PREVIEW STORY -------------------------------------*/
+previewBtnTop.onclick = () => {
+    const rawJson = storyJsonArea.value.trim();
+    if (!rawJson) {
+        alert('Nothing to preview – please load or create a story JSON first.');
+        return;
+    }
+    // URL-encode and open in new tab
+    const encoded = encodeURIComponent(rawJson);
+    const previewUrl = `story.html?preview=1&data=${encoded}`;
+    window.open(previewUrl, '_blank');
+};
 
-previewBtn.onclick = () => {
+// Bottom button handlers
+uploadBtnBottom.onclick = async () => {
+    const id = storyIdInput.value.trim(); const raw = storyJsonArea.value;
+    if (!id || !raw) return showStatusBottom('Story ID and JSON required.', 'text-red-600');
+    let obj; try { obj = JSON.parse(raw); } catch { return showStatusBottom('Invalid JSON.', 'text-red-600'); }
+    const ref = fb.doc(fb.db, 'stories', id); 
+    const snap = await fb.getDoc(ref);
+    const save = { ...obj, updatedAt: fb.serverTimestamp(), createdAt: snap.exists() ? snap.data().createdAt : fb.serverTimestamp(), type: typeSelect.value };
+    await fb.setDoc(ref, save);
+    showStatusBottom(`Story "${id}" saved.`, 'text-green-600'); 
+    loadStories();
+};
+
+deleteBtnBottom.onclick = async () => {
+    const id = storyIdInput.value.trim();
+    if (!id) {
+        alert('Please select a story first.');
+        return;
+    }
+
+    // 1) Confirm with the user
+    const sure = confirm(`Delete story "${id}" permanently?`);
+    if (!sure) return;
+
+    try {
+        // 2) Remove from Firestore
+        await fb.deleteDoc(fb.doc(fb.db, 'stories', id));
+
+        // 3) Update UI + feedback
+        showStatusBottom(`Story "${id}" deleted.`, 'text-green-600');
+
+        // Clear form
+        storyIdInput.value = '';
+        storyJsonArea.value = '';
+
+        // Hide presentation pane
+        hidePresentation();
+
+        // Refresh the drop-down list
+        loadStories();
+    } catch (e) {
+        showStatusBottom(e.message, 'text-red-600');
+    }
+};
+
+previewBtnBottom.onclick = () => {
     const rawJson = storyJsonArea.value.trim();
     if (!rawJson) {
         alert('Nothing to preview – please load or create a story JSON first.');
