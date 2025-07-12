@@ -258,7 +258,6 @@ function setupPresentation() {
     presSelect.innerHTML = '';
 
     const views = [];
-    if (data.drugInfo) views.push(['drugInfo', 'Drug Info']);
     if (data.quiz) views.push(['quiz', 'Quiz']);
     if (data.summary) views.push(['summary', 'Summary']);
     if (!views.length) return hidePresentation();
