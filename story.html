@@ -24,6 +24,30 @@
         .shake {
             animation: shake 0.5s ease-in-out;
         }
+        
+        /* Custom button centering class */
+        .story-button-center {
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+        }
+        
+        /* More specific selector */
+        button.story-button-center {
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+        }
+        
+        /* Even more specific */
+        button.flex-1.bg-blue-500.hover\:bg-blue-600.text-white.py-2.rounded.story-button-center {
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+        }
     </style>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -32,7 +56,7 @@
         <!-- Header with back-link and logo -->
         <div class="flex justify-between items-center mb-4">
             <a href="index.html" class="text-blue-600 hover:underline">← Back to Stories</a>
-            <img src="images/grushkush_logo.png" alt="GrushKush Logo" class="w-24 md:w-32 h-auto" />
+            <img src="images/logo.png" alt="Levo Logo" class="w-24 md:w-32 h-auto" />
         </div>
 
         <div id="app" class="space-y-6"></div>
@@ -50,35 +74,13 @@
     </div>
 
     <script type="module">
+        console.log('[Story Engine] Module loading...');
+        
         const INTRO_ENABLED = true;  // set to false to skip intro and go straight to the first scenario
 
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
         import {
-            getFirestore,
-            collection,
-            doc,
-            getDoc,
-            getDocs,
-            query,
-            where,
-            orderBy
-        } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
-
-        // ---- YOUR FIREBASE CONFIG HERE ----
-        const firebaseConfig = {
-            apiKey: "AIzaSyClEgpGrVTXT2zQNNDBDg0TNX2F24k6oTg",
-            authDomain: "urushka99.firebaseapp.com",
-            projectId: "urushka99",
-            storageBucket: "urushka99.firebasestorage.app",
-            messagingSenderId: "954120822793",
-            appId: "1:954120822793:web:6c316b1b178081b56758d8",
-            measurementId: "G-5LCB9E7PL9"
-        };
-        // -----------------------------------
-
-        // Initialize Firebase and Firestore
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+            db, collection, doc, getDoc, getDocs, query, where, orderBy
+        } from './js/firebase-init.js';
 
         // load drug info ui-fields
         // right after you initialize Firestore…
@@ -127,32 +129,98 @@
 
 
         (async function () {
-            // 1) Determine storyId from URL
-            const params = new URLSearchParams(window.location.search);
-            let data;
-            if (params.get('preview') === '1' && params.has('data')) {
-                // —— PREVIEW MODE ——
-
-                const dataParam = params.get('data');
-                // only now parse
+            console.log('[Story Engine] Script starting...');
+            
+            try {
+                // 1) Determine storyId from URL
+                const params = new URLSearchParams(window.location.search);
+                console.log('[Story Engine] URL params:', params.toString());
+                let data;
+                if (params.get('preview') === '1') {
+                    console.log('[Story Engine] Preview mode detected');
+                    // —— PREVIEW MODE ——
+                    const dataParam = localStorage.getItem('preview-story-data');
+                    console.log('[Story Engine] Preview data from localStorage:', dataParam ? 'exists' : 'missing');
+                    if (!dataParam) {
+                        document.getElementById('app').innerHTML =
+                            `<div class="text-red-600">No preview data found. Please try previewing again.</div>`;
+                        return;
+                    }
+                    // only now parse
+                    try {
+                        data = JSON.parse(dataParam);
+                        console.log('[Story Engine] Preview data parsed successfully');
+                        // Clean up localStorage after successful load
+                        localStorage.removeItem('preview-story-data');
+                    } catch (e) {
+                        console.error('[Story Engine] Preview JSON parse error:', e);
+                        document.getElementById('app').innerHTML =
+                            `<div class="text-red-600">Preview JSON is invalid: ${e.message}</div>`;
+                        return;
+                    }
+                } else {
+                    console.log('[Story Engine] Normal mode detected');
+                    // —— NORMAL MODE ——
+                    const storyId = params.get('story') || 'no story';
+                    console.log('[Story Engine] Story ID:', storyId);
+                    const snap = await getDoc(doc(db, 'stories', storyId));
+                    if (!snap.exists()) {
+                        document.getElementById('app').innerHTML =
+                            `<div class="text-red-600">Story "${storyId}" not found in Firestore.</div>`;
+                        return;
+                    }
+                    data = snap.data();
+                    console.log('[Story Engine] Story data loaded from Firestore');
+                }
+            
+            // 2) Get language direction and apply it
+            let storyDirection = 'ltr'; // default
+            console.log('[Story Engine] Story language field:', data.language);
+            
+            if (data.language) {
                 try {
-                    data = JSON.parse(dataParam);
-                } catch (e) {
-                    document.getElementById('app').innerHTML =
-                        `<div class="text-red-600">Preview JSON is invalid: ${e.message}</div>`;
+                    console.log('[Story Engine] Fetching language direction for:', data.language);
+                    const langQuery = query(
+                        collection(db, 'languages'),
+                        where('code', '==', data.language),
+                        where('isActive', '==', true)
+                    );
+                    const langSnap = await getDocs(langQuery);
+                    console.log('[Story Engine] Language query result:', langSnap.size, 'documents found');
+                    
+                    if (!langSnap.empty) {
+                        const langData = langSnap.docs[0].data();
+                        console.log('[Story Engine] Language data:', langData);
+                        storyDirection = langData.direction || 'ltr';
+                        console.log('[Story Engine] Direction from Firestore:', langData.direction);
+                    } else {
+                        console.warn('[Story Engine] No language document found for code:', data.language);
+                        // Fallback: Force RTL for Hebrew language codes
+                        if (data.language === 'he' || data.language === 'iw' || data.language === 'he-IL') {
+                            console.log('[Story Engine] Using fallback RTL for Hebrew language');
+                            storyDirection = 'rtl';
+                        }
+                    }
+                } catch (error) {
+                    console.error('[Story Engine] Error fetching language direction:', error);
+                    // Fallback: Force RTL for Hebrew language codes
+                    if (data.language === 'he' || data.language === 'iw' || data.language === 'he-IL') {
+                        console.log('[Story Engine] Using fallback RTL for Hebrew language after error');
+                        storyDirection = 'rtl';
+                    }
                 }
             } else {
-                // —— NORMAL MODE ——
-                const storyId = params.get('story') || 'no story';
-                const snap = await getDoc(doc(db, 'stories', storyId));
-                if (!snap.exists()) {
-                    document.getElementById('app').innerHTML =
-                        `<div class="text-red-600">Story “${storyId}” not found in Firestore.</div>`;
-                    return;
-                }
-                data = snap.data();
-
+                console.warn('[Story Engine] No language field found in story data');
             }
+            
+            // Apply language direction to the document
+            document.documentElement.dir = storyDirection;
+            document.documentElement.lang = data.language || 'en';
+            
+            console.log(`[Story Engine] Final settings - Language: ${data.language}, Direction: ${storyDirection}`);
+            console.log('[Story Engine] Document dir attribute:', document.documentElement.dir);
+            console.log('[Story Engine] Document lang attribute:', document.documentElement.lang);
+            
             const scenarios = data.scenarios;
 
             const drugNames = Array.from(
@@ -221,10 +289,14 @@
 
                 // insert into modal
                 modal.querySelector('#modal-title').textContent = title + ' Summary';
+                modal.querySelector('#modal-title').style.direction = storyDirection;
+                modal.querySelector('#modal-title').style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
+                
                 modal.querySelector('#modal-content').innerHTML = `
-    <ul class="list-disc ml-5 mb-4">${listItems}</ul>
+    <ul class="list-disc ml-5 mb-4" style="direction: ${storyDirection}; text-align: ${storyDirection === 'rtl' ? 'right' : 'left'};">${listItems}</ul>
     <button id="show-extended-btn"
-            class="mt-4 float-right text-blue-800 bg-transparent px-3 py-1 rounded">
+            class="mt-4 float-right text-blue-800 bg-transparent px-3 py-1 rounded"
+            style="direction: ${storyDirection}; text-align: ${storyDirection === 'rtl' ? 'right' : 'left'};">
       ${ExtendedIcon}
     </button>
   `;
@@ -249,10 +321,14 @@
                 const nextType = type === 'Extended' ? 'Summary' : 'Extended';
 
                 modal.querySelector('#modal-title').textContent = title + ' ' + type;
+                modal.querySelector('#modal-title').style.direction = storyDirection;
+                modal.querySelector('#modal-title').style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
+                
                 modal.querySelector('#modal-content').innerHTML =
-                    `<ul class="list-disc ml-5 mb-4">${listItems}</ul>
+                    `<ul class="list-disc ml-5 mb-4" style="direction: ${storyDirection}; text-align: ${storyDirection === 'rtl' ? 'right' : 'left'};">${listItems}</ul>
                     <button id="toggle-info-btn"
-                            class="mt-4 float-right text-blue-800 bg-transparent px-3 py-1 rounded">
+                            class="mt-4 float-right text-blue-800 bg-transparent px-3 py-1 rounded"
+                            style="direction: ${storyDirection}; text-align: ${storyDirection === 'rtl' ? 'right' : 'left'};">
                       ${type === 'Extended' ? BackIcon : ExtendedIcon}
                     </button>
                   `;
@@ -272,6 +348,10 @@
                 // Story text card
                 const card = document.createElement('div');
                 card.className = 'bg-white p-6 rounded shadow text-lg whitespace-pre-wrap';
+                // Apply language direction to the card
+                card.style.direction = storyDirection;
+                card.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
+                
                 // —— failure styling ——
                 if (sc.pathResult === 'failure') {
                     // 1) add a red tint + red border
@@ -281,6 +361,7 @@
                     // 3) prepend a big ❌ banner
                     const banner = document.createElement('div');
                     banner.className = 'flex items-center bg-red-500 text-white px-4 py-2 rounded-t';
+                    banner.style.direction = storyDirection;
                     banner.innerHTML = `<span class="text-xl mr-2">❌</span><strong>Incorrect choice</strong>`;
                     card.prepend(banner);
                 }
@@ -291,6 +372,8 @@
                 // ---------- inline highlighting (no drugInfo JSON any more) ----------
                 const paragraph = document.createElement('p');
                 paragraph.className = 'mb-4 whitespace-pre-wrap';   // ← keep your old styling
+                paragraph.style.direction = storyDirection;
+                paragraph.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
                 card.append(paragraph);                             // add <p> to the card first
 
                 // highlight drug names inline   (inside the scenario loop where `card` exists)
@@ -301,6 +384,7 @@
                         const btn = document.createElement('button');
                         btn.className =
                             'inline-flex items-center text-blue-600 hover:underline';
+                        btn.style.direction = storyDirection;
                         btn.textContent = seg;                          // keep original casing
                         btn.append(svg(InfoSVG));
                         btn.onclick = () => showDrugInfo(canon);         // ← canonical name
@@ -314,33 +398,66 @@
                 // Options & Info buttons
                 const opts = document.createElement('div');
                 opts.className = 'flex flex-col space-y-3';
+                opts.style.direction = storyDirection;
                 const startQuiz = sc.pathResult === 'success';
                 sc.options.forEach(o => {
                     const row = document.createElement('div');
                     row.className = 'flex';
+                    row.style.direction = storyDirection;
                     // option button
                     const b = document.createElement('button');
-                    b.className = 'flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded';
+                    b.className = 'flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded story-button-center';
+                    b.style.direction = storyDirection;
                     b.textContent = o.text;
                     b.onclick = () => { current = o.id; renderStory(); };
                     row.append(b);
-                    // info button if drugInfo exists
-                    if (o.drugName) {
-                        const ib = document.createElement('button');
-                        ib.className = 'ml-2 inline-flex items-center border border-blue-500 hover:bg-blue-50 px-2 py-0.5 rounded';
-                        ib.textContent = 'Info';
-                        ib.prepend(svg(ShieldSVG));
-                        ib.onclick = () => showDrugInfo(o.drugName);
-                        row.append(ib);
+
+                    // resource button logic
+                    if (o.resource && o.resource.type && o.resource.url) {
+                        const resourceBtn = document.createElement('button');
+                        resourceBtn.className = 'ml-2 inline-flex items-center border border-blue-500 hover:bg-blue-50 px-2 py-0.5 rounded story-button-center';
+                        resourceBtn.style.direction = storyDirection;
+                        resourceBtn.textContent = o.resource.displayName || 'Resource';
+                        if (o.resource.type === 'url') {
+                            resourceBtn.onclick = (e) => {
+                                e.stopPropagation();
+                                window.open(o.resource.url, '_blank');
+                            };
+                            resourceBtn.prepend(svg(InfoSVG));
+                        } else if (o.resource.type === 'youtube') {
+                            resourceBtn.prepend(svg(ShieldSVG));
+                            resourceBtn.onclick = (e) => {
+                                e.stopPropagation();
+                                // Toggle YouTube embed
+                                let embed = row.querySelector('.youtube-embed');
+                                if (embed) {
+                                    embed.remove();
+                                } else {
+                                    embed = document.createElement('div');
+                                    embed.className = 'youtube-embed w-full mt-2';
+                                    // Extract YouTube video ID
+                                    const match = o.resource.url.match(/[?&]v=([^&#]+)/) || o.resource.url.match(/youtu\.be\/([^?&#]+)/);
+                                    const videoId = match ? match[1] : null;
+                                    if (videoId) {
+                                        embed.innerHTML = `<iframe width="100%" height="315" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>`;
+                                    } else {
+                                        embed.textContent = 'Invalid YouTube URL';
+                                    }
+                                    row.appendChild(embed);
+                                }
+                            };
+                        }
+                        row.append(resourceBtn);
                     }
                     opts.append(row);
                 });
 
-                // “Take Quiz” if end-of-story and quiz exists
+                // "Take Quiz" if end-of-story and quiz exists
                 if (startQuiz && quiz) {
                     const qbtn = document.createElement('button');
                     qbtn.textContent = 'Take Quiz';
-                    qbtn.className = 'mt-4 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded';
+                    qbtn.className = 'mt-4 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded story-button-center';
+                    qbtn.style.direction = storyDirection;
                     qbtn.onclick = renderQuiz;
                     opts.append(qbtn);
                 }
@@ -356,16 +473,22 @@
                 app.innerHTML = '';
                 const form = document.createElement('form');
                 form.className = 'space-y-6 bg-white p-6 rounded shadow';
+                form.style.direction = storyDirection;
+                form.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
 
                 quiz.choices.forEach(q => {
                     const block = document.createElement('div');
+                    block.style.direction = storyDirection;
                     const qel = document.createElement('p');
                     qel.className = 'font-semibold';
+                    qel.style.direction = storyDirection;
+                    qel.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
                     qel.textContent = q.question;
                     block.append(qel);
                     q.options.forEach(opt => {
                         const label = document.createElement('label');
                         label.className = 'inline-flex items-center mr-4';
+                        label.style.direction = storyDirection;
                         const inp = document.createElement('input');
                         inp.type = 'radio'; inp.name = q.id; inp.value = opt; inp.className = 'mr-2';
                         label.append(inp, document.createTextNode(opt));
@@ -376,7 +499,8 @@
 
                 const submit = document.createElement('button');
                 submit.type = 'submit';
-                submit.className = 'bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded';
+                submit.className = 'bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded story-button-center';
+                submit.style.direction = storyDirection;
                 submit.textContent = 'Submit Quiz';
                 form.append(submit);
 
@@ -394,12 +518,23 @@
             function renderQuizResults() {
                 const app = document.getElementById('app');
                 app.innerHTML = '';
+                app.style.direction = storyDirection;
+                app.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
+                
                 quiz.choices.forEach(q => {
-                    const block = document.createElement('div'); block.className = 'mb-4';
-                    const qel = document.createElement('p'); qel.className = 'font-semibold';
-                    qel.textContent = q.question; block.append(qel);
+                    const block = document.createElement('div'); 
+                    block.className = 'mb-4';
+                    block.style.direction = storyDirection;
+                    const qel = document.createElement('p'); 
+                    qel.className = 'font-semibold';
+                    qel.style.direction = storyDirection;
+                    qel.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
+                    qel.textContent = q.question; 
+                    block.append(qel);
                     const user = answers[q.id], correct = q.correct;
                     const res = document.createElement('p');
+                    res.style.direction = storyDirection;
+                    res.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
                     if (user === correct) {
                         res.textContent = `✔ Correct (${user})`; res.className = 'text-green-600';
                     } else {
@@ -410,7 +545,8 @@
                 if (summary) {
                     const sb = document.createElement('button');
                     sb.textContent = 'Show Summary';
-                    sb.className = 'mt-2 bg-indigo-500 hover:bg-indigo-600 text-white py-2 px-4 rounded';
+                    sb.className = 'mt-2 bg-indigo-500 hover:bg-indigo-600 text-white py-2 px-4 rounded story-button-center';
+                    sb.style.direction = storyDirection;
                     sb.onclick = renderSummary;
                     app.append(sb);
                 }
@@ -420,14 +556,25 @@
             function renderSummary() {
                 const app = document.getElementById('app');
                 app.innerHTML = '';
+                app.style.direction = storyDirection;
+                app.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
+                
                 const card = document.createElement('div');
                 card.className = 'bg-white p-6 rounded shadow space-y-2';
+                card.style.direction = storyDirection;
+                card.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
+                
                 const h = document.createElement('h2');
-                h.className = 'text-xl font-semibold'; h.textContent = 'Key Summary Points';
+                h.className = 'text-xl font-semibold'; 
+                h.style.direction = storyDirection;
+                h.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
+                h.textContent = 'Key Summary Points';
                 card.append(h);
                 summary.points.forEach(pt => {
                     const p = document.createElement('p');
                     p.className = 'flex items-start';
+                    p.style.direction = storyDirection;
+                    p.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
                     p.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>${pt}`;
                     card.append(p);
                 });
@@ -437,45 +584,56 @@
             function renderIntro() {
                 const app = document.getElementById('app');
                 app.innerHTML = '';
+                app.style.direction = storyDirection;
+                app.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
 
                 // 1) Story title
                 const titleEl = document.createElement('h1');
                 titleEl.textContent = data.title;                        // assume you loaded data.title from Firestore
                 titleEl.className = 'text-3xl font-bold mb-2';
+                titleEl.style.direction = storyDirection;
+                titleEl.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
                 app.append(titleEl);
 
                 // 2) Intro sentence
                 const descEl = document.createElement('p');
                 descEl.textContent = 'The following antibiotics play a key role in this case study:';
                 descEl.className = 'mb-4 text-gray-700';
+                descEl.style.direction = storyDirection;
+                descEl.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
                 app.append(descEl);
 
                 const introContainer = document.createElement('div');
                 introContainer.className = 'flex flex-col space-y-3';
+                introContainer.style.direction = storyDirection;
 
-                // one “scenario-style” row per drug
+                // one "scenario-style" row per drug
                 drugNames.forEach(drug => {
                     const row = document.createElement('div');
                     row.className = 'flex';
+                    row.style.direction = storyDirection;
 
                     // big blue button (same as your scenario choice buttons)
                     const drugBtn = document.createElement('button');
-                    drugBtn.className = 'flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded';
+                    drugBtn.className = 'flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded story-button-center';
+                    drugBtn.style.direction = storyDirection;
                     drugBtn.textContent = drug;
                     drugBtn.onclick = () => showDrugInfo(drug);
-
+                    
                     row.append(drugBtn);
 
                     introContainer.append(row);
                 });
 
-                // finally add your “I’m ready…” start button below
+                // finally add your "I'm ready…" start button below
                 const startRow = document.createElement('div');
                 startRow.className = 'flex';
+                startRow.style.direction = storyDirection;
 
                 const startBtn = document.createElement('button');
-                startBtn.className = 'flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded';
-                startBtn.textContent = "I’m ready, let’s start";
+                startBtn.className = 'flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded story-button-center';
+                startBtn.style.direction = storyDirection;
+                startBtn.textContent = "I'm ready, let's start";
                 startBtn.onclick = () => {
                     renderStory();
                 };
@@ -494,6 +652,11 @@
             } else {
                 renderStory();
             }
+        } catch (error) {
+            console.error('[Story Engine] Fatal error:', error);
+            document.getElementById('app').innerHTML = 
+                `<div class="text-red-600">Error loading story: ${error.message}</div>`;
+        }
         })();
     </script>
 </body>

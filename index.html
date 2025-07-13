@@ -30,24 +30,7 @@
   </div>
   <!-- Use module script to allow imports -->
   <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
-    import { getFirestore, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
-
-    // ---- YOUR FIREBASE CONFIG HERE ----
-    const firebaseConfig = {
-      apiKey: "AIzaSyClEgpGrVTXT2zQNNDBDg0TNX2F24k6oTg",
-      authDomain: "urushka99.firebaseapp.com",
-      projectId: "urushka99",
-      storageBucket: "urushka99.firebasestorage.app",
-      messagingSenderId: "954120822793",
-      appId: "1:954120822793:web:6c316b1b178081b56758d8",
-      measurementId: "G-5LCB9E7PL9"
-    };
-    // -----------------------------------
-
-    // Initialize Firebase and Firestore
-    const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
+    import { db, collection, query, where, getDocs } from './js/firebase-init.js';
 
     const storyList = document.getElementById('story-list');
     const typePrompt = document.getElementById('type-prompt');
@@ -86,7 +69,28 @@
           const a  = document.createElement('a');
           a.href = `story.html?story=${encodeURIComponent(id)}`;
           a.textContent = data.title;
-          a.className = 'block bg-white shadow hover:shadow-md rounded-lg px-5 py-4 text-lg sm:text-xl text-blue-600 hover:text-blue-700 transition';
+          a.className = 'block shadow hover:shadow-md rounded-lg px-5 py-4 text-lg sm:text-xl text-blue-600 hover:text-blue-700 transition';
+
+          // Set background color based on data.color
+          let bg = '';
+          switch ((data.color || '').toLowerCase()) {
+            case 'red':
+              bg = 'bg-red-100';
+              break;
+            case 'green':
+              bg = 'bg-green-100';
+              break;
+            case 'blue':
+              bg = 'bg-blue-100';
+              break;
+            case 'yellow':
+              bg = 'bg-yellow-100';
+              break;
+            default:
+              bg = 'bg-white';
+          }
+          a.className = `${bg} block shadow hover:shadow-md rounded-lg px-5 py-4 text-lg sm:text-xl text-blue-600 hover:text-blue-700 transition`;
+
           li.append(a);
           storyList.append(li);
         });

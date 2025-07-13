@@ -1,6 +1,8 @@
 // /js/scenarioTable.js
 console.log('[scenarioTable.js] module evaluated');
 
+import { createResourceEditor } from './resourceEditor.js';
+
 /**
  * Host must call `mountScenarioTable` ONCE and pass:
  *   tableContainer   – an empty <div> for the table
@@ -8,8 +10,6 @@ console.log('[scenarioTable.js] module evaluated');
  *
  * Returns { redraw } so other modules can force a refresh.
  */
-import { createResourceEditor } from './resourceEditor.js';
-
 export function mountScenarioTable({ tableContainer, jsonTextarea }) {
   /* ---------------------------------------------------------------- */
   /*  1.  Helper lifted from your old code                             */
@@ -304,6 +304,67 @@ export function mountScenarioTable({ tableContainer, jsonTextarea }) {
         rebuild();
       }
       
+      function renderResourceEditor(opt, panel) {
+        panel.innerHTML = '';
+        // Display Name
+        const nameLabel = document.createElement('label');
+        nameLabel.textContent = 'Display Name:';
+        nameLabel.className = 'block text-xs font-semibold mb-1';
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.value = opt.resource?.displayName || '';
+        nameInput.className = 'border rounded px-1 py-0.5 w-full mb-2';
+        panel.append(nameLabel, nameInput);
+        // Type
+        const typeLabel = document.createElement('label');
+        typeLabel.textContent = 'Type:';
+        typeLabel.className = 'block text-xs font-semibold mb-1';
+        const typeSelect = document.createElement('select');
+        typeSelect.className = 'border rounded px-1 py-0.5 w-full mb-2';
+        ['url', 'youtube'].forEach(t => {
+          const optEl = document.createElement('option');
+          optEl.value = t;
+          optEl.textContent = t;
+          if (opt.resource?.type === t) optEl.selected = true;
+          typeSelect.append(optEl);
+        });
+        panel.append(typeLabel, typeSelect);
+        // URL
+        const urlLabel = document.createElement('label');
+        urlLabel.textContent = 'URL:';
+        urlLabel.className = 'block text-xs font-semibold mb-1';
+        const urlInput = document.createElement('input');
+        urlInput.type = 'text';
+        urlInput.value = opt.resource?.url || '';
+        urlInput.className = 'border rounded px-1 py-0.5 w-full mb-2';
+        panel.append(urlLabel, urlInput);
+        // Save/Remove buttons
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = 'Save';
+        saveBtn.className = 'bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded mr-2';
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = 'Remove';
+        removeBtn.className = 'bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded';
+        panel.append(saveBtn, removeBtn);
+        saveBtn.onclick = () => {
+          opt.resource = {
+            displayName: nameInput.value.trim(),
+            type: typeSelect.value,
+            url: urlInput.value.trim()
+          };
+          push();
+          panel.classList.add('hidden');
+          panel._rendered = false;
+          rebuild();
+        };
+        removeBtn.onclick = () => {
+          delete opt.resource;
+          push();
+          panel.classList.add('hidden');
+          panel._rendered = false;
+          rebuild();
+        };
+      }
 
     function updateField(sid, key, value) {
       const full = JSON.parse(jsonTextarea.value);
