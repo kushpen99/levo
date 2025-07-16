@@ -851,38 +851,55 @@ If the target language is right-to-left (Hebrew, Arabic, etc.):
 
 Engagement & Reflection Rules
 -----------------------------
-• Begin major decision scenarios with a brief narrative, then a “Pause & predict” reflection cue marked by <<reflect>> (exact token).
+• In decision scenarios, include a “Pause & predict” reflection cue marked by the literal token <<reflect>>.
+• The UI will collect a brief student prediction before enabling options (may be skipped; logged).
 • Provide 2–4 options per decision scenario: 1 best action, ≥1 plausible but incomplete action, ≥1 misconception reflecting common student errors.
-• In the *resulting* scenario.text after a choice: first 1–2 sentences = outcome feedback; next 1–3 sentences = teaching point; final sentence = forward hook / next challenge.
+• In the resulting scenario.text after a choice: first 1–2 sentences = outcome feedback; next 1–3 sentences = teaching point; final sentence = forward hook / next challenge.
+
+GLOBAL RESOURCES (NEW SCHEMA)
+-----------------------------
+All learning resources are defined ONCE at the top level under "resources". Options no longer embed resources.
+Each scenario may list a subset of relevant materials in "resourceIds" (array of resourceId strings).
+The platform will show:
+  • All resources in the story intro screen.
+  • Scenario-specific resources (those listed in that scenario’s ``resourceIds``) near the scenario text.
+  • The full global resource list beside the summary and quiz views.
+
+Resource object fields:
+  displayName (required)
+  type (required)
+  url (required)
+  importance (optional: recommended | optional | advanced)
+  description (optional learner-visible blurb; short)
 
 Schema (NEW OUTPUT)
 -------------------
 Top-level keys in order:
-  - title (string)
-  - status (string - initial value: draft)
-  - createdAt (timestamp object: { "seconds": <int>, "nanoseconds": <int> })
-  - updatedAt (timestamp object: same structure)
-  - scenarios (object of scenario-objects)
-  - summary (object with a "points" array)
-  - quiz (object with a "choices" array)
+  - title
+  - status
+  - createdAt
+  - updatedAt
+  - resources
+  - scenarios
+  - summary
+  - quiz
 
-Each scenario object keys in order:
-  - name (string)
-  - text (string)
-  - pathResult (string: one of undetermined, success, failure)
-  - options (array of option-objects)
+Timestamp object format:
+  { "seconds": <int>, "nanoseconds": <int> }
+
+Scenario object keys in order:
+  - name
+  - text
+  - pathResult (undetermined | success | failure)
+  - options (array)
+  - resourceIds (optional array of strings referencing top-level resources)
   - meta (optional object; see below)
 
-Each option object:
-  - text (string; short, action label ≤60 chars, single line)
-  - id (string matching one of the scenario keys)
-  - resource (optional object) with:
-      • displayName (string - human label, e.g., "Primary Source PDF", "Tutorial Video", "Piperacillin-Tazobactam")
-      • type (string - e.g., "article", "video", "dataset", "doc", "tool", "drug")
-      • url (string - absolute URL or app-internal path)
-      • importance (optional string: "recommended" | "optional" | "advanced")
+Option object:
+  - text (≤60 chars, single line)
+  - id (string matching scenario key)
 
-(Legacy content may show a drugName field; DO NOT use drugName in new output.)
+(Legacy stories may contain ``drugName`` fields; DO NOT use in new output.)
 
 Mermaid compliance:
   - Scenario IDs become graph node IDs.
@@ -894,7 +911,6 @@ Structural Rules
 ** A scenario with pathResult=success must always have an empty options array. **
 ** A scenario with pathResult=failure must always have exactly one option whose text is Back, returning the user to the scenario they came from. **
    - If multiple parents lead to the same failure concept, create distinct failure scenarios per parent (e.g., FAIL_OPT1, FAIL_OPT2) so each Back leads correctly.
-   - The Back option may include a resource if pedagogically helpful (e.g., "Review Guide").
 
 Content Length Guides
 ---------------------
@@ -907,7 +923,7 @@ Optional scenario.meta object:
     "difficulty": 1-5,
     "cognitiveLevel": "recall" | "apply" | "analyze" | "evaluate" | "create",
     "tags": ["..."],
-    "prereqSuccess": ["OPT1","OPT2"]   // scenario shown only if these succeeded; optional
+    "prereqSuccess": ["OPT1","OPT2"]   // show only if these succeeded; optional
   }
 
 Validation Self-Check (DO THIS SILENTLY BEFORE OUTPUT)
@@ -917,64 +933,68 @@ Validation Self-Check (DO THIS SILENTLY BEFORE OUTPUT)
 3. Exactly one OPT0.
 4. All success scenarios have options=[].
 5. All failure scenarios have exactly one Back option to a valid scenario.
-6. No use of drugName.
+6. No use of drugName; no resource objects in options.
 7. All learner-visible text localized to ${language}.
 8. Required math/code markup used if ${language} is RTL.
 9. Option texts ≤60 chars, one line.
-10. Summary contains all ${mustIncludePointsJSON} items (translated).
+10. All scenario.resourceIds reference valid resource IDs defined in top-level ``resources``.
+11. summary.points include all ${mustIncludePointsJSON} items (translated).
 
-REFERENCE EXAMPLES (for structure only — DO NOT COPY CONTENT)
-=============================================================
+REFERENCE EXAMPLES (structure only — DO NOT COPY CONTENT)
+=========================================================
 
---- MINIMAL EXAMPLE (reference only) ---
+--- MINIMAL EXAMPLE (global resources + scenario.resourceIds) ---
 {
   "title": "Minimal Example – Adding Fractions",
   "status": "draft",
   "createdAt": { "seconds": 0, "nanoseconds": 0 },
   "updatedAt": { "seconds": 0, "nanoseconds": 0 },
+  "resources": {
+    "R1": {
+      "displayName": "Fraction Visualizer",
+      "type": "tool",
+      "url": "https://example.com/fractions",
+      "importance": "recommended"
+    },
+    "R2": {
+      "displayName": "Quick Fraction Review",
+      "type": "article",
+      "url": "https://example.com/fraction-review",
+      "importance": "recommended"
+    },
+    "R3": {
+      "displayName": "Worksheet: Practice Fractions",
+      "type": "doc",
+      "url": "https://example.com/fraction-worksheet",
+      "importance": "optional"
+    }
+  },
   "scenarios": {
     "OPT0": {
       "name": "Start – Add Fractions",
       "text": "You must add <math-inline>1/2 + 1/4</math-inline>. <<reflect>> Choose the method you think is correct.",
       "pathResult": "undetermined",
       "options": [
-        {
-          "text": "Find common denominator",
-          "id": "OPT1",
-          "resource": {
-            "displayName": "Fraction Visualizer",
-            "type": "tool",
-            "url": "https://example.com/fractions"
-          }
-        },
-        {
-          "text": "Add numerators only",
-          "id": "OPT2"
-        }
-      ]
+        { "text": "Find common denominator", "id": "OPT1" },
+        { "text": "Add numerators only", "id": "OPT2" }
+      ],
+      "resourceIds": ["R1","R2"]
     },
     "OPT1": {
       "name": "Correct Addition",
       "text": "Nice! Converting 1/2 to 2/4 gives <math-inline>2/4 + 1/4 = 3/4</math-inline>. This shows why common denominators matter. You can now apply this to unlike fractions in homework.",
       "pathResult": "success",
-      "options": []
+      "options": [],
+      "resourceIds": ["R1","R3"]
     },
     "OPT2": {
       "name": "Incorrect – Numerators Only",
       "text": "Adding just 1 + 1 and keeping 2 gives 2/2, which misreads denominators. Proper addition needs equal parts. Review and try again.",
       "pathResult": "failure",
       "options": [
-        {
-          "text": "Back",
-          "id": "OPT0",
-          "resource": {
-            "displayName": "Quick Fraction Review",
-            "type": "article",
-            "url": "https://example.com/fraction-review",
-            "importance": "recommended"
-          }
-        }
-      ]
+        { "text": "Back", "id": "OPT0" }
+      ],
+      "resourceIds": ["R2"]
     }
   },
   "summary": {
@@ -1008,154 +1028,127 @@ REFERENCE EXAMPLES (for structure only — DO NOT COPY CONTENT)
   }
 }
 
---- MAXIMAL EXAMPLE (reference only) ---
+--- MAXIMAL EXAMPLE (global resources + scenario.resourceIds + meta) ---
 {
   "title": "Maximal Example – Decoding a Medieval Charter with Date Math & Code",
   "status": "draft",
   "createdAt": { "seconds": 0, "nanoseconds": 0 },
   "updatedAt": { "seconds": 0, "nanoseconds": 0 },
+  "resources": {
+    "R1": {
+      "displayName": "Roman Calendar Guide",
+      "type": "article",
+      "url": "https://example.com/roman-calendar",
+      "importance": "recommended",
+      "description": "How Roman inclusive dating works."
+    },
+    "R2": {
+      "displayName": "Date-Parser Notebook",
+      "type": "tool",
+      "url": "https://example.com/date-parser",
+      "importance": "advanced"
+    },
+    "R3": {
+      "displayName": "Reign Timeline DB",
+      "type": "dataset",
+      "url": "https://example.com/regnal-timeline"
+    },
+    "R4": {
+      "displayName": "Seal Iconography Atlas",
+      "type": "doc",
+      "url": "https://example.com/seal-atlas"
+    },
+    "R5": {
+      "displayName": "Guide: Reading Medieval Dates",
+      "type": "article",
+      "url": "https://example.com/medieval-dates",
+      "importance": "recommended"
+    }
+  },
   "scenarios": {
     "OPT0": {
       "name": "You Receive the Charter",
       "text": "A damaged Latin charter claims a land grant was issued in the reign of King X on \"the 14th day before the Kalends of May, Year 1215.\" You must verify authenticity. <<reflect>> What do you do first?",
       "pathResult": "undetermined",
       "options": [
-        {
-          "text": "Examine date system",
-          "id": "S1",
-          "resource": {
-            "displayName": "Roman Calendar Guide",
-            "type": "article",
-            "url": "https://example.com/roman-calendar",
-            "importance": "recommended"
-          }
-        },
-        {
-          "text": "Assume date is correct",
-          "id": "F_OPT0_ASSUME"
-        },
-        {
-          "text": "Run script to parse date",
-          "id": "S2",
-          "resource": {
-            "displayName": "Date-Parser Notebook",
-            "type": "tool",
-            "url": "https://example.com/date-parser",
-            "importance": "advanced"
-          }
-        }
-      ]
+        { "text": "Examine date system", "id": "S1" },
+        { "text": "Assume date is correct", "id": "F_OPT0_ASSUME" },
+        { "text": "Run script to parse date", "id": "S2" }
+      ],
+      "resourceIds": ["R1","R2"]
     },
     "S1": {
       "name": "Analyze Roman Date",
       "text": "Good start. Roman-style dating counts backward from fixed points. \"Kalends of May\" = May 1. \"14th day before\" (inclusive) maps to <math-inline>May 1 - 13 days</math-inline> = April 18. <<reflect>> Next?",
       "pathResult": "undetermined",
       "options": [
-        {
-          "text": "Cross-check regnal year",
-          "id": "S3",
-          "resource": {
-            "displayName": "Reign Timeline DB",
-            "type": "dataset",
-            "url": "https://example.com/regnal-timeline"
-          }
-        },
-        {
-          "text": "Trust inscription blindly",
-          "id": "F_S1_TRUST"
-        }
-      ]
+        { "text": "Cross-check regnal year", "id": "S3" },
+        { "text": "Trust inscription blindly", "id": "F_S1_TRUST" }
+      ],
+      "resourceIds": ["R1","R3"]
     },
     "S2": {
       "name": "Parse Date by Code",
       "text": "You choose automation. Here's a snippet you consider running:<code-block lang=\"py\">\nimport datetime\n# Roman date helper pseudo-code\n# target: '14th day before Kalends of May 1215'\n</code-block>\nAutomating helps scale archival work, but mis-parsed rules can corrupt data. <<reflect>> Proceed?",
       "pathResult": "undetermined",
       "options": [
-        {
-          "text": "Validate logic manually",
-          "id": "S1"
-        },
-        {
-          "text": "Run unvalidated script",
-          "id": "F_S2_RUNBAD"
-        }
-      ]
+        { "text": "Validate logic manually", "id": "S1" },
+        { "text": "Run unvalidated script", "id": "F_S2_RUNBAD" }
+      ],
+      "resourceIds": ["R2"]
     },
     "S3": {
       "name": "Check Regnal Alignment",
       "text": "Records show King X's 3rd regnal year began <math-inline>1214-11-03</math-inline>. April 18, 1215 falls in the 3rd year—consistent! You now verify seal integrity. <<reflect>>",
       "pathResult": "undetermined",
       "options": [
-        {
-          "text": "Inspect wax seal clues",
-          "id": "S4",
-          "resource": {
-            "displayName": "Seal Iconography Atlas",
-            "type": "doc",
-            "url": "https://example.com/seal-atlas"
-          }
-        },
-        {
-          "text": "Skip seal; accept validity",
-          "id": "F_S3_SKIPSEAL"
-        }
-      ]
+        { "text": "Inspect wax seal clues", "id": "S4" },
+        { "text": "Skip seal; accept validity", "id": "F_S3_SKIPSEAL" }
+      ],
+      "resourceIds": ["R3","R4"]
     },
     "S4": {
       "name": "Seal Verified – Charter Authentic",
       "text": "Seal matrix, inscription style, and regnal dating all align. The charter is likely authentic; catalog with provenance notes.",
       "pathResult": "success",
-      "options": []
+      "options": [],
+      "resourceIds": ["R4"]
     },
     "F_OPT0_ASSUME": {
       "name": "Assumed Date Without Checking",
       "text": "You accept the charter at face value. Later analysis finds the date format was miscopied; your catalog entry is flagged. Careful dating matters in medieval sources.",
       "pathResult": "failure",
       "options": [
-        {
-          "text": "Back",
-          "id": "OPT0",
-          "resource": {
-            "displayName": "Guide: Reading Medieval Dates",
-            "type": "article",
-            "url": "https://example.com/medieval-dates",
-            "importance": "recommended"
-          }
-        }
-      ]
+        { "text": "Back", "id": "OPT0" }
+      ],
+      "resourceIds": ["R5"]
     },
     "F_S1_TRUST": {
       "name": "Trusted Inscription Blindly",
       "text": "The scribe omitted an intercalary adjustment; your chronology drifts. Always confirm calendar conversions.",
       "pathResult": "failure",
       "options": [
-        {
-          "text": "Back",
-          "id": "S1"
-        }
-      ]
+        { "text": "Back", "id": "S1" }
+      ],
+      "resourceIds": ["R1","R5"]
     },
     "F_S2_RUNBAD": {
       "name": "Ran Script Without Validation",
       "text": "The parser misread ordinal text and logged May 14 instead of April 18. Automated errors propagate widely. Validate logic first.",
       "pathResult": "failure",
       "options": [
-        {
-          "text": "Back",
-          "id": "S2"
-        }
-      ]
+        { "text": "Back", "id": "S2" }
+      ],
+      "resourceIds": ["R2"]
     },
     "F_S3_SKIPSEAL": {
       "name": "Skipped Seal Verification",
       "text": "A forged seal was later detected on similar documents; without inspection you miss critical fraud signals.",
       "pathResult": "failure",
       "options": [
-        {
-          "text": "Back",
-          "id": "S3"
-        }
-      ]
+        { "text": "Back", "id": "S3" }
+      ],
+      "resourceIds": ["R4"]
     }
   },
   "summary": {
@@ -1196,7 +1189,7 @@ REFERENCE EXAMPLES (for structure only — DO NOT COPY CONTENT)
   }
 }
 
-=============================================================
+=========================================================
 
 --- INSTRUCTIONS TO MODEL ---
 Using ALL rules above and the injected variables, create a brand-new interactive case-study story JSON.

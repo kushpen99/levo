@@ -6,6 +6,10 @@ body {
   line-height: 1.6;
 }
 
+html[dir="ltr"] .story-app-layout {
+  flex-direction: row-reverse;
+}
+
 /* Ensure full-width on mobile containers */
 .container {
   max-width: 100%;

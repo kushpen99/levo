@@ -48,11 +48,40 @@
             align-items: center !important;
             text-align: center !important;
         }
+        /* Responsive resource panel layout */
+        @media (min-width: 1024px) {
+            .story-app-layout {
+                display: flex;
+                flex-direction: row;
+                align-items: flex-start; /* top align */
+                gap: 2rem;
+            }
+            .story-app-layout > .main-col {
+                flex: 2 1 0%;
+                min-width: 0; /* prevent overflow shrink bugs */
+            }
+            .story-app-layout > .resource-panel {
+                flex: 1 1 280px;
+                max-width: 360px;       /* tune */
+                position: sticky;
+                top: 0;                 /* align with top of viewport */
+                margin-top: 0;
+            }
+        }
+        @media (max-width: 1023px) {
+            .story-app-layout {
+                display: block;
+            }
+            .resource-panel {
+                margin: 0 0 2rem 0;
+                position: static;
+            }
+        }
     </style>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-gray-100">
-    <div class="container mx-auto px-4 py-6 max-w-2xl">
+    <div class="container mx-auto px-4 lg:px-8 py-6 max-w-7xl">
         <!-- Header with back-link and logo -->
         <div class="flex justify-between items-center mb-4">
             <a href="index.html" class="text-blue-600 hover:underline">← Back to Stories</a>
@@ -84,6 +113,7 @@
 
         import { renderMarkupToHtmlString } from './js/codeTagUtils.js';
         import { transformReflectTokens, activateReflect } from './js/reflectUtils.js';
+        import { renderResourcePanel } from './js/resourceView.js';
 
         // load drug info ui-fields
         // right after you initialize Firestore…
@@ -341,6 +371,57 @@
                 modal.classList.remove('hidden');
             }
 
+            // Add this utility function after SVG/icon constants
+            function renderResources(resourceIds) {
+                if (!data.resources) return null;
+                let resourcesToShow = [];
+                if (Array.isArray(resourceIds)) {
+                    resourcesToShow = resourceIds.map(id => data.resources[id]).filter(Boolean);
+                } else {
+                    resourcesToShow = Object.values(data.resources);
+                }
+                if (!resourcesToShow.length) return null;
+                const container = document.createElement('div');
+                container.className = 'mb-4';
+                const title = document.createElement('h3');
+                title.className = 'text-lg font-semibold mb-2 text-blue-700';
+                title.textContent = 'Resources';
+                container.append(title);
+                resourcesToShow.forEach(res => {
+                    const row = document.createElement('div');
+                    row.className = 'flex items-start mb-2';
+                    const main = document.createElement('div');
+                    main.className = 'flex-1';
+                    const name = document.createElement('span');
+                    name.className = 'font-semibold';
+                    name.textContent = res.displayName || res.url || 'Resource';
+                    main.append(name);
+                    if (res.description) {
+                        const desc = document.createElement('span');
+                        desc.className = 'ml-2 text-gray-600';
+                        desc.textContent = res.description;
+                        main.append(desc);
+                    }
+                    row.append(main);
+                    if (res.url) {
+                        const btn = document.createElement('a');
+                        btn.href = res.url;
+                        btn.target = '_blank';
+                        btn.className = 'ml-2 text-blue-600 underline';
+                        btn.textContent = 'Open';
+                        row.append(btn);
+                    }
+                    if (res.importance) {
+                        const badge = document.createElement('span');
+                        badge.className = 'ml-2 px-2 py-0.5 rounded text-xs bg-yellow-100 text-yellow-800 border border-yellow-300';
+                        badge.textContent = res.importance;
+                        row.append(badge);
+                    }
+                    container.append(row);
+                });
+                return container;
+            }
+
             // Render story
             function renderStory() {
                 inQuiz = false;
@@ -397,7 +478,13 @@
                     optionSelector: '[data-option-id]'
                 });
                 card.append(paragraph);
-                // Options & Info buttons
+                // --- Add scenario-specific resources if present ---
+                let scenarioResourcesEl = null;
+                if (Array.isArray(sc.resourceIds) && sc.resourceIds.length && data.resources) {
+                    const resources = sc.resourceIds.map(id => data.resources[id]).filter(Boolean);
+                    if (resources.length) scenarioResourcesEl = renderResourcePanel(resources, { direction: storyDirection });
+                }
+                // --- Restore options rendering ---
                 const opts = document.createElement('div');
                 opts.className = 'flex flex-col space-y-3';
                 opts.style.direction = storyDirection;
@@ -414,41 +501,6 @@
                     b.setAttribute('data-option-id', o.id);
                     b.onclick = () => { current = o.id; renderStory(); };
                     row.append(b);
-                    // resource button logic
-                    if (o.resource && o.resource.type && o.resource.url) {
-                        const resourceBtn = document.createElement('button');
-                        resourceBtn.className = 'ml-2 inline-flex items-center border border-blue-500 hover:bg-blue-50 px-2 py-0.5 rounded story-button-center';
-                        resourceBtn.style.direction = storyDirection;
-                        resourceBtn.textContent = o.resource.displayName || 'Resource';
-                        if (o.resource.type === 'url') {
-                            resourceBtn.onclick = (e) => {
-                                e.stopPropagation();
-                                window.open(o.resource.url, '_blank');
-                            };
-                            resourceBtn.prepend(svg(InfoSVG));
-                        } else if (o.resource.type === 'youtube') {
-                            resourceBtn.prepend(svg(ShieldSVG));
-                            resourceBtn.onclick = (e) => {
-                                e.stopPropagation();
-                                let embed = row.querySelector('.youtube-embed');
-                                if (embed) {
-                                    embed.remove();
-                                } else {
-                                    embed = document.createElement('div');
-                                    embed.className = 'youtube-embed w-full mt-2';
-                                    const match = o.resource.url.match(/[?&]v=([^&#]+)/) || o.resource.url.match(/youtu\.be\/([^?&#]+)/);
-                                    const videoId = match ? match[1] : null;
-                                    if (videoId) {
-                                        embed.innerHTML = `<iframe width=\"100%\" height=\"315\" src=\"https://www.youtube.com/embed/${videoId}\" frameborder=\"0\" allowfullscreen></iframe>`;
-                                    } else {
-                                        embed.textContent = 'Invalid YouTube URL';
-                                    }
-                                    row.appendChild(embed);
-                                }
-                            };
-                        }
-                        row.append(resourceBtn);
-                    }
                     opts.append(row);
                 });
                 if (startQuiz && quiz) {
@@ -460,7 +512,19 @@
                     opts.append(qbtn);
                 }
                 card.append(opts);
-                app.append(card);
+
+                const mainWrap = document.createElement('div');
+                mainWrap.className = 'main-col';
+                mainWrap.append(card);
+
+                // Layout: resources panel + main content
+                const layout = document.createElement('div');
+                layout.className = 'story-app-layout';
+                layout.append(mainWrap);
+                if (scenarioResourcesEl) 
+                    layout.append(scenarioResourcesEl);
+                
+                app.append(layout);
                 // Activate reflection widget if present
                 // activateReflect(paragraph, {
                 //     scenarioId: current,
@@ -475,6 +539,10 @@
                 inQuiz = true; answers = {};
                 const app = document.getElementById('app');
                 app.innerHTML = '';
+                app.style.direction = storyDirection;
+                app.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
+                // --- Add global resources if present ---
+                const resourcesEl = data.resources ? renderResourcePanel(Object.values(data.resources), { direction: storyDirection }) : null;
                 const form = document.createElement('form');
                 form.className = 'space-y-6 bg-white p-6 rounded shadow';
                 form.style.direction = storyDirection;
@@ -518,7 +586,18 @@
                     });
                     renderQuizResults();
                 };
-                app.append(form);
+                // Layout: resources panel + main content
+                const layout = document.createElement('div');
+                layout.className = 'story-app-layout';
+
+                const mainWrap = document.createElement('div');
+                mainWrap.className = 'main-col';
+                mainWrap.append(form);
+                
+                layout.append(mainWrap);
+                if (resourcesEl) layout.append(resourcesEl);
+                
+                app.append(layout);
             }
 
             // Render quiz results
@@ -565,6 +644,8 @@
                 app.innerHTML = '';
                 app.style.direction = storyDirection;
                 app.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
+                // --- Add global resources if present ---
+                const resourcesEl = data.resources ? renderResourcePanel(Object.values(data.resources), { direction: storyDirection }) : null;
                 
                 const card = document.createElement('div');
                 card.className = 'bg-white p-6 rounded shadow space-y-2';
@@ -585,7 +666,18 @@
                     p.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>${renderMarkupToHtmlString(pt)}`;
                     card.append(p);
                 });
-                app.append(card);
+                // Layout: resources panel + main content
+                const layout = document.createElement('div');
+                layout.className = 'story-app-layout';
+
+                const mainWrap = document.createElement('div');
+                mainWrap.className = 'main-col';
+                mainWrap.append(card);
+                
+                layout.append(mainWrap);
+                if (resourcesEl) layout.append(resourcesEl);
+                
+                app.append(layout);
             }
 
             function renderIntro() {
@@ -600,7 +692,6 @@
                 titleEl.className = 'text-3xl font-bold mb-2';
                 titleEl.style.direction = storyDirection;
                 titleEl.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
-                app.append(titleEl);
 
                 // 2) Intro sentence
                 const descEl = document.createElement('p');
@@ -608,8 +699,11 @@
                 descEl.className = 'mb-4 text-gray-700';
                 descEl.style.direction = storyDirection;
                 descEl.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
-                app.append(descEl);
 
+                // --- Add global resources if present ---
+                const resourcesEl = data.resources ? renderResourcePanel(Object.values(data.resources), { direction: storyDirection }) : null;
+
+                // Main intro content
                 const introContainer = document.createElement('div');
                 introContainer.className = 'flex flex-col space-y-3';
                 introContainer.style.direction = storyDirection;
@@ -648,7 +742,14 @@
 
                 introContainer.append(startRow);
 
-                app.append(introContainer);
+                // Layout: resources panel + main content
+                const layout = document.createElement('div');
+                layout.className = 'story-app-layout';
+                if (resourcesEl) layout.append(resourcesEl);
+                const mainCol = document.createElement('div');
+                mainCol.append(titleEl, descEl, introContainer);
+                layout.append(mainCol);
+                app.append(layout);
             }
 
 
