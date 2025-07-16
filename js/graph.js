@@ -2,6 +2,7 @@
 console.log('[graph.js] module evaluated');
 
 import { mountScenarioTable } from './scenarioTable.js';
+import { openScenarioEditDialog } from './scenarioEditDialog.js';
 
 // will be filled in by mountGraphEditor so the standalone
 // renderCytoscapeGraph() always knows where to draw
@@ -59,182 +60,27 @@ if (!document.getElementById('connect-option-modal')) {
 function showConnectOptionModal(onSave) {
   const modal = document.getElementById('connect-option-modal');
   const txt   = document.getElementById('opt-text');
-  const drug  = document.getElementById('opt-drug');
   const btnOk = document.getElementById('opt-save');
   const btnNo = document.getElementById('opt-cancel');
 
   txt.value  = '';
-  drug.value = '';
   modal.classList.remove('hidden');
   txt.focus();
 
-  /* — live red/green colouring + “＋” shortcut — */
-  drug.oninput = () => window.paintDrugInput(drug);     // from drugHelpers.js
-  window.paintDrugInput(drug);                          // initialise
-
   function close() {
     modal.classList.add('hidden');
-    btnOk.onclick = btnNo.onclick = drug.oninput = null;
+    btnOk.onclick = btnNo.onclick = null;
   }
 
   btnOk.onclick = () => {
     const textVal  = txt.value.trim();
-    const drugVal  = drug.value.trim();
     if (!textVal) { txt.focus(); return; }
-    onSave({ text: textVal, drug: drugVal || undefined });
+    onSave({ text: textVal });
     close();
   };
   btnNo.onclick = close;
 }
 
-
-function openScenarioEditModal(scenarioId, scenarioData) {
-  const modal = document.getElementById('scenario-edit-modal');
-  const nameInput = document.getElementById('scenario-edit-name');
-  const textInput = document.getElementById('scenario-edit-text');
-  const pathResultInput = document.getElementById('scenario-edit-pathResult');
-  nameInput.value = scenarioData.name || '';
-  textInput.value = scenarioData.text || '';
-  pathResultInput.value = scenarioData.pathResult || 'undetermined';
-  modal.classList.remove('hidden');
-
-  
-  
-
-const optionsSection = document.getElementById('scenario-options-section');
-let   fullDraft      = JSON.parse(JSON.stringify(JSON.parse(gJsonTextarea.value)));
-const draftSc        = fullDraft.scenarios[scenarioId];
-
-function redrawOptions () {
-  /* 0️⃣  wipe the container */
-  optionsSection.innerHTML = '';
-
-  /* 1️⃣  fresh helpers every redraw ------------------------------ */
-  const scenarioNameMap = Object.fromEntries(
-    Object.entries(fullDraft.scenarios)
-          .map(([id, sc]) => [id, sc.name || id])
-  );
-  const allScenarioIds = Object.keys(fullDraft.scenarios)
-                               .filter(id => id !== scenarioId);
-
-  /* 2️⃣  build the rows ----------------------------------------- */
-  const list = document.createElement('div');
-  list.className = 'space-y-2';
-
-  (draftSc.options || []).forEach((opt, idx) => {
-    const row = document.createElement('div');
-    row.className = 'flex items-center space-x-2';
-
-    /* --- Text input ------------------------------------------- */
-    const textInp = document.createElement('input');
-    textInp.type  = 'text';
-    textInp.value = opt.text || '';
-    textInp.className = 'border rounded px-2 py-1 w-1/2';
-    textInp.oninput = () => { opt.text = textInp.value; };
-    row.appendChild(textInp);
-
-    /* --- Target dropdown -------------------------------------- */
-    const sel = document.createElement('select');
-    sel.className = 'border rounded px-2 py-1 w-1/3';
-    allScenarioIds.forEach(id => {
-      const o = new Option(
-        scenarioNameMap[id] ? `${scenarioNameMap[id]} (${id})` : id,
-        id,
-        false,
-        id === opt.id            // selected?
-      );
-      sel.append(o);
-    });
-    sel.onchange = () => { opt.id = sel.value; };
-    row.appendChild(sel);
-
-    /* --- Drug field ------------------------------------------- */
-    const drugInp = document.createElement('input');
-    drugInp.type  = 'text';
-    drugInp.value = opt.drug || '';
-    drugInp.placeholder = 'Drug';
-    drugInp.className = 'border rounded px-2 py-1 w-1/3';
-    drugInp.oninput = () => {            // just update draft
-      opt.drug = drugInp.value.trim();
-      window.paintDrugInput(drugInp);    // colour + “＋” shortcut
-    };
-    window.paintDrugInput(drugInp);      // first run
-    row.appendChild(drugInp);
-
-    /* --- Delete btn ------------------------------------------ */
-    const del = document.createElement('button');
-    del.textContent = '🗑';
-    del.className   = 'text-red-600 hover:text-red-800 px-2';
-    del.onclick     = () => { draftSc.options.splice(idx, 1); redrawOptions(); };
-    row.appendChild(del);
-
-    list.appendChild(row);
-  });
-
-  optionsSection.appendChild(list);
-
-  /* 3️⃣  “Add Option” button ------------------------------------ */
-  const addBtn = document.createElement('button');
-  addBtn.textContent = '+ Add Option';
-  addBtn.className =
-    'bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded mt-2';
-  addBtn.onclick = () => {
-    if (!allScenarioIds.length) {
-      alert('Add another scenario first – nowhere to link to.');
-      return;
-    }
-    draftSc.options = draftSc.options || [];
-    draftSc.options.push({ text: 'Option', id: allScenarioIds[0] });
-    redrawOptions();                       // redraw only
-  };
-  optionsSection.appendChild(addBtn);
-}
-
-/* call once right after you define the function */
-redrawOptions();
-
-  // Save handler
-  const saveBtn = document.getElementById('scenario-edit-save');
-  const cancelBtn = document.getElementById('scenario-edit-cancel');
-  const deleteBtn = document.getElementById('scenario-edit-delete');
-  function closeModal() {
-    modal.classList.add('hidden');
-    saveBtn.onclick = null;
-    cancelBtn.onclick = null;
-    deleteBtn.onclick = null;
-  }
-  saveBtn.onclick = () => {
-        // write back the pieces the user may have edited
-        draftSc.name       = nameInput.value;
-        draftSc.text       = textInput.value;
-        draftSc.pathResult = pathResultInput.value;
-    
-        /* 2️⃣ commit draft to real JSON + redraw once */
-        gJsonTextarea.value = JSON.stringify(fullDraft, null, 2);
-        renderCytoscapeGraph(fullDraft);
-        if (window.redrawMermaid) window.redrawMermaid();
-        closeModal();
-  };
-
-  cancelBtn.onclick = closeModal;
-  deleteBtn.onclick = () => {
-    if (!confirm('Delete this scenario and all its connections?')) return;
-    let full;
-    try { full = JSON.parse(gJsonTextarea.value); } catch { closeModal(); return; }
-    if (!full.scenarios[scenarioId]) { closeModal(); return; }
-    // Remove all options pointing to this scenario
-    Object.values(full.scenarios).forEach(sc => {
-      if (Array.isArray(sc.options)) {
-        sc.options = sc.options.filter(opt => opt.id !== scenarioId);
-      }
-    });
-    // Remove the scenario itself
-    delete full.scenarios[scenarioId];
-    gJsonTextarea.value = JSON.stringify(full, null, 2);
-    renderCytoscapeGraph(full);
-    closeModal();
-  };
-}
 
 /* --------------------------------------------------------------- */
   /* 3. Main render-function                                         */
@@ -348,10 +194,9 @@ redrawOptions();
 
           full.scenarios[sourceId].options = full.scenarios[sourceId].options || [];
           
-          showConnectOptionModal(({ text, drug }) => {
+          showConnectOptionModal(({ text }) => {
             full.scenarios[sourceId].options = full.scenarios[sourceId].options || [];
             const option = { text, id: targetId };
-            if (drug) option.drug = drug;              // only store if user typed one
             full.scenarios[sourceId].options.push(option);
           
             gJsonTextarea.value = JSON.stringify(full, null, 2);
@@ -375,7 +220,36 @@ redrawOptions();
       } else {
         const scenarioId   = evt.target.id();
         const scenarioData = data.scenarios[scenarioId];
-        if (scenarioData) openScenarioEditModal(scenarioId, scenarioData);
+        if (scenarioData) {
+          // Deep clone to avoid mutating the original until save
+          const draft = JSON.parse(JSON.stringify(scenarioData));
+          openScenarioEditDialog(scenarioId, draft, {
+            jsonTextarea: gJsonTextarea,
+            resources: data.resources || {},
+            onSave: updated => {
+              // Update the scenario in the JSON and redraw
+              let full = JSON.parse(gJsonTextarea.value);
+              full.scenarios[scenarioId] = updated;
+              gJsonTextarea.value = JSON.stringify(full, null, 2);
+              renderCytoscapeGraph(full);
+              if (window.redrawMermaid) window.redrawMermaid();
+            },
+            onDelete: () => {
+              let full = JSON.parse(gJsonTextarea.value);
+              // Remove all options pointing to this scenario
+              Object.values(full.scenarios).forEach(sc => {
+                if (Array.isArray(sc.options)) {
+                  sc.options = sc.options.filter(opt => opt.id !== scenarioId);
+                }
+              });
+              // Remove the scenario itself
+              delete full.scenarios[scenarioId];
+              gJsonTextarea.value = JSON.stringify(full, null, 2);
+              renderCytoscapeGraph(full);
+            },
+            onCancel: () => {}
+          });
+        }
       }
     });
 
@@ -519,7 +393,7 @@ if (cyContainer && !document.getElementById('graph-tools-container')) {
       const zoom = cy.zoom() * factor;
       cy.zoom(Math.max(cy.minZoom(), Math.min(cy.maxZoom(), zoom)));
       cy.center();
-    };
+    }
     zoomInBtn.onclick  = () => safeZoom(ZOOM_STEP);
     zoomOutBtn.onclick = () => safeZoom(1 / ZOOM_STEP);
   }
@@ -537,39 +411,6 @@ function generateScenarioId(name, existingIds) {
   return id;
 }
 
-// Update scenario edit modal to include Delete button
-const scenarioEditModalHtml = `
-<div id="scenario-edit-modal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden">
-  <div class="bg-white p-6 rounded shadow w-full max-w-md">
-    <h2 class="text-xl font-semibold mb-4">Edit Scenario</h2>
-    <div class="mb-3">
-      <label for="scenario-edit-name" class="block font-semibold mb-1">Name</label>
-      <input id="scenario-edit-name" type="text" class="border rounded px-3 py-2 w-full" />
-    </div>
-    <div class="mb-3">
-      <label for="scenario-edit-text" class="block font-semibold mb-1">Text</label>
-      <textarea id="scenario-edit-text" rows="3" class="border rounded px-3 py-2 w-full"></textarea>
-    </div>
-    <div class="mb-3">
-      <label for="scenario-edit-pathResult" class="block font-semibold mb-1">Path Result</label>
-      <select id="scenario-edit-pathResult" class="border rounded px-3 py-2 w-full">
-        <option value="undetermined">Undetermined</option>
-        <option value="success">Success</option>
-        <option value="failure">Failure</option>
-      </select>
-    </div>
-    <div class="mb-4" id="scenario-options-section"></div>
-    <div class="flex items-center space-x-2 mb-2">
-      <button id="scenario-edit-save" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">Save</button>
-      <button id="scenario-edit-cancel" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">Cancel</button>
-      <button id="scenario-edit-delete" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded ml-auto">Delete</button>
-    </div>
-  </div>
-</div>
-`;
-if (!document.getElementById('scenario-edit-modal')) {
-  document.body.insertAdjacentHTML('beforeend', scenarioEditModalHtml);
-}
 
  // ────────────────────────────────────────────────────────────────
  //  NEW: “Add Scenario” modal (hidden by default)

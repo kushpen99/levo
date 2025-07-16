@@ -2,6 +2,7 @@
 console.log('[scenarioTable.js] module evaluated');
 
 import { createResourceEditor } from './resourceEditor.js';
+import { openScenarioEditDialog } from './scenarioEditDialog.js';
 
 /**
  * Host must call `mountScenarioTable` ONCE and pass:
@@ -78,38 +79,68 @@ export function mountScenarioTable({ tableContainer, jsonTextarea }) {
     tbl.append(tbody);
 
     Object.entries(data.scenarios || {}).forEach(([sid, sc]) => {
-      const tr = document.createElement('tr'); tr.className = 'align-top';
+      const tr = document.createElement('tr'); tr.className = 'align-top cursor-pointer hover:bg-gray-50';
 
-      /* ID cell */
-      tr.append(tdPlain(sid));
-
-      /* Name cell */
-      tr.append(tdInput(sc.name || '', v => updateField(sid, 'name', v)));
-
-      /* Text cell (auto-expanding textarea) */
-      tr.append(tdTextarea(sc.text || '', v => updateField(sid, 'text', v)));
-
-      /* pathResult cell */
-      const tdRes = document.createElement('td');
-      tdRes.className = 'border px-2 py-1';
-      const sel = document.createElement('select');
-      ['undetermined','success','failure'].forEach(r => {
-        const o = new Option(r, r);
-        if ((sc.pathResult||'undetermined') === r) o.selected = true;
-        sel.append(o);
+      // Open dialog on row click (except delete)
+      tr.addEventListener('click', e => {
+        if (e.target.closest('button')) return; // don't trigger on delete btn
+        // Deep clone to avoid mutating original until save
+        const draft = JSON.parse(JSON.stringify(sc));
+        openScenarioEditDialog(sid, draft, {
+          jsonTextarea,
+          resources: data.resources || {},
+          onSave: updated => {
+            let full = JSON.parse(jsonTextarea.value);
+            full.scenarios[sid] = updated;
+            jsonTextarea.value = JSON.stringify(full, null, 2);
+            drawScenarioTable();
+            if (window.renderCytoscapeGraph) window.renderCytoscapeGraph(full);
+            if (window.redrawMermaid) window.redrawMermaid();
+          },
+          onDelete: () => {
+            let full = JSON.parse(jsonTextarea.value);
+            // Remove all options pointing to this scenario
+            Object.values(full.scenarios).forEach(s => {
+              if (Array.isArray(s.options)) {
+                s.options = s.options.filter(opt => opt.id !== sid);
+              }
+            });
+            delete full.scenarios[sid];
+            jsonTextarea.value = JSON.stringify(full, null, 2);
+            drawScenarioTable();
+            if (window.renderCytoscapeGraph) window.renderCytoscapeGraph(full);
+            if (window.redrawMermaid) window.redrawMermaid();
+          },
+          onCancel: () => {}
+        });
       });
-      sel.onchange = () => updateField(sid, 'pathResult', sel.value);
-      tdRes.append(sel); tr.append(tdRes);
 
-      /* Options-count cell with “Edit …” button */
-      tr.append(createOptionsCell(sid, sc.options || []));
-
-      /* Delete row btn */
+      // ID cell
+      tr.append(tdPlain(sid));
+      // Name cell
+      tr.append(tdPlain(sc.name || ''));
+      // Text cell
+      tr.append(tdPlain(sc.text || ''));
+      // pathResult cell
+      tr.append(tdPlain(sc.pathResult || 'undetermined'));
+      // ResourceIds cell (show comma-separated display names)
+      const tdResIds = document.createElement('td');
+      tdResIds.className = 'border px-2 py-1 text-xs';
+      const allResources = data.resources || {};
+      const selected = (sc.resourceIds || []).map(rid => allResources[rid]?.displayName || rid);
+      tdResIds.textContent = selected.join(', ');
+      tr.append(tdResIds);
+      // Options-count cell (show count)
+      const tdOpt = document.createElement('td');
+      tdOpt.className = 'border px-2 py-1 text-xs';
+      tdOpt.textContent = (sc.options || []).length + ' option' + ((sc.options||[]).length === 1 ? '' : 's');
+      tr.append(tdOpt);
+      // Delete row btn
       const tdDel = document.createElement('td');
       tdDel.className = 'border px-2 py-1 text-center';
       const delBtn = document.createElement('button');
       delBtn.textContent = '🗑';
-      delBtn.onclick = () => deleteScenario(sid);
+      delBtn.onclick = e => { e.stopPropagation(); deleteScenario(sid); };
       tdDel.append(delBtn); tr.append(tdDel);
 
       tbody.append(tr);
@@ -123,30 +154,6 @@ export function mountScenarioTable({ tableContainer, jsonTextarea }) {
       td.className = 'border px-2 py-1 text-xs break-all';
       td.textContent = t;
       return td;
-    }
-    function tdInput(val, cb) {
-      const td = document.createElement('td');
-      td.className = 'border px-2 py-1';
-      const inp = document.createElement('input');
-      inp.value = val;
-      inp.className = 'border rounded px-1 py-0.5 w-full';
-      inp.oninput = () => cb(inp.value);
-      td.append(inp);
-      return td;
-    }
-    function tdTextarea(val, cb) {
-      const td = document.createElement('td');
-      td.className = 'border px-2 py-1';
-      const ta = document.createElement('textarea');
-      ta.rows = 1; ta.value = val;
-      ta.className =
-        'border rounded px-1 py-0.5 w-full resize-none overflow-hidden';
-      ta.addEventListener('focus', () => {
-        ta.rows = 4; ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px';
-      });
-      ta.addEventListener('blur', () => { ta.rows=1; ta.style.height='auto'; });
-      ta.addEventListener('input', () => { cb(ta.value); });
-      td.append(ta); return td;
     }
 
     function createOptionsCell(sid, optionsArr) {

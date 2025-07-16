@@ -10,6 +10,9 @@ import {
     openDrugEditor
 } from './drugHelpers.js';
 import { renderMarkupToHtmlString } from './codeTagUtils.js';
+import { createGlobalResourceEditor } from './globalResourceEditor.js';
+import { renderQuizEditor } from './quizEditor.js';
+import { renderSummaryEditor } from './summaryEditor.js';
 
 
 
@@ -187,6 +190,26 @@ async function loadStoryLanguages() {
 /* --------------------------- UI logic ----------------------------- */
 // Track last loaded JSON for unsaved changes detection
 let lastLoadedStoryJson = '';
+const globalResourcesArea = document.getElementById('global-resources-area');
+
+function renderGlobalResourceEditor() {
+    let full;
+    try { full = JSON.parse(storyJsonArea.value); } catch { return; }
+    if (!globalResourcesArea) return;
+    globalResourcesArea.innerHTML = '';
+    const editor = createGlobalResourceEditor(full.resources || {}, updatedResources => {
+        // Update the resources in the story JSON
+        let obj;
+        try { obj = JSON.parse(storyJsonArea.value); } catch { return; }
+        obj.resources = updatedResources;
+        storyJsonArea.value = JSON.stringify(obj, null, 2);
+        // Trigger any listeners (e.g., presentation update)
+        storyJsonArea.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    globalResourcesArea.append(editor);
+}
+
+// Call renderGlobalResourceEditor whenever a story is loaded or JSON changes
 storyIdInput.onchange = async () => {
     const id = storyIdInput.value;
     if (!id) return hidePresentation();
@@ -216,27 +239,11 @@ storyIdInput.onchange = async () => {
         }
           
         views.redrawAll();
+        renderGlobalResourceEditor();
     } catch {/* ignore if JSON invalid */ }
 };
 
-storyJsonArea.oninput = () => {
-    if (suppressPresentation) {        // ← skip redraw during quiet updates
-        suppressPresentation = false;
-        return;
-    }
-    try {
-        JSON.parse(storyJsonArea.value);
-    }
-    catch { return; }
-    setupPresentation();
-    try {
-        const full = JSON.parse(storyJsonArea.value);
-        storyTitleInput.value = full.title || '';
-        statusSelect.value = full.status || 'Draft';
-        typeSelect.value = full.type || '';
-        views.redrawAll();
-    } catch {/* ignore if JSON invalid */ }
-};
+storyJsonArea.addEventListener('input', renderGlobalResourceEditor);
 
 storyTitleInput.oninput = () => {
     let full;
@@ -358,61 +365,26 @@ function renderPresentation() {
     if (data.quiz) {
         const quizSection = document.createElement('div');
         quizSection.className = 'mb-8';
-        
-        const quizTitle = document.createElement('h3');
-        quizTitle.className = 'text-lg font-semibold mb-4 text-blue-600';
-        quizTitle.textContent = 'Quiz Editor';
-        quizSection.appendChild(quizTitle);
-        
-        // Render each quiz question and its choices with code tag support
-        (data.quiz.choices || []).forEach(q => {
-            const qDiv = document.createElement('div');
-            qDiv.className = 'quiz-question mb-2 p-2 bg-blue-50 rounded';
-            qDiv.innerHTML = `<strong>Q:</strong> ${renderMarkupToHtmlString(q.question || '')}`;
-            if (q.options && Array.isArray(q.options)) {
-                const ul = document.createElement('ul');
-                ul.className = 'quiz-options list-disc pl-6';
-                q.options.forEach(opt => {
-                    const li = document.createElement('li');
-                    li.innerHTML = renderMarkupToHtmlString(opt);
-                    ul.appendChild(li);
-                });
-                qDiv.appendChild(ul);
-            }
-            quizSection.appendChild(qDiv);
-        });
+        renderQuizEditor({ container: quizSection, scenarioData: data, jsonTextarea: storyJsonArea });
         presContent.appendChild(quizSection);
     }
-    
     if (data.summary) {
         const summarySection = document.createElement('div');
         summarySection.className = 'mb-8';
-        
-        const summaryTitle = document.createElement('h3');
-        summaryTitle.className = 'text-lg font-semibold mb-4 text-green-600';
-        summaryTitle.textContent = 'Summary Editor';
-        summarySection.appendChild(summaryTitle);
-        
-        // Render each summary point with code tag support
-        (data.summary.points || []).forEach(point => {
-            const div = document.createElement('div');
-            div.className = 'summary-point mb-2 p-2 bg-gray-100 rounded';
-            div.innerHTML = renderMarkupToHtmlString(point);
-            summarySection.appendChild(div);
-        });
+        renderSummaryEditor({ container: summarySection, scenarioData: data, jsonTextarea: storyJsonArea });
         presContent.appendChild(summarySection);
     }
-    // Render scenario texts with code tag support
-    if (data.scenarios) {
-        Object.entries(data.scenarios).forEach(([sid, sc]) => {
-            if (sc.text) {
-                const div = document.createElement('div');
-                div.className = 'scenario-text-preview my-2 p-2 bg-gray-50 rounded';
-                div.innerHTML = renderMarkupToHtmlString(sc.text);
-                presContent.appendChild(div);
-            }
-        });
-    }
+    // Remove this block to prevent scenario.texts from being rendered after the summary editor
+    // if (data.scenarios) {
+    //     Object.entries(data.scenarios).forEach(([sid, sc]) => {
+    //         if (sc.text) {
+    //             const div = document.createElement('div');
+    //             div.className = 'scenario-text-preview my-2 p-2 bg-gray-50 rounded';
+    //             div.innerHTML = renderMarkupToHtmlString(sc.text);
+    //             presContent.appendChild(div);
+    //         }
+    //     });
+    // }
 }
 
 
@@ -746,6 +718,7 @@ createFromScratchBtn.onclick = async () => {
       language: languageSelect.value || 'en',
       createdAt: ts,
       updatedAt: ts,
+      resources: {},
       scenarios: {
         OPT0: {
           name: 'Intro',
