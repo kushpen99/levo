@@ -762,23 +762,416 @@ aiStorySubmit.onclick = async () => {
     aiStorySubmit.disabled = true;
     // Fetch the first published story as example
     const snap = await fb.getDocs(fb.collection(fb.db, 'stories'));
-    let exampleJson = '';
-    snap.forEach(docSnap => {
-        const d = docSnap.data();
-        if (!exampleJson && d.status === 'published') {
-            exampleJson = JSON.stringify(d, null, 2);
-        }
-    });
-    if (!exampleJson) {
-        aiStoryStatus.textContent = 'No published story found for example.';
-        aiStorySpinner.classList.add('hidden');
-        aiStorySubmit.disabled = false;
-        return;
-    }
+    
+   
     const subject = aiStorySubject.value.trim();
     const instr = aiStoryInstr.value.trim();
     const language = document.getElementById('ai-story-language').value || 'en';
-    const prompt = `You are an assistant that generates interactive case-study stories for students. All information you provide must be rigorously accurate—if the conclusions in a story prove wrong or misleading, the student (already struggling to meet the institute’s minimum requirements) is likely to fail the upcoming exam and be expelled.\nYou are an acknowledged expert in History and Literature.\n\nThe story must be written in the following language: ${language}. All text, including scenario names, options, and feedback, must be in this language.\n\nThese stories are represented as JSON following our established schema. Here is an example of an existing story (for reference):\n\n${exampleJson}\n\nUsing this schema:\n1. **Top-level keys** in order:\n   - title (string)\n   - status (string - initial value: draft)\n   - createdAt, updatedAt (timestamp objects)\n   - scenarios (object of scenario-objects)\n   - summary (object with a \"points\" array)\n   - quiz (object with a \"choices\" array)\n2. **Each scenario** must have keys in this order:\n   - name (string)\n   - text (string)\n   - pathResult (string. one of the values: undetermined, success, failure)\n   - options (array of option-objects)\n3. **Each option** must have:\n   - text (string)\n   - id (string matching one of the scenario keys)\n   - drugName(string, the name of the chosen drug if this option represents a drug choice, starts with a capital letter)\n5. **Mermaid compliance**:\n   - Scenario IDs become graph node IDs.\n   - Option texts must be short, single-line labels without unsupported Unicode.\n** There always must be an OPT0 scenario which is the starting point**\n** Scenario with pathResult=success must always have an empty options array**\n** Scenario with pathResult=failure must always have one option with the text Back which is getting the user back to the scenario he came from**\n---\n**Now** create a **brand new interactive case-study story JSON** with:\n- **Title** based on: Subject: ${subject} and on Additional instructions (if any): ${instr || 'none'}\n\nOutput **only** the new story's JSON, ready for Mermaid rendering.`;
+    
+    // Prompt injection variables – Hebrew Grade 6 Fractions lesson
+const expertField = subject;
+const narrativeStyle = "mentor-apprentice";
+const tone = "supportive but challenging";
+
+const learningObjectivesJSON = [
+  "להכיר את מושג המשתנה",
+  "להגדיר משתנה ולהשתמש בו בקוד"
+];
+
+const commonMisconceptionsJSON = [
+  "סדר לא נכון בשימוש באופרטור השמה. משתנה מימין"
+];
+
+const mustIncludePointsJSON = [
+  "חישוב האופרנד הימני לפני ההשמה",
+  "הדפסת משתנה",
+  "השמת משתנה למשתנה"
+];
+
+    const prompt = `You are an assistant that generates interactive, branching case-study stories for students across domains. All information must be rigorously accurate—if the conclusions in a story prove wrong or misleading, the student (already struggling to meet the institute’s minimum requirements) is likely to fail the upcoming exam and be expelled.
+
+You are an acknowledged expert in ${expertField}.
+
+Language: ${language}. All learner-visible text (scenario names, texts, options, feedback, summary, quiz) must be in this language and respect its writing direction.
+
+Narrative style: ${narrativeStyle || 'mentor-apprentice'}.
+Tone: ${tone || 'supportive but challenging'}.
+
+Learning objectives (array): ${learningObjectivesJSON}.
+Common misconceptions to surface: ${commonMisconceptionsJSON}.
+Must-include summary points: ${mustIncludePointsJSON}.
+
+Math & Code Markup (RTL Safety)
+--------------------------------
+If the target language is right-to-left (Hebrew, Arabic, etc.):
+
+• Wrap every inline mathematical expression in <math-inline>…</math-inline>.
+• Wrap display / multi-line math in <math-block>…</math-block>.
+• Wrap every inline code fragment in <code-inline lang="LANG">…</code-inline> where LANG is a short code such as "js", "py", "sql"; use "text" if unknown.
+• Wrap multi-line / display code in <code-block lang="LANG">…</code-block>. Put a newline immediately after the opening tag and before the closing tag (represented as \n in JSON strings) so indentation is preserved.
+• Do NOT use Markdown backticks inside JSON strings.
+• Escape double quotes and backslashes as required to maintain valid JSON.
+• The renderer will convert these wrappers into proper LTR <span> / <pre><code> elements with syntax highlighting; do not insert additional HTML attributes.
+
+Engagement & Reflection Rules
+-----------------------------
+• Begin major decision scenarios with a brief narrative, then a “Pause & predict” reflection cue marked by <<reflect>> (exact token).
+• Provide 2–4 options per decision scenario: 1 best action, ≥1 plausible but incomplete action, ≥1 misconception reflecting common student errors.
+• In the *resulting* scenario.text after a choice: first 1–2 sentences = outcome feedback; next 1–3 sentences = teaching point; final sentence = forward hook / next challenge.
+
+Schema (NEW OUTPUT)
+-------------------
+Top-level keys in order:
+  - title (string)
+  - status (string - initial value: draft)
+  - createdAt (timestamp object: { "seconds": <int>, "nanoseconds": <int> })
+  - updatedAt (timestamp object: same structure)
+  - scenarios (object of scenario-objects)
+  - summary (object with a "points" array)
+  - quiz (object with a "choices" array)
+
+Each scenario object keys in order:
+  - name (string)
+  - text (string)
+  - pathResult (string: one of undetermined, success, failure)
+  - options (array of option-objects)
+  - meta (optional object; see below)
+
+Each option object:
+  - text (string; short, action label ≤60 chars, single line)
+  - id (string matching one of the scenario keys)
+  - resource (optional object) with:
+      • displayName (string - human label, e.g., "Primary Source PDF", "Tutorial Video", "Piperacillin-Tazobactam")
+      • type (string - e.g., "article", "video", "dataset", "doc", "tool", "drug")
+      • url (string - absolute URL or app-internal path)
+      • importance (optional string: "recommended" | "optional" | "advanced")
+
+(Legacy content may show a drugName field; DO NOT use drugName in new output.)
+
+Mermaid compliance:
+  - Scenario IDs become graph node IDs.
+  - Option texts must be short, single-line labels without unsupported Unicode.
+
+Structural Rules
+----------------
+** Exactly one OPT0 scenario which is the starting point. **
+** A scenario with pathResult=success must always have an empty options array. **
+** A scenario with pathResult=failure must always have exactly one option whose text is Back, returning the user to the scenario they came from. **
+   - If multiple parents lead to the same failure concept, create distinct failure scenarios per parent (e.g., FAIL_OPT1, FAIL_OPT2) so each Back leads correctly.
+   - The Back option may include a resource if pedagogically helpful (e.g., "Review Guide").
+
+Content Length Guides
+---------------------
+• Scenario.text target length: 60–220 words (short failure remediations allowed ≥20 words).
+• summary.points: must include all must-include summary points; each point ≤160 chars; additional concise points allowed.
+• quiz must include at least 3 questions; each with "options" array (2–5 choices), one "correct" value, and may include "explanations" map (keyed by option string) with 1–2 sentence rationales.
+
+Optional scenario.meta object:
+  {
+    "difficulty": 1-5,
+    "cognitiveLevel": "recall" | "apply" | "analyze" | "evaluate" | "create",
+    "tags": ["..."],
+    "prereqSuccess": ["OPT1","OPT2"]   // scenario shown only if these succeeded; optional
+  }
+
+Validation Self-Check (DO THIS SILENTLY BEFORE OUTPUT)
+------------------------------------------------------
+1. JSON parses (UTF-8, double-quoted keys/strings, valid escapes).
+2. All referenced scenario IDs exist.
+3. Exactly one OPT0.
+4. All success scenarios have options=[].
+5. All failure scenarios have exactly one Back option to a valid scenario.
+6. No use of drugName.
+7. All learner-visible text localized to ${language}.
+8. Required math/code markup used if ${language} is RTL.
+9. Option texts ≤60 chars, one line.
+10. Summary contains all ${mustIncludePointsJSON} items (translated).
+
+REFERENCE EXAMPLES (for structure only — DO NOT COPY CONTENT)
+=============================================================
+
+--- MINIMAL EXAMPLE (reference only) ---
+{
+  "title": "Minimal Example – Adding Fractions",
+  "status": "draft",
+  "createdAt": { "seconds": 0, "nanoseconds": 0 },
+  "updatedAt": { "seconds": 0, "nanoseconds": 0 },
+  "scenarios": {
+    "OPT0": {
+      "name": "Start – Add Fractions",
+      "text": "You must add <math-inline>1/2 + 1/4</math-inline>. <<reflect>> Choose the method you think is correct.",
+      "pathResult": "undetermined",
+      "options": [
+        {
+          "text": "Find common denominator",
+          "id": "OPT1",
+          "resource": {
+            "displayName": "Fraction Visualizer",
+            "type": "tool",
+            "url": "https://example.com/fractions"
+          }
+        },
+        {
+          "text": "Add numerators only",
+          "id": "OPT2"
+        }
+      ]
+    },
+    "OPT1": {
+      "name": "Correct Addition",
+      "text": "Nice! Converting 1/2 to 2/4 gives <math-inline>2/4 + 1/4 = 3/4</math-inline>. This shows why common denominators matter. You can now apply this to unlike fractions in homework.",
+      "pathResult": "success",
+      "options": []
+    },
+    "OPT2": {
+      "name": "Incorrect – Numerators Only",
+      "text": "Adding just 1 + 1 and keeping 2 gives 2/2, which misreads denominators. Proper addition needs equal parts. Review and try again.",
+      "pathResult": "failure",
+      "options": [
+        {
+          "text": "Back",
+          "id": "OPT0",
+          "resource": {
+            "displayName": "Quick Fraction Review",
+            "type": "article",
+            "url": "https://example.com/fraction-review",
+            "importance": "recommended"
+          }
+        }
+      ]
+    }
+  },
+  "summary": {
+    "points": [
+      "Convert to a common denominator before adding fractions.",
+      "Add numerators; keep the common denominator.",
+      "Simplify the result when possible."
+    ]
+  },
+  "quiz": {
+    "choices": [
+      {
+        "id": "Q1",
+        "question": "1. What is 1/2 + 1/4?",
+        "options": ["2/2","3/4","1/6"],
+        "correct": "3/4"
+      },
+      {
+        "id": "Q2",
+        "question": "2. Why find a common denominator?",
+        "options": ["To match part sizes","To change the answer","No reason"],
+        "correct": "To match part sizes"
+      },
+      {
+        "id": "Q3",
+        "question": "3. Simplify 2/4:",
+        "options": ["1/2","2","4/2"],
+        "correct": "1/2"
+      }
+    ]
+  }
+}
+
+--- MAXIMAL EXAMPLE (reference only) ---
+{
+  "title": "Maximal Example – Decoding a Medieval Charter with Date Math & Code",
+  "status": "draft",
+  "createdAt": { "seconds": 0, "nanoseconds": 0 },
+  "updatedAt": { "seconds": 0, "nanoseconds": 0 },
+  "scenarios": {
+    "OPT0": {
+      "name": "You Receive the Charter",
+      "text": "A damaged Latin charter claims a land grant was issued in the reign of King X on \"the 14th day before the Kalends of May, Year 1215.\" You must verify authenticity. <<reflect>> What do you do first?",
+      "pathResult": "undetermined",
+      "options": [
+        {
+          "text": "Examine date system",
+          "id": "S1",
+          "resource": {
+            "displayName": "Roman Calendar Guide",
+            "type": "article",
+            "url": "https://example.com/roman-calendar",
+            "importance": "recommended"
+          }
+        },
+        {
+          "text": "Assume date is correct",
+          "id": "F_OPT0_ASSUME"
+        },
+        {
+          "text": "Run script to parse date",
+          "id": "S2",
+          "resource": {
+            "displayName": "Date-Parser Notebook",
+            "type": "tool",
+            "url": "https://example.com/date-parser",
+            "importance": "advanced"
+          }
+        }
+      ]
+    },
+    "S1": {
+      "name": "Analyze Roman Date",
+      "text": "Good start. Roman-style dating counts backward from fixed points. \"Kalends of May\" = May 1. \"14th day before\" (inclusive) maps to <math-inline>May 1 - 13 days</math-inline> = April 18. <<reflect>> Next?",
+      "pathResult": "undetermined",
+      "options": [
+        {
+          "text": "Cross-check regnal year",
+          "id": "S3",
+          "resource": {
+            "displayName": "Reign Timeline DB",
+            "type": "dataset",
+            "url": "https://example.com/regnal-timeline"
+          }
+        },
+        {
+          "text": "Trust inscription blindly",
+          "id": "F_S1_TRUST"
+        }
+      ]
+    },
+    "S2": {
+      "name": "Parse Date by Code",
+      "text": "You choose automation. Here's a snippet you consider running:<code-block lang=\"py\">\nimport datetime\n# Roman date helper pseudo-code\n# target: '14th day before Kalends of May 1215'\n</code-block>\nAutomating helps scale archival work, but mis-parsed rules can corrupt data. <<reflect>> Proceed?",
+      "pathResult": "undetermined",
+      "options": [
+        {
+          "text": "Validate logic manually",
+          "id": "S1"
+        },
+        {
+          "text": "Run unvalidated script",
+          "id": "F_S2_RUNBAD"
+        }
+      ]
+    },
+    "S3": {
+      "name": "Check Regnal Alignment",
+      "text": "Records show King X's 3rd regnal year began <math-inline>1214-11-03</math-inline>. April 18, 1215 falls in the 3rd year—consistent! You now verify seal integrity. <<reflect>>",
+      "pathResult": "undetermined",
+      "options": [
+        {
+          "text": "Inspect wax seal clues",
+          "id": "S4",
+          "resource": {
+            "displayName": "Seal Iconography Atlas",
+            "type": "doc",
+            "url": "https://example.com/seal-atlas"
+          }
+        },
+        {
+          "text": "Skip seal; accept validity",
+          "id": "F_S3_SKIPSEAL"
+        }
+      ]
+    },
+    "S4": {
+      "name": "Seal Verified – Charter Authentic",
+      "text": "Seal matrix, inscription style, and regnal dating all align. The charter is likely authentic; catalog with provenance notes.",
+      "pathResult": "success",
+      "options": []
+    },
+    "F_OPT0_ASSUME": {
+      "name": "Assumed Date Without Checking",
+      "text": "You accept the charter at face value. Later analysis finds the date format was miscopied; your catalog entry is flagged. Careful dating matters in medieval sources.",
+      "pathResult": "failure",
+      "options": [
+        {
+          "text": "Back",
+          "id": "OPT0",
+          "resource": {
+            "displayName": "Guide: Reading Medieval Dates",
+            "type": "article",
+            "url": "https://example.com/medieval-dates",
+            "importance": "recommended"
+          }
+        }
+      ]
+    },
+    "F_S1_TRUST": {
+      "name": "Trusted Inscription Blindly",
+      "text": "The scribe omitted an intercalary adjustment; your chronology drifts. Always confirm calendar conversions.",
+      "pathResult": "failure",
+      "options": [
+        {
+          "text": "Back",
+          "id": "S1"
+        }
+      ]
+    },
+    "F_S2_RUNBAD": {
+      "name": "Ran Script Without Validation",
+      "text": "The parser misread ordinal text and logged May 14 instead of April 18. Automated errors propagate widely. Validate logic first.",
+      "pathResult": "failure",
+      "options": [
+        {
+          "text": "Back",
+          "id": "S2"
+        }
+      ]
+    },
+    "F_S3_SKIPSEAL": {
+      "name": "Skipped Seal Verification",
+      "text": "A forged seal was later detected on similar documents; without inspection you miss critical fraud signals.",
+      "pathResult": "failure",
+      "options": [
+        {
+          "text": "Back",
+          "id": "S3"
+        }
+      ]
+    }
+  },
+  "summary": {
+    "points": [
+      "Convert Roman calendar dates carefully; inclusive counting matters.",
+      "Always cross-check regnal years before authenticating charters.",
+      "Validate code tools on known samples before batch processing records.",
+      "Physical seals provide key anti-forgery evidence."
+    ]
+  },
+  "quiz": {
+    "choices": [
+      {
+        "id": "Q1",
+        "question": "1. \"14th day before the Kalends of May\" corresponds to which modern date (inclusive count)?",
+        "options": ["April 18","April 17","May 14"],
+        "correct": "April 18"
+      },
+      {
+        "id": "Q2",
+        "question": "2. Why confirm regnal years when dating charters?",
+        "options": ["To match ruler chronology","To translate language","To restore parchment"],
+        "correct": "To match ruler chronology"
+      },
+      {
+        "id": "Q3",
+        "question": "3. Best practice before running a date-parsing script on an archive?",
+        "options": ["Run immediately","Validate on samples","Ignore errors"],
+        "correct": "Validate on samples"
+      },
+      {
+        "id": "Q4",
+        "question": "4. What can seals help detect?",
+        "options": ["Forgery","Ink color","Parchment humidity"],
+        "correct": "Forgery"
+      }
+    ]
+  }
+}
+
+=============================================================
+
+--- INSTRUCTIONS TO MODEL ---
+Using ALL rules above and the injected variables, create a brand-new interactive case-study story JSON.
+
+Title should reflect: Subject: ${subject}; Additional instructions: ${instr || 'none'}.
+status MUST start as "draft".
+Use current timestamp integers for createdAt/updatedAt (seconds + nanoseconds; nanoseconds may be 0 if unknown).
+
+Output ONLY the JSON. No markdown, no commentary.
+`;
+
     try {
         
         const res = await fetch(chatEndpoint, {
