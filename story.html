@@ -82,6 +82,9 @@
             db, collection, doc, getDoc, getDocs, query, where, orderBy
         } from './js/firebase-init.js';
 
+        import { renderMarkupToHtmlString } from './js/codeTagUtils.js';
+        import { transformReflectTokens, activateReflect } from './js/reflectUtils.js';
+
         // load drug info ui-fields
         // right after you initialize Firestore…
         let drugSummaryFields = [], drugExtendedFields = [];
@@ -344,57 +347,56 @@
                 const app = document.getElementById('app');
                 app.innerHTML = '';
                 const sc = scenarios[current];
-
                 // Story text card
                 const card = document.createElement('div');
                 card.className = 'bg-white p-6 rounded shadow text-lg whitespace-pre-wrap';
-                // Apply language direction to the card
                 card.style.direction = storyDirection;
                 card.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
-                
-                // —— failure styling ——
                 if (sc.pathResult === 'failure') {
-                    // 1) add a red tint + red border
                     card.classList.add('bg-red-50', 'border', 'border-red-400');
-                    // 2) make it shake once
                     card.classList.add('shake');
-                    // 3) prepend a big ❌ banner
                     const banner = document.createElement('div');
                     banner.className = 'flex items-center bg-red-500 text-white px-4 py-2 rounded-t';
                     banner.style.direction = storyDirection;
-                    banner.innerHTML = `<span class="text-xl mr-2">❌</span><strong>Incorrect choice</strong>`;
+                    banner.innerHTML = `<span class=\"text-xl mr-2\">❌</span><strong>Incorrect choice</strong>`;
                     card.prepend(banner);
                 }
-
-                /* ------------ 1. utilities prepared once ------------------- */
-
-
-                // ---------- inline highlighting (no drugInfo JSON any more) ----------
-                const paragraph = document.createElement('p');
-                paragraph.className = 'mb-4 whitespace-pre-wrap';   // ← keep your old styling
+                // --- Enhanced scenario text rendering with reflect support ---
+                console.log('Scenario text (raw):', sc.text);
+                const reflectToken = '<<reflect>>';
+                const scenarioText = sc.text || '';
+                const scenarioId = sc.id || current;
+                const mode = 'gated';
+                // Split on the reflect token
+                const parts = scenarioText.split(reflectToken);
+                let html = '';
+                for (let i = 0; i < parts.length; i++) {
+                    html += renderMarkupToHtmlString(parts[i]);
+                    if (i < parts.length - 1) {
+                        // Insert the reflect widget after each token (except the last part)
+                        html += transformReflectTokens(reflectToken, { scenarioId, mode });
+                    }
+                }
+                console.log('Final HTML before insert:', html);
+                // Ensure paragraph is defined
+                const paragraph = document.createElement('div');
+                paragraph.className = 'mb-4 whitespace-pre-wrap';
                 paragraph.style.direction = storyDirection;
                 paragraph.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
-                card.append(paragraph);                             // add <p> to the card first
-
-                // highlight drug names inline   (inside the scenario loop where `card` exists)
-                sc.text.split(DRUG_REGEX).forEach(seg => {
-                    const key = seg.toLowerCase();
-                    if (drugSet.has(key)) {
-                        const canon = drugMap.get(key);                 // Firestore ID
-                        const btn = document.createElement('button');
-                        btn.className =
-                            'inline-flex items-center text-blue-600 hover:underline';
-                        btn.style.direction = storyDirection;
-                        btn.textContent = seg;                          // keep original casing
-                        btn.append(svg(InfoSVG));
-                        btn.onclick = () => showDrugInfo(canon);         // ← canonical name
-                        card.append(btn);
-                    } else {
-                        card.append(document.createTextNode(seg));
-                    }
+                paragraph.innerHTML = html;
+                // Activate reflect widget if present
+                const reflectWidget = paragraph.querySelector('.reflect-cue[data-reflect]');
+                if (reflectWidget) {
+                    console.log('Reflect widget found, activating...');
+                } else {
+                    console.log('No reflect widget found in paragraph.');
+                }
+                activateReflect(paragraph, {
+                    scenarioId,
+                    mode,
+                    optionSelector: '[data-option-id]'
                 });
-
-
+                card.append(paragraph);
                 // Options & Info buttons
                 const opts = document.createElement('div');
                 opts.className = 'flex flex-col space-y-3';
@@ -408,10 +410,10 @@
                     const b = document.createElement('button');
                     b.className = 'flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded story-button-center';
                     b.style.direction = storyDirection;
-                    b.textContent = o.text;
+                    b.innerHTML = renderMarkupToHtmlString(o.text || '');
+                    b.setAttribute('data-option-id', o.id);
                     b.onclick = () => { current = o.id; renderStory(); };
                     row.append(b);
-
                     // resource button logic
                     if (o.resource && o.resource.type && o.resource.url) {
                         const resourceBtn = document.createElement('button');
@@ -428,18 +430,16 @@
                             resourceBtn.prepend(svg(ShieldSVG));
                             resourceBtn.onclick = (e) => {
                                 e.stopPropagation();
-                                // Toggle YouTube embed
                                 let embed = row.querySelector('.youtube-embed');
                                 if (embed) {
                                     embed.remove();
                                 } else {
                                     embed = document.createElement('div');
                                     embed.className = 'youtube-embed w-full mt-2';
-                                    // Extract YouTube video ID
                                     const match = o.resource.url.match(/[?&]v=([^&#]+)/) || o.resource.url.match(/youtu\.be\/([^?&#]+)/);
                                     const videoId = match ? match[1] : null;
                                     if (videoId) {
-                                        embed.innerHTML = `<iframe width="100%" height="315" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>`;
+                                        embed.innerHTML = `<iframe width=\"100%\" height=\"315\" src=\"https://www.youtube.com/embed/${videoId}\" frameborder=\"0\" allowfullscreen></iframe>`;
                                     } else {
                                         embed.textContent = 'Invalid YouTube URL';
                                     }
@@ -451,8 +451,6 @@
                     }
                     opts.append(row);
                 });
-
-                // "Take Quiz" if end-of-story and quiz exists
                 if (startQuiz && quiz) {
                     const qbtn = document.createElement('button');
                     qbtn.textContent = 'Take Quiz';
@@ -461,8 +459,14 @@
                     qbtn.onclick = renderQuiz;
                     opts.append(qbtn);
                 }
+                card.append(opts);
                 app.append(card);
-                app.append(opts);
+                // Activate reflection widget if present
+                // activateReflect(paragraph, {
+                //     scenarioId: current,
+                //     mode: 'gated',
+                //     optionSelector: '[data-option-id]',
+                // });
             }
 
 
@@ -483,7 +487,7 @@
                     qel.className = 'font-semibold';
                     qel.style.direction = storyDirection;
                     qel.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
-                    qel.textContent = q.question;
+                    qel.innerHTML = renderMarkupToHtmlString(q.question || '');
                     block.append(qel);
                     q.options.forEach(opt => {
                         const label = document.createElement('label');
@@ -491,7 +495,10 @@
                         label.style.direction = storyDirection;
                         const inp = document.createElement('input');
                         inp.type = 'radio'; inp.name = q.id; inp.value = opt; inp.className = 'mr-2';
-                        label.append(inp, document.createTextNode(opt));
+                        label.append(inp);
+                        const optSpan = document.createElement('span');
+                        optSpan.innerHTML = renderMarkupToHtmlString(opt);
+                        label.append(optSpan);
                         block.append(label);
                     });
                     form.append(block);
@@ -529,7 +536,7 @@
                     qel.className = 'font-semibold';
                     qel.style.direction = storyDirection;
                     qel.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
-                    qel.textContent = q.question; 
+                    qel.innerHTML = renderMarkupToHtmlString(q.question || '');
                     block.append(qel);
                     const user = answers[q.id], correct = q.correct;
                     const res = document.createElement('p');
@@ -575,7 +582,7 @@
                     p.className = 'flex items-start';
                     p.style.direction = storyDirection;
                     p.style.textAlign = storyDirection === 'rtl' ? 'right' : 'left';
-                    p.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>${pt}`;
+                    p.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>${renderMarkupToHtmlString(pt)}`;
                     card.append(p);
                 });
                 app.append(card);

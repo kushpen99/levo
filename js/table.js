@@ -9,6 +9,7 @@ import {
     generateDrugInfoByAI,
     openDrugEditor
 } from './drugHelpers.js';
+import { renderMarkupToHtmlString } from './codeTagUtils.js';
 
 
 
@@ -363,7 +364,23 @@ function renderPresentation() {
         quizTitle.textContent = 'Quiz Editor';
         quizSection.appendChild(quizTitle);
         
-        renderQuiz(data, quizSection);
+        // Render each quiz question and its choices with code tag support
+        (data.quiz.choices || []).forEach(q => {
+            const qDiv = document.createElement('div');
+            qDiv.className = 'quiz-question mb-2 p-2 bg-blue-50 rounded';
+            qDiv.innerHTML = `<strong>Q:</strong> ${renderMarkupToHtmlString(q.question || '')}`;
+            if (q.options && Array.isArray(q.options)) {
+                const ul = document.createElement('ul');
+                ul.className = 'quiz-options list-disc pl-6';
+                q.options.forEach(opt => {
+                    const li = document.createElement('li');
+                    li.innerHTML = renderMarkupToHtmlString(opt);
+                    ul.appendChild(li);
+                });
+                qDiv.appendChild(ul);
+            }
+            quizSection.appendChild(qDiv);
+        });
         presContent.appendChild(quizSection);
     }
     
@@ -376,19 +393,38 @@ function renderPresentation() {
         summaryTitle.textContent = 'Summary Editor';
         summarySection.appendChild(summaryTitle);
         
-        renderSummary(data, summarySection);
+        // Render each summary point with code tag support
+        (data.summary.points || []).forEach(point => {
+            const div = document.createElement('div');
+            div.className = 'summary-point mb-2 p-2 bg-gray-100 rounded';
+            div.innerHTML = renderMarkupToHtmlString(point);
+            summarySection.appendChild(div);
+        });
         presContent.appendChild(summarySection);
+    }
+    // Render scenario texts with code tag support
+    if (data.scenarios) {
+        Object.entries(data.scenarios).forEach(([sid, sc]) => {
+            if (sc.text) {
+                const div = document.createElement('div');
+                div.className = 'scenario-text-preview my-2 p-2 bg-gray-50 rounded';
+                div.innerHTML = renderMarkupToHtmlString(sc.text);
+                presContent.appendChild(div);
+            }
+        });
     }
 }
 
 
 /* --------------------- OTHER RENDERERS ------------------------------ */
 function renderSummary(data, container = presContent) {
-    const ta = document.createElement('textarea');
-    ta.className = 'border rounded px-2 py-1 w-full h-32';
-    ta.value = (data.summary?.points || []).join('\n');
-    ta.oninput = () => { const full = JSON.parse(storyJsonArea.value); full.summary = { points: ta.value.split('\n') }; storyJsonArea.value = JSON.stringify(full, null, 2); };
-    container.append(ta);
+    // Render each summary point with code tag support
+    (data.summary?.points || []).forEach(point => {
+        const div = document.createElement('div');
+        div.className = 'summary-point mb-2 p-2 bg-gray-100 rounded';
+        div.innerHTML = renderMarkupToHtmlString(point);
+        container.appendChild(div);
+    });
 }
 
 function renderQuiz(data, container = presContent) {
