@@ -1,25 +1,16 @@
 {
-  "name": "urushka",
+  "name": "levo-story-app",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Levo story-based learning app",
+  "main": "index.html",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build-env": "npx dotenv -e .env -- node -e \"require('fs').writeFileSync('js/env.js', `window.APP_ENV = { CHAT_API_KEY: \\\"${process.env.CHAT_API_KEY}\\\" };\\n`)\"",
+    "start": "npm run build-env && npx live-server --open=index.html --port=3000"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/kushpen99/urushka.git"
+  "devDependencies": {
+    "dotenv-cli": "^8.0.0"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/kushpen99/urushka/issues"
-  },
-  "homepage": "https://github.com/kushpen99/urushka#readme",
   "dependencies": {
-    "firebase-admin": "^13.3.0",
-    "openai": "^4.96.0"
+    "openai": "^5.10.1"
   }
 }

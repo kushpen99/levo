@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "start": "npx live-server --open=index.html --port=3000",
+    "lint": "npx eslint .",
+    "build": "echo 'No build step defined.'"
+  },
+  "main": "index.html",
+  "description": "Levo story-based learning app NPR config"
+} 

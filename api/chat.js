@@ -1,6 +1,10 @@
 // api/chat.js
 import OpenAI from "openai";
 
+if (process.env.NODE_ENV !== 'production') {
+  try { require('dotenv').config(); } catch {}
+}
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
